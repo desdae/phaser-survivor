@@ -1,10 +1,10 @@
-import Phaser from 'phaser';
 import { getChoiceByIndex } from '../logic/upgradeSelection.js';
 
 function createButtonCard(scene, onClick) {
   const background = scene.add
     .rectangle(0, 0, 280, 170, 0x163042, 0.96)
-    .setStrokeStyle(2, 0x89c7ff, 0.65);
+    .setStrokeStyle(2, 0x89c7ff, 0.65)
+    .setInteractive({ useHandCursor: true });
   const badge = scene.add.text(92, -58, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '13px',
@@ -32,10 +32,8 @@ function createButtonCard(scene, onClick) {
     color: '#ffd17a'
   });
   const card = scene.add.container(0, 0, [background, badge, title, description, hint]);
-  const hitArea = new Phaser.Geom.Rectangle(-140, -85, 280, 170);
 
   card.setSize(280, 170);
-  card.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
   card.choice = null;
   card.background = background;
   card.badge = badge;
@@ -43,9 +41,9 @@ function createButtonCard(scene, onClick) {
   card.description = description;
   card.hint = hint;
 
-  card.on('pointerover', () => background.setFillStyle(card.isUnlock ? 0x243a2b : 0x1f4561, 1));
-  card.on('pointerout', () => background.setFillStyle(card.isUnlock ? 0x1b2f22 : 0x163042, 0.96));
-  card.on('pointerdown', () => {
+  background.on('pointerover', () => background.setFillStyle(card.isUnlock ? 0x243a2b : 0x1f4561, 1));
+  background.on('pointerout', () => background.setFillStyle(card.isUnlock ? 0x1b2f22 : 0x163042, 0.96));
+  background.on('pointerdown', () => {
     if (card.choice) {
       onClick(card.choice);
     }
