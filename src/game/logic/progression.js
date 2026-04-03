@@ -54,6 +54,202 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'unlockChain',
+    label: 'Storm Lash',
+    description: 'Unlock chain lightning that jumps across nearby enemies.',
+    isAvailable: (player) => !player.chainUnlocked,
+    apply(player) {
+      player.chainUnlocked = true;
+      player.chainDamage = Math.max(player.chainDamage, 16);
+      player.chainLinks = Math.max(player.chainLinks, 3);
+      player.chainRange = Math.max(player.chainRange, 90);
+      player.chainCooldownMs = Math.max(player.chainCooldownMs, 0) || 1400;
+    }
+  },
+  {
+    key: 'chainDamage',
+    label: 'Volt Surge',
+    description: '+8 chain lightning damage',
+    isAvailable: (player) => player.chainUnlocked,
+    apply(player) {
+      player.chainDamage += 8;
+    }
+  },
+  {
+    key: 'chainLinks',
+    label: 'Forked Current',
+    description: '+1 lightning jump',
+    isAvailable: (player) => player.chainUnlocked,
+    apply(player) {
+      player.chainLinks += 1;
+    }
+  },
+  {
+    key: 'chainRange',
+    label: 'Long Arc',
+    description: '+30 chain range',
+    isAvailable: (player) => player.chainUnlocked,
+    apply(player) {
+      player.chainRange += 30;
+    }
+  },
+  {
+    key: 'chainRate',
+    label: 'Storm Relay',
+    description: '-170ms chain cooldown',
+    isAvailable: (player) => player.chainUnlocked,
+    apply(player) {
+      player.chainCooldownMs = Math.max(650, player.chainCooldownMs - 170);
+    }
+  },
+  {
+    key: 'unlockNova',
+    label: 'Pulse Engine',
+    description: 'Unlock a close-range nova that erupts in repeating bursts.',
+    isAvailable: (player) => !player.novaUnlocked,
+    apply(player) {
+      player.novaUnlocked = true;
+      player.novaDamage = Math.max(player.novaDamage, 12);
+      player.novaRadius = Math.max(player.novaRadius, 96);
+      player.novaCooldownMs = Math.max(player.novaCooldownMs, 0) || 2200;
+      player.novaEchoCount = Math.max(player.novaEchoCount, 2);
+    }
+  },
+  {
+    key: 'novaDamage',
+    label: 'Aftershock Core',
+    description: '+6 nova damage',
+    isAvailable: (player) => player.novaUnlocked,
+    apply(player) {
+      player.novaDamage += 6;
+    }
+  },
+  {
+    key: 'novaRadius',
+    label: 'Wide Pulse',
+    description: '+18 nova radius',
+    isAvailable: (player) => player.novaUnlocked,
+    apply(player) {
+      player.novaRadius += 18;
+    }
+  },
+  {
+    key: 'novaEcho',
+    label: 'Echo Chamber',
+    description: '+1 repeating nova burst',
+    isAvailable: (player) => player.novaUnlocked,
+    apply(player) {
+      player.novaEchoCount += 1;
+    }
+  },
+  {
+    key: 'novaRate',
+    label: 'Pulse Capacitor',
+    description: '-220ms nova cooldown',
+    isAvailable: (player) => player.novaUnlocked,
+    apply(player) {
+      player.novaCooldownMs = Math.max(900, player.novaCooldownMs - 220);
+    }
+  },
+  {
+    key: 'unlockBoomerang',
+    label: 'Razor Boomerang',
+    description: 'Unlock a thrown blade that sweeps out and returns to you.',
+    isAvailable: (player) => !player.boomerangUnlocked,
+    apply(player) {
+      player.boomerangUnlocked = true;
+      player.boomerangCount = Math.max(player.boomerangCount, 1);
+      player.boomerangDamage = Math.max(player.boomerangDamage, 18);
+      player.boomerangRange = Math.max(player.boomerangRange, 150);
+      player.boomerangCooldownMs = Math.max(player.boomerangCooldownMs, 0) || 1500;
+    }
+  },
+  {
+    key: 'boomerangDamage',
+    label: 'Saw Teeth',
+    description: '+7 boomerang damage',
+    isAvailable: (player) => player.boomerangUnlocked,
+    apply(player) {
+      player.boomerangDamage += 7;
+    }
+  },
+  {
+    key: 'boomerangCount',
+    label: 'Twin Return',
+    description: '+1 boomerang',
+    isAvailable: (player) => player.boomerangUnlocked,
+    apply(player) {
+      player.boomerangCount += 1;
+    }
+  },
+  {
+    key: 'boomerangRange',
+    label: 'Long Flight',
+    description: '+35 boomerang range',
+    isAvailable: (player) => player.boomerangUnlocked,
+    apply(player) {
+      player.boomerangRange += 35;
+    }
+  },
+  {
+    key: 'boomerangRate',
+    label: 'Quick Catch',
+    description: '-160ms boomerang cooldown',
+    isAvailable: (player) => player.boomerangUnlocked,
+    apply(player) {
+      player.boomerangCooldownMs = Math.max(700, player.boomerangCooldownMs - 160);
+    }
+  },
+  {
+    key: 'unlockMeteor',
+    label: 'Starcall',
+    description: 'Unlock delayed meteor strikes that punish packed enemies.',
+    isAvailable: (player) => !player.meteorUnlocked,
+    apply(player) {
+      player.meteorUnlocked = true;
+      player.meteorCount = Math.max(player.meteorCount, 1);
+      player.meteorDamage = Math.max(player.meteorDamage, 28);
+      player.meteorRadius = Math.max(player.meteorRadius, 52);
+      player.meteorCooldownMs = Math.max(player.meteorCooldownMs, 0) || 2600;
+    }
+  },
+  {
+    key: 'meteorDamage',
+    label: 'Falling Wrath',
+    description: '+10 meteor damage',
+    isAvailable: (player) => player.meteorUnlocked,
+    apply(player) {
+      player.meteorDamage += 10;
+    }
+  },
+  {
+    key: 'meteorRadius',
+    label: 'Crater Bloom',
+    description: '+16 meteor radius',
+    isAvailable: (player) => player.meteorUnlocked,
+    apply(player) {
+      player.meteorRadius += 16;
+    }
+  },
+  {
+    key: 'meteorCount',
+    label: 'Twin Impact',
+    description: '+1 meteor target',
+    isAvailable: (player) => player.meteorUnlocked,
+    apply(player) {
+      player.meteorCount += 1;
+    }
+  },
+  {
+    key: 'meteorRate',
+    label: 'Sky Furnace',
+    description: '-240ms meteor cooldown',
+    isAvailable: (player) => player.meteorUnlocked,
+    apply(player) {
+      player.meteorCooldownMs = Math.max(1100, player.meteorCooldownMs - 240);
+    }
+  },
+  {
     key: 'bladeCount',
     label: 'Twin Edges',
     description: '+1 orbiting blade',

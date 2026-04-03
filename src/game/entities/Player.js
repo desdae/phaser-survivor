@@ -20,7 +20,27 @@ const PLAYER_STARTING_STATS = {
   bladeCount: 0,
   bladeDamage: 0,
   bladeOrbitRadius: 0,
-  bladeOrbitSpeed: 0
+  bladeOrbitSpeed: 0,
+  chainUnlocked: false,
+  chainDamage: 0,
+  chainLinks: 0,
+  chainRange: 0,
+  chainCooldownMs: 0,
+  novaUnlocked: false,
+  novaDamage: 0,
+  novaRadius: 0,
+  novaCooldownMs: 0,
+  novaEchoCount: 0,
+  boomerangUnlocked: false,
+  boomerangCount: 0,
+  boomerangDamage: 0,
+  boomerangRange: 0,
+  boomerangCooldownMs: 0,
+  meteorUnlocked: false,
+  meteorCount: 0,
+  meteorDamage: 0,
+  meteorRadius: 0,
+  meteorCooldownMs: 0
 };
 
 export class Player {

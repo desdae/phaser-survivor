@@ -84,11 +84,22 @@ export function createHud(scene) {
     layout() {
       container.setPosition(18, 18);
     },
-    update({ health, maxHealth, level, xp, xpToNext, timeMs, enemyCount, projectileCount, bladeCount }) {
+    update({
+      health,
+      maxHealth,
+      level,
+      xp,
+      xpToNext,
+      timeMs,
+      enemyCount,
+      projectileCount,
+      bladeCount,
+      activeWeapons
+    }) {
       hpText.setText(`HP ${Math.ceil(health)} / ${maxHealth}`);
       levelText.setText(`Level ${level}   Threats ${enemyCount}`);
       xpText.setText(`XP ${xp} / ${xpToNext}   Shots ${projectileCount}   Blades ${bladeCount}`);
-      timeText.setText(`Time ${formatTime(timeMs)}`);
+      timeText.setText(`Time ${formatTime(timeMs)}   Arsenal ${activeWeapons}`);
     }
   };
 }

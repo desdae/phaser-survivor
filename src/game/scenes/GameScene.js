@@ -2,6 +2,10 @@ import Phaser from 'phaser';
 import { Player } from '../entities/Player.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
 import { BladeManager } from '../systems/BladeManager.js';
+import { BoomerangManager } from '../systems/BoomerangManager.js';
+import { ChainManager } from '../systems/ChainManager.js';
+import { MeteorManager } from '../systems/MeteorManager.js';
+import { NovaManager } from '../systems/NovaManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
@@ -31,6 +35,10 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager = new EnemyManager(this, this.player, this.pickupManager);
     this.projectileManager = new ProjectileManager(this);
     this.bladeManager = new BladeManager(this);
+    this.chainManager = new ChainManager(this);
+    this.novaManager = new NovaManager(this);
+    this.boomerangManager = new BoomerangManager(this);
+    this.meteorManager = new MeteorManager(this);
     this.upgradeSystem = new UpgradeSystem();
 
     this.keys = this.input.keyboard.addKeys({
@@ -103,14 +111,26 @@ export class GameScene extends Phaser.Scene {
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
     this.bladeManager.syncToPlayer(this.player.stats);
+    const livingEnemies = this.enemyManager.getLivingEnemies();
     this.bladeManager.update(
       this.player,
       this.player.stats,
       delta,
       time,
-      this.enemyManager.getLivingEnemies(),
+      livingEnemies,
       this.enemyManager
     );
+    this.chainManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
+    this.novaManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
+    this.boomerangManager.update(
+      this.player,
+      this.player.stats,
+      delta,
+      time,
+      livingEnemies,
+      this.enemyManager
+    );
+    this.meteorManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
     this.pickupManager.update(this.player.sprite, this.player.stats.pickupRadius);
     this.refreshHud();
   }
@@ -204,7 +224,14 @@ export class GameScene extends Phaser.Scene {
       timeMs: this.elapsedMs,
       enemyCount: this.enemyManager.getLivingEnemies().length,
       projectileCount: this.player.stats.projectileCount,
-      bladeCount: this.player.stats.bladeCount
+      bladeCount: this.player.stats.bladeCount,
+      activeWeapons:
+        1 +
+        Number(this.player.stats.bladeUnlocked) +
+        Number(this.player.stats.chainUnlocked) +
+        Number(this.player.stats.novaUnlocked) +
+        Number(this.player.stats.boomerangUnlocked) +
+        Number(this.player.stats.meteorUnlocked)
     });
   }
 
@@ -271,6 +298,25 @@ export class GameScene extends Phaser.Scene {
     graphics.fillStyle(0xd9f2ff, 1);
     graphics.fillTriangle(6, 20, 14, 0, 22, 20);
     graphics.generateTexture('blade', 28, 22);
+
+    graphics.clear();
+    graphics.fillStyle(0xffb56c, 1);
+    graphics.fillTriangle(2, 14, 14, 2, 26, 14);
+    graphics.lineStyle(2, 0xfff2cb, 1);
+    graphics.strokeTriangle(2, 14, 14, 2, 26, 14);
+    graphics.generateTexture('boomerang', 28, 16);
+
+    graphics.clear();
+    graphics.lineStyle(4, 0x9deaff, 0.95);
+    graphics.strokeCircle(20, 20, 16);
+    graphics.generateTexture('nova-ring', 40, 40);
+
+    graphics.clear();
+    graphics.fillStyle(0xffe18b, 0.85);
+    graphics.fillCircle(16, 16, 10);
+    graphics.lineStyle(2, 0xff7d5f, 1);
+    graphics.strokeCircle(16, 16, 14);
+    graphics.generateTexture('meteor-marker', 32, 32);
 
     graphics.clear();
     graphics.fillStyle(0x7df0ac, 1);
