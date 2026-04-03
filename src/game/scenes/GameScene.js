@@ -112,7 +112,7 @@ export class GameScene extends Phaser.Scene {
 
   handlePickupCollected(value) {
     if (this.isGameOver) {
-      return;
+      return false;
     }
 
     const result = this.player.gainXp(value);
@@ -120,6 +120,8 @@ export class GameScene extends Phaser.Scene {
     if (result.leveledUp) {
       this.openLevelUp();
     }
+
+    return result.leveledUp;
   }
 
   handlePlayerEnemyOverlap(enemy) {
@@ -146,8 +148,6 @@ export class GameScene extends Phaser.Scene {
     this.isGameplayPaused = true;
     this.physics.world.pause();
     this.player.stop();
-    this.enemyManager.stopAll();
-    this.projectileManager.stopAll();
     this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats));
   }
 

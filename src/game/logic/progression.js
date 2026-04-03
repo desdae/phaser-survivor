@@ -16,14 +16,6 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
-    key: 'projectileSpeed',
-    label: 'Hot Lead',
-    description: '+80 projectile speed',
-    apply(player) {
-      player.projectileSpeed += 80;
-    }
-  },
-  {
     key: 'maxHealth',
     label: 'Iron Skin',
     description: '+20 max health and heal 20',

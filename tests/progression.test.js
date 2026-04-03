@@ -47,7 +47,7 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(true);
     expect(pool.some((entry) => entry.key === 'damage')).toBe(true);
     expect(pool.some((entry) => entry.key === 'fireRate')).toBe(true);
-    expect(pool.some((entry) => entry.key === 'projectileSpeed')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'projectileSpeed')).toBe(false);
     expect(pool.some((entry) => entry.key === 'maxHealth')).toBe(true);
     expect(pool.some((entry) => entry.key === 'heal')).toBe(true);
     expect(pool.some((entry) => entry.key === 'pickupRadius')).toBe(true);
@@ -64,6 +64,17 @@ describe('getUpgradePool', () => {
 
     expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(false);
     expect(pool.some((entry) => entry.key === 'bladeCount')).toBe(true);
+  });
+
+  it('does not offer the off-spec projectile speed upgrade in the mvp pool', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'projectileSpeed')).toBe(false);
   });
 });
 

@@ -20,10 +20,11 @@ export class PickupManager {
   update(playerSprite, pickupRadius) {
     const pickupRadiusSq = pickupRadius * pickupRadius;
     const attractRadiusSq = pickupRadiusSq * 4;
+    const orbs = this.group.getChildren();
 
-    this.group.children.iterate((orb) => {
+    for (const orb of orbs) {
       if (!orb?.active) {
-        return;
+        continue;
       }
 
       const dx = playerSprite.x - orb.x;
@@ -31,9 +32,12 @@ export class PickupManager {
       const distanceSq = dx * dx + dy * dy;
 
       if (distanceSq <= pickupRadiusSq) {
-        this.onCollect(orb.value);
+        const shouldPause = this.onCollect(orb.value);
         orb.destroy();
-        return;
+        if (shouldPause) {
+          break;
+        }
+        continue;
       }
 
       if (distanceSq <= attractRadiusSq) {
@@ -42,6 +46,6 @@ export class PickupManager {
       } else {
         orb.setVelocity(0, 0);
       }
-    });
+    }
   }
 }
