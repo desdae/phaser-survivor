@@ -2,7 +2,8 @@ import {
   getNearestEnemy,
   getProjectileVelocity,
   getRicochetTarget,
-  getShotDirections
+  getShotDirections,
+  registerProjectileHit
 } from '../logic/combat.js';
 
 export class ProjectileManager {
@@ -58,6 +59,7 @@ export class ProjectileManager {
     projectile.damage = stats.projectileDamage ?? 0;
     projectile.remainingPierce = stats.projectilePierce ?? 0;
     projectile.remainingRicochet = stats.projectileRicochet ?? 0;
+    projectile.hitEnemyKeys = new Set();
     projectile.expiresAt = now + 1400;
     projectile.setDepth(3);
     projectile.setCircle(5);
@@ -68,6 +70,10 @@ export class ProjectileManager {
 
   handleEnemyHit(projectile, enemy, enemyManager) {
     if (!projectile?.active || !enemy?.active) {
+      return;
+    }
+
+    if (!registerProjectileHit(projectile, enemy)) {
       return;
     }
 

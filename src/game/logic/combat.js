@@ -31,6 +31,21 @@ export function getProjectileVelocity(origin, target, speed) {
   };
 }
 
+export function registerProjectileHit(projectile, enemy) {
+  if (!projectile.hitEnemyKeys) {
+    projectile.hitEnemyKeys = new Set();
+  }
+
+  const key = enemy?.id ?? enemy;
+
+  if (projectile.hitEnemyKeys.has(key)) {
+    return false;
+  }
+
+  projectile.hitEnemyKeys.add(key);
+  return true;
+}
+
 export function getShotDirections(baseDirection, projectileCount, spreadDeg) {
   if (projectileCount <= 1) {
     return [baseDirection];
