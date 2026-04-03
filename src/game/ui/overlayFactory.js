@@ -1,8 +1,10 @@
+import Phaser from 'phaser';
+import { getChoiceByIndex } from '../logic/upgradeSelection.js';
+
 function createButtonCard(scene, onClick) {
   const background = scene.add
     .rectangle(0, 0, 280, 170, 0x163042, 0.96)
-    .setStrokeStyle(2, 0x89c7ff, 0.65)
-    .setInteractive({ useHandCursor: true });
+    .setStrokeStyle(2, 0x89c7ff, 0.65);
   const title = scene.add.text(-118, -52, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '22px',
@@ -22,15 +24,19 @@ function createButtonCard(scene, onClick) {
     color: '#ffd17a'
   });
   const card = scene.add.container(0, 0, [background, title, description, hint]);
+  const hitArea = new Phaser.Geom.Rectangle(-140, -85, 280, 170);
 
+  card.setSize(280, 170);
+  card.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
   card.choice = null;
   card.background = background;
   card.title = title;
   card.description = description;
+  card.hint = hint;
 
-  background.on('pointerover', () => background.setFillStyle(0x1f4561, 1));
-  background.on('pointerout', () => background.setFillStyle(0x163042, 0.96));
-  background.on('pointerdown', () => {
+  card.on('pointerover', () => background.setFillStyle(0x1f4561, 1));
+  card.on('pointerout', () => background.setFillStyle(0x163042, 0.96));
+  card.on('pointerdown', () => {
     if (card.choice) {
       onClick(card.choice);
     }
@@ -132,7 +138,7 @@ export function createLevelUpOverlay(scene, onSelect) {
     },
     show(choices) {
       cards.forEach((card, index) => {
-        const choice = choices[index];
+        const choice = getChoiceByIndex(choices, index);
 
         if (!choice) {
           card.setVisible(false);
@@ -144,9 +150,17 @@ export function createLevelUpOverlay(scene, onSelect) {
         card.choice = choice;
         card.title.setText(choice.label);
         card.description.setText(choice.description);
+        card.hint.setText(`Press ${index + 1} or click`);
       });
 
       container.setVisible(true);
+    },
+    chooseIndex(index) {
+      const choice = getChoiceByIndex(cards.map((card) => card.choice).filter(Boolean), index);
+
+      if (choice) {
+        onSelect(choice);
+      }
     }
   };
 }

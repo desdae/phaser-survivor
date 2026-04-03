@@ -38,6 +38,11 @@ export class GameScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.upgradeKeys = [
+      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
+      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+      this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE)
+    ];
 
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
     this.cameras.main.roundPixels = true;
@@ -68,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameplayPaused) {
+      this.handleUpgradeHotkeys();
       this.refreshHud();
       return;
     }
@@ -120,6 +126,18 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.stopAll();
     this.projectileManager.stopAll();
     this.levelUpOverlay.show(this.upgradeSystem.getChoices());
+  }
+
+  handleUpgradeHotkeys() {
+    if (this.isGameOver) {
+      return;
+    }
+
+    this.upgradeKeys.forEach((key, index) => {
+      if (Phaser.Input.Keyboard.JustDown(key)) {
+        this.levelUpOverlay.chooseIndex(index);
+      }
+    });
   }
 
   handleUpgradeSelected(choice) {
