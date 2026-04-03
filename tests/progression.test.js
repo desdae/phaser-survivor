@@ -45,6 +45,12 @@ describe('getUpgradePool', () => {
     });
 
     expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'damage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'fireRate')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'projectileSpeed')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'maxHealth')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'heal')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'pickupRadius')).toBe(true);
     expect(pool.some((entry) => entry.key === 'bladeCount')).toBe(false);
   });
 
@@ -86,6 +92,7 @@ describe('applyUpgrade', () => {
     expect(player.bladeCount).toBe(1);
     expect(player.bladeDamage).toBeGreaterThan(0);
     expect(player.bladeOrbitRadius).toBeGreaterThan(0);
+    expect(player.bladeOrbitSpeed).toBeGreaterThan(0);
   });
 
   it('adds projectile branching stats', () => {

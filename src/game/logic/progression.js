@@ -1,5 +1,54 @@
 export const UPGRADE_DEFINITIONS = [
   {
+    key: 'damage',
+    label: 'Sharpened Shots',
+    description: '+8 projectile damage',
+    apply(player) {
+      player.projectileDamage += 8;
+    }
+  },
+  {
+    key: 'fireRate',
+    label: 'Rapid Trigger',
+    description: '-60ms fire cooldown',
+    apply(player) {
+      player.fireCooldownMs = Math.max(160, player.fireCooldownMs - 60);
+    }
+  },
+  {
+    key: 'projectileSpeed',
+    label: 'Hot Lead',
+    description: '+80 projectile speed',
+    apply(player) {
+      player.projectileSpeed += 80;
+    }
+  },
+  {
+    key: 'maxHealth',
+    label: 'Iron Skin',
+    description: '+20 max health and heal 20',
+    apply(player) {
+      player.maxHealth += 20;
+      player.health = Math.min(player.maxHealth, player.health + 20);
+    }
+  },
+  {
+    key: 'heal',
+    label: 'Field Medicine',
+    description: 'Restore 30 health',
+    apply(player) {
+      player.health = Math.min(player.maxHealth, player.health + 30);
+    }
+  },
+  {
+    key: 'pickupRadius',
+    label: 'Vacuum Grip',
+    description: '+24 pickup radius',
+    apply(player) {
+      player.pickupRadius += 24;
+    }
+  },
+  {
     key: 'unlockBlade',
     label: 'Orbiting Blade',
     description: 'Unlock a blade that circles you and cuts nearby enemies.',
