@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
+import { BladeManager } from '../systems/BladeManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
     this.pickupManager = new PickupManager(this, (value) => this.handlePickupCollected(value));
     this.enemyManager = new EnemyManager(this, this.player, this.pickupManager);
     this.projectileManager = new ProjectileManager(this);
+    this.bladeManager = new BladeManager(this);
     this.upgradeSystem = new UpgradeSystem();
 
     this.keys = this.input.keyboard.addKeys({
@@ -83,6 +85,15 @@ export class GameScene extends Phaser.Scene {
     this.enemyManager.update(delta, this.elapsedMs / 1000);
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
+    this.bladeManager.syncToPlayer(this.player.stats);
+    this.bladeManager.update(
+      this.player,
+      this.player.stats,
+      delta,
+      time,
+      this.enemyManager.getLivingEnemies(),
+      this.enemyManager
+    );
     this.pickupManager.update(this.player.sprite, this.player.stats.pickupRadius);
     this.refreshHud();
   }
@@ -229,6 +240,11 @@ export class GameScene extends Phaser.Scene {
     graphics.fillStyle(0xffefaa, 1);
     graphics.fillCircle(5, 5, 5);
     graphics.generateTexture('projectile', 10, 10);
+
+    graphics.clear();
+    graphics.fillStyle(0xd9f2ff, 1);
+    graphics.fillTriangle(6, 20, 14, 0, 22, 20);
+    graphics.generateTexture('blade', 28, 22);
 
     graphics.clear();
     graphics.fillStyle(0x7df0ac, 1);
