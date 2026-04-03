@@ -1,51 +1,78 @@
 export const UPGRADE_DEFINITIONS = [
   {
-    key: 'damage',
-    label: 'Sharpened Shots',
-    description: '+8 projectile damage',
+    key: 'unlockBlade',
+    label: 'Orbiting Blade',
+    description: 'Unlock a blade that circles you and cuts nearby enemies.',
+    isAvailable: (player) => !player.bladeUnlocked,
     apply(player) {
-      player.projectileDamage += 8;
+      player.bladeUnlocked = true;
+      player.bladeCount = Math.max(player.bladeCount, 1);
+      player.bladeDamage = Math.max(player.bladeDamage, 16);
+      player.bladeOrbitRadius = Math.max(player.bladeOrbitRadius, 74);
+      player.bladeOrbitSpeed = Math.max(player.bladeOrbitSpeed, 1.7);
     }
   },
   {
-    key: 'fireRate',
-    label: 'Rapid Trigger',
-    description: '-60ms fire cooldown',
+    key: 'bladeCount',
+    label: 'Twin Edges',
+    description: '+1 orbiting blade',
+    isAvailable: (player) => player.bladeUnlocked,
     apply(player) {
-      player.fireCooldownMs = Math.max(160, player.fireCooldownMs - 60);
+      player.bladeCount += 1;
     }
   },
   {
-    key: 'projectileSpeed',
-    label: 'Hot Lead',
-    description: '+80 projectile speed',
+    key: 'bladeDamage',
+    label: 'Honed Steel',
+    description: '+8 blade damage',
+    isAvailable: (player) => player.bladeUnlocked,
     apply(player) {
-      player.projectileSpeed += 80;
+      player.bladeDamage += 8;
     }
   },
   {
-    key: 'maxHealth',
-    label: 'Iron Skin',
-    description: '+20 max health and heal 20',
+    key: 'bladeSpeed',
+    label: 'Whirling Edge',
+    description: '+0.3 blade orbit speed',
+    isAvailable: (player) => player.bladeUnlocked,
     apply(player) {
-      player.maxHealth += 20;
-      player.health = Math.min(player.maxHealth, player.health + 20);
+      player.bladeOrbitSpeed += 0.3;
     }
   },
   {
-    key: 'heal',
-    label: 'Field Medicine',
-    description: 'Restore 30 health',
+    key: 'bladeRadius',
+    label: 'Wider Arc',
+    description: '+10 blade orbit radius',
+    isAvailable: (player) => player.bladeUnlocked,
     apply(player) {
-      player.health = Math.min(player.maxHealth, player.health + 30);
+      player.bladeOrbitRadius += 10;
     }
   },
   {
-    key: 'pickupRadius',
-    label: 'Vacuum Grip',
-    description: '+24 pickup radius',
+    key: 'multiShot',
+    label: 'Split Barrel',
+    description: '+1 projectile per shot',
+    isAvailable: () => true,
     apply(player) {
-      player.pickupRadius += 24;
+      player.projectileCount += 1;
+    }
+  },
+  {
+    key: 'pierce',
+    label: 'Drill Rounds',
+    description: '+1 projectile pierce',
+    isAvailable: () => true,
+    apply(player) {
+      player.projectilePierce += 1;
+    }
+  },
+  {
+    key: 'ricochet',
+    label: 'Bank Shot',
+    description: '+1 ricochet bounce',
+    isAvailable: () => true,
+    apply(player) {
+      player.projectileRicochet += 1;
     }
   }
 ];
@@ -85,6 +112,10 @@ export function rollUpgradeChoices(pool, rng = Math.random, count = 3) {
   }
 
   return picks;
+}
+
+export function getUpgradePool(player) {
+  return UPGRADE_DEFINITIONS.filter((entry) => (entry.isAvailable ? entry.isAvailable(player) : true));
 }
 
 export function applyUpgrade(player, key) {

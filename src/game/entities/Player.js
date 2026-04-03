@@ -11,7 +11,16 @@ const PLAYER_STARTING_STATS = {
   projectileDamage: 18,
   projectileSpeed: 440,
   fireCooldownMs: 520,
-  pickupRadius: 48
+  projectileCount: 1,
+  projectilePierce: 0,
+  projectileRicochet: 0,
+  projectileSpreadDeg: 14,
+  pickupRadius: 48,
+  bladeUnlocked: false,
+  bladeCount: 0,
+  bladeDamage: 0,
+  bladeOrbitRadius: 0,
+  bladeOrbitSpeed: 0
 };
 
 export class Player {

@@ -125,7 +125,7 @@ export class GameScene extends Phaser.Scene {
     this.player.stop();
     this.enemyManager.stopAll();
     this.projectileManager.stopAll();
-    this.levelUpOverlay.show(this.upgradeSystem.getChoices());
+    this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats));
   }
 
   handleUpgradeHotkeys() {

@@ -3,6 +3,7 @@ import {
   UPGRADE_DEFINITIONS,
   applyUpgrade,
   awardXp,
+  getUpgradePool,
   getXpToNextLevel,
   rollUpgradeChoices
 } from '../src/game/logic/progression.js';
@@ -34,23 +35,83 @@ describe('rollUpgradeChoices', () => {
   });
 });
 
+describe('getUpgradePool', () => {
+  it('offers blade unlock before the blade exists', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'bladeCount')).toBe(false);
+  });
+
+  it('offers blade upgrades after the blade is unlocked', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: true,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'bladeCount')).toBe(true);
+  });
+});
+
 describe('applyUpgrade', () => {
-  it('applies stat upgrades immediately', () => {
+  it('unlocks the orbiting blade and seeds its starting stats', () => {
     const player = {
+      bladeUnlocked: false,
+      bladeCount: 0,
+      bladeDamage: 0,
+      bladeOrbitSpeed: 0,
+      bladeOrbitRadius: 0,
+      projectileCount: 1,
+      projectilePierce: 0,
+      projectileRicochet: 0,
       projectileDamage: 18,
       fireCooldownMs: 520,
       projectileSpeed: 440,
       maxHealth: 100,
-      health: 70,
+      health: 100,
       pickupRadius: 48
     };
 
-    applyUpgrade(player, 'damage');
-    applyUpgrade(player, 'maxHealth');
-    applyUpgrade(player, 'heal');
+    applyUpgrade(player, 'unlockBlade');
 
-    expect(player.projectileDamage).toBe(26);
-    expect(player.maxHealth).toBe(120);
-    expect(player.health).toBe(120);
+    expect(player.bladeUnlocked).toBe(true);
+    expect(player.bladeCount).toBe(1);
+    expect(player.bladeDamage).toBeGreaterThan(0);
+    expect(player.bladeOrbitRadius).toBeGreaterThan(0);
+  });
+
+  it('adds projectile branching stats', () => {
+    const player = {
+      bladeUnlocked: false,
+      bladeCount: 0,
+      bladeDamage: 0,
+      bladeOrbitSpeed: 0,
+      bladeOrbitRadius: 0,
+      projectileCount: 1,
+      projectilePierce: 0,
+      projectileRicochet: 0,
+      projectileDamage: 18,
+      fireCooldownMs: 520,
+      projectileSpeed: 440,
+      maxHealth: 100,
+      health: 100,
+      pickupRadius: 48
+    };
+
+    applyUpgrade(player, 'multiShot');
+    applyUpgrade(player, 'pierce');
+    applyUpgrade(player, 'ricochet');
+
+    expect(player.projectileCount).toBe(2);
+    expect(player.projectilePierce).toBe(1);
+    expect(player.projectileRicochet).toBe(1);
   });
 });

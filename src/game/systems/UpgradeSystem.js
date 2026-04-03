@@ -1,12 +1,8 @@
-import { UPGRADE_DEFINITIONS, applyUpgrade, rollUpgradeChoices } from '../logic/progression.js';
+import { applyUpgrade, getUpgradePool, rollUpgradeChoices } from '../logic/progression.js';
 
 export class UpgradeSystem {
-  constructor() {
-    this.pool = UPGRADE_DEFINITIONS;
-  }
-
-  getChoices() {
-    return rollUpgradeChoices(this.pool);
+  getChoices(playerStats) {
+    return rollUpgradeChoices(getUpgradePool(playerStats));
   }
 
   apply(player, key) {
