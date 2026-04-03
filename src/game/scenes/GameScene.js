@@ -197,7 +197,9 @@ export class GameScene extends Phaser.Scene {
       xp: this.player.stats.xp,
       xpToNext: this.player.stats.xpToNext,
       timeMs: this.elapsedMs,
-      enemyCount: this.enemyManager.getLivingEnemies().length
+      enemyCount: this.enemyManager.getLivingEnemies().length,
+      projectileCount: this.player.stats.projectileCount,
+      bladeCount: this.player.stats.bladeCount
     });
   }
 
@@ -253,7 +255,7 @@ export class GameScene extends Phaser.Scene {
     graphics.fillCircle(15, 15, 15);
     graphics.lineStyle(2, 0xb6fff7, 1);
     graphics.strokeCircle(15, 15, 13);
-    graphics.generateTexture('enemy-spitter', 30, 30);
+    graphics.generateTexture('enemy-spitter', 28, 28);
 
     graphics.clear();
     graphics.fillStyle(0xffefaa, 1);
