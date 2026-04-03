@@ -252,10 +252,10 @@ export class GameScene extends Phaser.Scene {
 
     graphics.clear();
     graphics.fillStyle(0x3f8f8a, 1);
-    graphics.fillCircle(15, 15, 15);
+    graphics.fillCircle(15, 15, 13);
     graphics.lineStyle(2, 0xb6fff7, 1);
-    graphics.strokeCircle(15, 15, 13);
-    graphics.generateTexture('enemy-spitter', 28, 28);
+    graphics.strokeCircle(15, 15, 12);
+    graphics.generateTexture('enemy-spitter', 30, 30);
 
     graphics.clear();
     graphics.fillStyle(0xffefaa, 1);

@@ -5,6 +5,14 @@ function createButtonCard(scene, onClick) {
   const background = scene.add
     .rectangle(0, 0, 280, 170, 0x163042, 0.96)
     .setStrokeStyle(2, 0x89c7ff, 0.65);
+  const badge = scene.add.text(92, -58, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '13px',
+    color: '#0d1721',
+    fontStyle: 'bold',
+    backgroundColor: '#89c7ff',
+    padding: { left: 8, right: 8, top: 2, bottom: 2 }
+  });
   const title = scene.add.text(-118, -52, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '22px',
@@ -23,19 +31,20 @@ function createButtonCard(scene, onClick) {
     fontSize: '14px',
     color: '#ffd17a'
   });
-  const card = scene.add.container(0, 0, [background, title, description, hint]);
+  const card = scene.add.container(0, 0, [background, badge, title, description, hint]);
   const hitArea = new Phaser.Geom.Rectangle(-140, -85, 280, 170);
 
   card.setSize(280, 170);
   card.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
   card.choice = null;
   card.background = background;
+  card.badge = badge;
   card.title = title;
   card.description = description;
   card.hint = hint;
 
-  card.on('pointerover', () => background.setFillStyle(0x1f4561, 1));
-  card.on('pointerout', () => background.setFillStyle(0x163042, 0.96));
+  card.on('pointerover', () => background.setFillStyle(card.isUnlock ? 0x243a2b : 0x1f4561, 1));
+  card.on('pointerout', () => background.setFillStyle(card.isUnlock ? 0x1b2f22 : 0x163042, 0.96));
   card.on('pointerdown', () => {
     if (card.choice) {
       onClick(card.choice);
@@ -143,14 +152,28 @@ export function createLevelUpOverlay(scene, onSelect) {
         if (!choice) {
           card.setVisible(false);
           card.choice = null;
+          card.isUnlock = false;
           return;
         }
 
+        const isUnlock = choice.key?.startsWith('unlock');
         card.setVisible(true);
         card.choice = choice;
+        card.isUnlock = isUnlock;
+        card.background.setFillStyle(isUnlock ? 0x1b2f22 : 0x163042, 0.96);
+        card.background.setStrokeStyle(2, isUnlock ? 0xa6f0b8 : 0x89c7ff, isUnlock ? 0.75 : 0.65);
+        card.badge.setText(isUnlock ? 'UNLOCK' : 'UPGRADE');
+        card.badge.setStyle({
+          fontFamily: 'Trebuchet MS',
+          fontSize: '13px',
+          color: isUnlock ? '#0e1b14' : '#0d1721',
+          fontStyle: 'bold',
+          backgroundColor: isUnlock ? '#a6f0b8' : '#89c7ff',
+          padding: { left: 8, right: 8, top: 2, bottom: 2 }
+        });
         card.title.setText(choice.label);
         card.description.setText(choice.description);
-        card.hint.setText(`Press ${index + 1} or click`);
+        card.hint.setText(isUnlock ? `New ability - press ${index + 1} or click` : `Press ${index + 1} or click`);
       });
 
       container.setVisible(true);
