@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
-import { getBladePositions, shouldBladeDamageEnemy } from '../logic/blade.js';
+import {
+  BLADE_CONTACT_RADIUS,
+  BLADE_DAMAGE_COOLDOWN_MS,
+  getBladePositions,
+  shouldBladeDamageEnemy
+} from '../logic/blade.js';
 
 export class BladeManager {
   constructor(scene) {
@@ -16,7 +21,8 @@ export class BladeManager {
     }
 
     while (this.group.getLength() > playerStats.bladeCount) {
-      this.group.getChildren().pop().destroy();
+      const blade = this.group.getChildren()[this.group.getLength() - 1];
+      this.group.remove(blade, true, true);
     }
   }
 
@@ -50,8 +56,8 @@ export class BladeManager {
 
         const distance = Phaser.Math.Distance.Between(blade.x, blade.y, enemy.x, enemy.y);
 
-        if (distance <= 24 && shouldBladeDamageEnemy(now, enemy.nextBladeDamageAt ?? 0)) {
-          enemy.nextBladeDamageAt = now + 280;
+        if (distance <= BLADE_CONTACT_RADIUS && shouldBladeDamageEnemy(now, enemy.nextBladeDamageAt ?? 0)) {
+          enemy.nextBladeDamageAt = now + BLADE_DAMAGE_COOLDOWN_MS;
           enemyManager.damageEnemy(enemy, playerStats.bladeDamage);
         }
       }
