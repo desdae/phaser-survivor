@@ -6,6 +6,7 @@ import {
   getShotDirections,
   registerProjectileHit
 } from '../src/game/logic/combat.js';
+import { ProjectileManager } from '../src/game/systems/ProjectileManager.js';
 
 describe('getNearestEnemy', () => {
   it('returns the closest living enemy', () => {
@@ -83,5 +84,112 @@ describe('registerProjectileHit', () => {
 
     expect(registerProjectileHit(projectile, { id: 'enemy-1' })).toBe(true);
     expect(registerProjectileHit(projectile, { id: 'enemy-2' })).toBe(true);
+  });
+});
+
+describe('ProjectileManager', () => {
+  function createManager() {
+    const projectiles = [];
+
+    const group = {
+      children: {
+        iterate: (callback) => {
+          projectiles.forEach(callback);
+        }
+      },
+      create: (x, y, key) => {
+        const projectile = {
+          active: true,
+          body: { velocity: { x: 0, y: 0 } },
+          expiresAt: 0,
+          key,
+          setCircle: () => {},
+          setDepth: () => {},
+          setVelocity(xVel, yVel) {
+            this.body.velocity = { x: xVel, y: yVel };
+          },
+          x,
+          y
+        };
+
+        projectiles.push(projectile);
+        return projectile;
+      }
+    };
+
+    const scene = {
+      physics: {
+        add: {
+          group: () => group
+        }
+      }
+    };
+
+    return { group, manager: new ProjectileManager(scene), projectiles };
+  }
+
+  it('emits one projectile per shot direction and preserves branch counters', () => {
+    const { manager, projectiles } = createManager();
+    const player = {
+      sprite: { x: 0, y: 0 },
+      stats: {
+        fireCooldownMs: 150,
+        projectileCount: 3,
+        projectileDamage: 9,
+        projectilePierce: 2,
+        projectileRicochet: 1,
+        projectileSpeed: 120,
+        projectileSpreadDeg: 20
+      }
+    };
+    const enemies = [{ active: true, id: 'target', x: 100, y: 0 }];
+
+    const shots = manager.tryFire(player, enemies, 0);
+
+    expect(shots).toHaveLength(3);
+    expect(projectiles).toHaveLength(3);
+    expect(shots.every((shot) => shot.damage === 9)).toBe(true);
+    expect(shots.every((shot) => shot.remainingPierce === 2)).toBe(true);
+    expect(shots.every((shot) => shot.remainingRicochet === 1)).toBe(true);
+  });
+
+  it('skips duplicate hits and ricochets to a fresh target', () => {
+    const { manager } = createManager();
+    const player = {
+      sprite: { x: 0, y: 0 },
+      stats: {
+        fireCooldownMs: 150,
+        projectileCount: 1,
+        projectileDamage: 9,
+        projectilePierce: 0,
+        projectileRicochet: 2,
+        projectileSpeed: 120,
+        projectileSpreadDeg: 0
+      }
+    };
+    const enemy1 = { active: true, id: 'enemy-1', x: 100, y: 0 };
+    const enemy2 = { active: true, id: 'enemy-2', x: 130, y: 0 };
+    const enemy3 = { active: true, id: 'enemy-3', x: 170, y: 30 };
+    const enemyManager = {
+      damageEnemyCalls: [],
+      damageEnemy(enemy, damage) {
+        this.damageEnemyCalls.push({ damage, enemy });
+      },
+      getLivingEnemies: () => [enemy1, enemy2, enemy3]
+    };
+    const projectile = manager.tryFire(player, [enemy1, enemy2, enemy3], 0)[0];
+
+    manager.handleEnemyHit(projectile, enemy1, enemyManager);
+    expect(enemyManager.damageEnemyCalls).toHaveLength(1);
+    expect(enemyManager.damageEnemyCalls[0].enemy).toBe(enemy1);
+
+    manager.handleEnemyHit(projectile, enemy1, enemyManager);
+    expect(enemyManager.damageEnemyCalls).toHaveLength(1);
+
+    manager.handleEnemyHit(projectile, enemy2, enemyManager);
+    expect(enemyManager.damageEnemyCalls).toHaveLength(2);
+    expect(enemyManager.damageEnemyCalls[1].enemy).toBe(enemy2);
+    expect(projectile.body.velocity.x).toBeCloseTo(170 / Math.hypot(170, 30) * 120, 3);
+    expect(projectile.body.velocity.y).toBeCloseTo(30 / Math.hypot(170, 30) * 120, 3);
   });
 });

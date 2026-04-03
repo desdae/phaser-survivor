@@ -31,12 +31,16 @@ export function getProjectileVelocity(origin, target, speed) {
   };
 }
 
+function getEnemyKey(enemy) {
+  return enemy?.id ?? enemy;
+}
+
 export function registerProjectileHit(projectile, enemy) {
   if (!projectile.hitEnemyKeys) {
     projectile.hitEnemyKeys = new Set();
   }
 
-  const key = enemy?.id ?? enemy;
+  const key = getEnemyKey(enemy);
 
   if (projectile.hitEnemyKeys.has(key)) {
     return false;
@@ -66,12 +70,18 @@ export function getShotDirections(baseDirection, projectileCount, spreadDeg) {
   });
 }
 
-export function getRicochetTarget(hitEnemy, enemies, maxDistance) {
+export function getRicochetTarget(hitEnemy, enemies, maxDistance, excludedEnemyKeys = null) {
   let best = null;
   let bestDistanceSq = maxDistance * maxDistance;
 
   for (const enemy of enemies) {
     if (!enemy?.active || enemy === hitEnemy) {
+      continue;
+    }
+
+    const enemyKey = getEnemyKey(enemy);
+
+    if (excludedEnemyKeys?.has?.(enemyKey)) {
       continue;
     }
 
