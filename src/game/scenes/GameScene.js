@@ -52,6 +52,11 @@ export class GameScene extends Phaser.Scene {
     this.hud = createHud(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
+    this.input.on('pointerdown', (pointer) => {
+      if (this.isGameplayPaused && !this.isGameOver) {
+        this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
+      }
+    });
 
     this.physics.add.overlap(this.projectileManager.group, this.enemyManager.group, (projectile, enemy) => {
       this.projectileManager.handleEnemyHit(projectile, enemy, this.enemyManager);
