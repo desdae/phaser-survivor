@@ -27,9 +27,16 @@ export function getSpawnPosition(
 }
 
 export function getSpawnProfile(elapsedSeconds) {
+  const weights = {
+    basic: elapsedSeconds < 35 ? 1 : 0.62,
+    tough: elapsedSeconds < 35 ? 0 : 0.28,
+    spitter: elapsedSeconds < 55 ? 0 : Math.min(0.22, 0.06 + elapsedSeconds / 500)
+  };
+
   return {
-    cooldownMs: Math.max(220, 900 - elapsedSeconds * 12),
-    batchSize: Math.min(1 + Math.floor(elapsedSeconds / 18), 5),
-    allowTough: elapsedSeconds >= 35
+    cooldownMs: Math.max(210, 900 - elapsedSeconds * 12),
+    batchSize: Math.min(1 + Math.floor(elapsedSeconds / 16), 6),
+    allowTough: elapsedSeconds >= 35,
+    weights
   };
 }

@@ -13,9 +13,9 @@ describe('getSpawnPosition', () => {
 });
 
 describe('getSpawnProfile', () => {
-  it('unlocks tougher enemies over time', () => {
-    expect(getSpawnProfile(5).allowTough).toBe(false);
-    expect(getSpawnProfile(45).allowTough).toBe(true);
+  it('shifts the roster toward tougher enemies over time', () => {
+    expect(getSpawnProfile(5).weights.tough).toBe(0);
+    expect(getSpawnProfile(45).weights.tough).toBeGreaterThan(0);
   });
 
   it('increases spawn pressure over time', () => {

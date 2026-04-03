@@ -59,6 +59,18 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player.sprite, this.enemyManager.group, (_, enemy) => {
       this.handlePlayerEnemyOverlap(enemy);
     });
+    this.physics.add.overlap(this.player.sprite, this.enemyManager.enemyProjectileGroup, (_, projectile) => {
+      if (this.isGameplayPaused || this.isGameOver || !projectile?.active) {
+        return;
+      }
+
+      projectile.destroy();
+      const died = this.player.takeDamage(projectile.damage);
+
+      if (died) {
+        this.openGameOver();
+      }
+    });
 
     this.scale.on('resize', this.handleResize, this);
     this.handleResize({ width: this.scale.width, height: this.scale.height });
@@ -82,7 +94,7 @@ export class GameScene extends Phaser.Scene {
 
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
-    this.enemyManager.update(delta, this.elapsedMs / 1000);
+    this.enemyManager.update(delta, this.elapsedMs / 1000, time);
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
     this.bladeManager.syncToPlayer(this.player.stats);
@@ -235,6 +247,13 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(2, 0xffc2ae, 1);
     graphics.strokeCircle(16, 16, 15);
     graphics.generateTexture('enemy-tough', 32, 32);
+
+    graphics.clear();
+    graphics.fillStyle(0x3f8f8a, 1);
+    graphics.fillCircle(15, 15, 15);
+    graphics.lineStyle(2, 0xb6fff7, 1);
+    graphics.strokeCircle(15, 15, 13);
+    graphics.generateTexture('enemy-spitter', 30, 30);
 
     graphics.clear();
     graphics.fillStyle(0xffefaa, 1);

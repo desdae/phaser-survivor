@@ -1,3 +1,4 @@
+import { getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
 const ENEMY_TYPES = {
@@ -6,14 +7,29 @@ const ENEMY_TYPES = {
     speed: 92,
     maxHealth: 34,
     xpValue: 4,
-    contactDamage: 8
+    contactDamage: 8,
+    hitRadius: 12
   },
   tough: {
     texture: 'enemy-tough',
     speed: 64,
     maxHealth: 76,
     xpValue: 9,
-    contactDamage: 12
+    contactDamage: 12,
+    hitRadius: 16
+  },
+  spitter: {
+    texture: 'enemy-spitter',
+    speed: 78,
+    maxHealth: 44,
+    xpValue: 7,
+    contactDamage: 6,
+    preferredRange: 240,
+    attackRange: 320,
+    projectileSpeed: 190,
+    projectileDamage: 10,
+    attackCooldownMs: 1600,
+    hitRadius: 14
   }
 };
 
@@ -23,40 +39,76 @@ export class EnemyManager {
     this.player = player;
     this.pickupManager = pickupManager;
     this.group = scene.physics.add.group();
+    this.enemyProjectileGroup = scene.physics.add.group();
     this.spawnAccumulatorMs = 0;
   }
 
-  update(deltaMs, elapsedSeconds) {
+  update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
     this.spawnAccumulatorMs += deltaMs;
     const profile = getSpawnProfile(elapsedSeconds);
+    const playerSprite = this.player.sprite ?? this.player;
 
     while (this.spawnAccumulatorMs >= profile.cooldownMs) {
       this.spawnAccumulatorMs -= profile.cooldownMs;
       this.spawnBatch(profile);
     }
 
+    this.enemyProjectileGroup.children.iterate((projectile) => {
+      if (!projectile?.active) {
+        return;
+      }
+
+      if (projectile.expiresAt <= now) {
+        projectile.destroy();
+      }
+    });
+
     this.group.children.iterate((enemy) => {
       if (!enemy?.active) {
         return;
       }
 
-      const dx = this.player.x - enemy.x;
-      const dy = this.player.y - enemy.y;
+      const intent = getEnemyIntent(enemy, enemy, playerSprite);
+      const dx = playerSprite.x - enemy.x;
+      const dy = playerSprite.y - enemy.y;
       const distance = Math.hypot(dx, dy) || 1;
 
-      enemy.setVelocity((dx / distance) * enemy.speed, (dy / distance) * enemy.speed);
+      enemy.setVelocity(intent.moveX * enemy.speed, intent.moveY * enemy.speed);
+
+      if (intent.wantsToShoot && shouldEnemyShoot(enemy, now, distance)) {
+        this.fireEnemyProjectile(enemy, dx / distance, dy / distance, now);
+        enemy.nextShotAt = now + enemy.attackCooldownMs;
+      }
     });
   }
 
   spawnBatch(profile) {
     for (let index = 0; index < profile.batchSize; index += 1) {
-      const typeKey =
-        profile.allowTough && Math.random() < 0.28 + Math.min(profile.batchSize * 0.03, 0.12)
-          ? 'tough'
-          : 'basic';
+      const typeKey = this.pickEnemyType(profile.weights);
 
       this.spawnEnemy(typeKey);
     }
+  }
+
+  pickEnemyType(weights) {
+    const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
+
+    if (entries.length === 0) {
+      return 'basic';
+    }
+
+    const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+    let roll = Math.random() * total;
+
+    for (const [typeKey, weight] of entries) {
+      if (roll < weight) {
+        return typeKey;
+      }
+
+      roll -= weight;
+    }
+
+    return entries[entries.length - 1][0];
   }
 
   spawnEnemy(typeKey) {
@@ -71,15 +123,36 @@ export class EnemyManager {
     const position = getSpawnPosition(view, 100);
     const enemy = this.group.create(position.x, position.y, type.texture);
 
+    enemy.type = typeKey;
     enemy.speed = type.speed;
     enemy.health = type.maxHealth;
     enemy.xpValue = type.xpValue;
     enemy.contactDamage = type.contactDamage;
     enemy.nextContactDamageAt = 0;
+    enemy.attackRange = type.attackRange ?? 0;
+    enemy.attackCooldownMs = type.attackCooldownMs ?? 0;
+    enemy.preferredRange = type.preferredRange;
+    enemy.projectileSpeed = type.projectileSpeed ?? 0;
+    enemy.projectileDamage = type.projectileDamage ?? 0;
+    enemy.nextShotAt = 0;
     enemy.setDepth(4);
-    enemy.setCircle(typeKey === 'basic' ? 12 : 16);
+    enemy.setCircle(type.hitRadius);
 
     return enemy;
+  }
+
+  fireEnemyProjectile(enemy, directionX, directionY, now) {
+    const projectile = this.enemyProjectileGroup.create(enemy.x, enemy.y, 'projectile');
+    const speed = enemy.projectileSpeed ?? 0;
+
+    projectile.damage = enemy.projectileDamage ?? 0;
+    projectile.expiresAt = now + 3000;
+    projectile.setDepth(3);
+    projectile.setCircle(5);
+    projectile.setTintFill(0xffa2a2);
+    projectile.setVelocity(directionX * speed, directionY * speed);
+
+    return projectile;
   }
 
   damageEnemy(enemy, damage) {
@@ -121,6 +194,12 @@ export class EnemyManager {
     this.group.children.iterate((enemy) => {
       if (enemy?.active) {
         enemy.setVelocity(0, 0);
+      }
+    });
+
+    this.enemyProjectileGroup.children.iterate((projectile) => {
+      if (projectile?.active) {
+        projectile.setVelocity(0, 0);
       }
     });
   }
