@@ -1,0 +1,35 @@
+const SPAWN_SIDES = ['top', 'right', 'bottom', 'left'];
+
+export function getSpawnPosition(
+  view,
+  margin,
+  sideRng = Math.random,
+  laneXRng = Math.random,
+  laneYRng = Math.random
+) {
+  const side = SPAWN_SIDES[Math.floor(sideRng() * SPAWN_SIDES.length)];
+  const x = view.left + laneXRng() * (view.right - view.left);
+  const y = view.top + laneYRng() * (view.bottom - view.top);
+
+  if (side === 'top') {
+    return { x, y: view.top - margin };
+  }
+
+  if (side === 'right') {
+    return { x: view.right + margin, y };
+  }
+
+  if (side === 'bottom') {
+    return { x, y: view.bottom + margin };
+  }
+
+  return { x: view.left - margin, y };
+}
+
+export function getSpawnProfile(elapsedSeconds) {
+  return {
+    cooldownMs: Math.max(220, 900 - elapsedSeconds * 12),
+    batchSize: Math.min(1 + Math.floor(elapsedSeconds / 18), 5),
+    allowTough: elapsedSeconds >= 35
+  };
+}

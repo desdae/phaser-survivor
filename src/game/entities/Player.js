@@ -1,0 +1,71 @@
+import Phaser from 'phaser';
+import { awardXp } from '../logic/progression.js';
+
+const PLAYER_STARTING_STATS = {
+  speed: 220,
+  maxHealth: 100,
+  health: 100,
+  level: 1,
+  xp: 0,
+  xpToNext: 10,
+  projectileDamage: 18,
+  projectileSpeed: 440,
+  fireCooldownMs: 520,
+  pickupRadius: 48
+};
+
+export class Player {
+  constructor(scene, x, y) {
+    this.scene = scene;
+    this.sprite = scene.physics.add.image(x, y, 'player');
+    this.sprite.setCircle(14);
+    this.sprite.setDepth(5);
+    this.stats = { ...PLAYER_STARTING_STATS };
+  }
+
+  updateMovement(keys) {
+    const horizontal = Number(keys.right.isDown) - Number(keys.left.isDown);
+    const vertical = Number(keys.down.isDown) - Number(keys.up.isDown);
+
+    if (horizontal === 0 && vertical === 0) {
+      this.sprite.setVelocity(0, 0);
+      return;
+    }
+
+    const vector = new Phaser.Math.Vector2(horizontal, vertical).normalize();
+    this.sprite.setVelocity(vector.x * this.stats.speed, vector.y * this.stats.speed);
+  }
+
+  gainXp(amount) {
+    const result = awardXp(
+      {
+        level: this.stats.level,
+        xp: this.stats.xp
+      },
+      amount
+    );
+
+    this.stats.level = result.level;
+    this.stats.xp = result.xp;
+    this.stats.xpToNext = result.xpToNext;
+
+    return result;
+  }
+
+  takeDamage(amount) {
+    this.stats.health = Math.max(0, this.stats.health - amount);
+    return this.stats.health === 0;
+  }
+
+  stop() {
+    this.sprite.setVelocity(0, 0);
+  }
+
+  get x() {
+    return this.sprite.x;
+  }
+
+  get y() {
+    return this.sprite.y;
+  }
+}

@@ -1,0 +1,208 @@
+function createButtonCard(scene, onClick) {
+  const background = scene.add
+    .rectangle(0, 0, 280, 170, 0x163042, 0.96)
+    .setStrokeStyle(2, 0x89c7ff, 0.65)
+    .setInteractive({ useHandCursor: true });
+  const title = scene.add.text(-118, -52, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '22px',
+    color: '#f4f8ff',
+    fontStyle: 'bold',
+    wordWrap: { width: 220 }
+  });
+  const description = scene.add.text(-118, -8, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#b5d5f3',
+    wordWrap: { width: 220 }
+  });
+  const hint = scene.add.text(-118, 56, 'Choose upgrade', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '14px',
+    color: '#ffd17a'
+  });
+  const card = scene.add.container(0, 0, [background, title, description, hint]);
+
+  card.choice = null;
+  card.background = background;
+  card.title = title;
+  card.description = description;
+
+  background.on('pointerover', () => background.setFillStyle(0x1f4561, 1));
+  background.on('pointerout', () => background.setFillStyle(0x163042, 0.96));
+  background.on('pointerdown', () => {
+    if (card.choice) {
+      onClick(card.choice);
+    }
+  });
+
+  return card;
+}
+
+export function formatTime(elapsedMs) {
+  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+export function createHud(scene) {
+  const panel = scene.add.rectangle(0, 0, 340, 138, 0x08121c, 0.75).setOrigin(0);
+  panel.setStrokeStyle(2, 0x4da2ff, 0.35);
+  const hpText = scene.add.text(18, 16, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '20px',
+    color: '#f4f8ff'
+  });
+  const levelText = scene.add.text(18, 48, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#c9e5ff'
+  });
+  const xpText = scene.add.text(18, 76, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#a9f5c2'
+  });
+  const timeText = scene.add.text(18, 104, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#ffd17a'
+  });
+  const container = scene.add.container(18, 18, [panel, hpText, levelText, xpText, timeText]);
+
+  container.setDepth(40);
+  container.setScrollFactor(0);
+
+  return {
+    layout() {
+      container.setPosition(18, 18);
+    },
+    update({ health, maxHealth, level, xp, xpToNext, timeMs, enemyCount }) {
+      hpText.setText(`HP ${Math.ceil(health)} / ${maxHealth}`);
+      levelText.setText(`Level ${level}   Threats ${enemyCount}`);
+      xpText.setText(`XP ${xp} / ${xpToNext}   Pickup ${Math.round(scene.gameScene.player.stats.pickupRadius)}`);
+      timeText.setText(`Time ${formatTime(timeMs)}`);
+    }
+  };
+}
+
+export function createLevelUpOverlay(scene, onSelect) {
+  const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.76).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 940, 420, 0x0b1926, 0.96).setStrokeStyle(2, 0x4da2ff, 0.5);
+  const title = scene.add.text(0, -150, 'Level Up', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '40px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  const subtitle = scene.add.text(0, -104, 'Choose one upgrade and get back into the swarm.', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#bad7ef'
+  });
+  const cards = [createButtonCard(scene, onSelect), createButtonCard(scene, onSelect), createButtonCard(scene, onSelect)];
+  const container = scene.add.container(0, 0, [backdrop, panel, title, subtitle, ...cards]);
+
+  title.setOrigin(0.5);
+  subtitle.setOrigin(0.5);
+  container.setDepth(60);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  return {
+    hide() {
+      container.setVisible(false);
+    },
+    layout(width, height) {
+      backdrop.setSize(width, height);
+      panel.setPosition(width / 2, height / 2);
+      title.setPosition(width / 2, height / 2 - 150);
+      subtitle.setPosition(width / 2, height / 2 - 104);
+
+      const compact = width < 1024;
+      cards.forEach((card, index) => {
+        const x = compact ? width / 2 : width / 2 - 300 + index * 300;
+        const y = compact ? height / 2 - 5 + index * 115 : height / 2 + 50;
+        card.setPosition(x, y);
+        card.setScale(compact ? 0.82 : 1);
+      });
+    },
+    show(choices) {
+      cards.forEach((card, index) => {
+        const choice = choices[index];
+
+        if (!choice) {
+          card.setVisible(false);
+          card.choice = null;
+          return;
+        }
+
+        card.setVisible(true);
+        card.choice = choice;
+        card.title.setText(choice.label);
+        card.description.setText(choice.description);
+      });
+
+      container.setVisible(true);
+    }
+  };
+}
+
+export function createGameOverOverlay(scene, onRestart) {
+  const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.82).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 520, 320, 0x0b1926, 0.97).setStrokeStyle(2, 0xff8b73, 0.7);
+  const title = scene.add.text(0, 0, 'Run Over', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '38px',
+    color: '#ffe0d7',
+    fontStyle: 'bold'
+  });
+  const summary = scene.add.text(0, 0, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '22px',
+    align: 'center',
+    color: '#d6e7f7'
+  });
+  const restartButton = scene.add
+    .rectangle(0, 0, 220, 54, 0x9d402e, 1)
+    .setStrokeStyle(2, 0xffb4a2, 0.8)
+    .setInteractive({ useHandCursor: true });
+  const restartText = scene.add.text(0, 0, 'Restart (R)', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '22px',
+    color: '#fff7f0'
+  });
+  const container = scene.add.container(0, 0, [backdrop, panel, title, summary, restartButton, restartText]);
+
+  title.setOrigin(0.5);
+  summary.setOrigin(0.5);
+  restartText.setOrigin(0.5);
+  container.setDepth(70);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  restartButton.on('pointerover', () => restartButton.setFillStyle(0xbf4f39, 1));
+  restartButton.on('pointerout', () => restartButton.setFillStyle(0x9d402e, 1));
+  restartButton.on('pointerdown', onRestart);
+
+  return {
+    hide() {
+      container.setVisible(false);
+    },
+    layout(width, height) {
+      backdrop.setSize(width, height);
+      panel.setPosition(width / 2, height / 2);
+      title.setPosition(width / 2, height / 2 - 84);
+      summary.setPosition(width / 2, height / 2 - 10);
+      restartButton.setPosition(width / 2, height / 2 + 92);
+      restartText.setPosition(width / 2, height / 2 + 92);
+    },
+    show({ timeMs, level }) {
+      summary.setText(`You held out for ${formatTime(timeMs)}\nReached level ${level}`);
+      container.setVisible(true);
+    }
+  };
+}
