@@ -18,6 +18,11 @@ describe('getSpawnProfile', () => {
     expect(getSpawnProfile(45).weights.tough).toBeGreaterThan(0);
   });
 
+  it('adds spitters to the roster in later waves', () => {
+    expect(getSpawnProfile(20).weights.spitter).toBe(0);
+    expect(getSpawnProfile(90).weights.spitter).toBeGreaterThan(0);
+  });
+
   it('increases spawn pressure over time', () => {
     const early = getSpawnProfile(5);
     const late = getSpawnProfile(90);
