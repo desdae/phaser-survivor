@@ -90,9 +90,57 @@ describe('applyUpgrade', () => {
 
     expect(player.bladeUnlocked).toBe(true);
     expect(player.bladeCount).toBe(1);
-    expect(player.bladeDamage).toBeGreaterThan(0);
-    expect(player.bladeOrbitRadius).toBeGreaterThan(0);
-    expect(player.bladeOrbitSpeed).toBeGreaterThan(0);
+    expect(player.bladeDamage).toBe(16);
+    expect(player.bladeOrbitRadius).toBe(74);
+    expect(player.bladeOrbitSpeed).toBe(1.7);
+  });
+
+  it('rejects blade upgrades before the blade is unlocked', () => {
+    const player = {
+      bladeUnlocked: false,
+      bladeCount: 0,
+      bladeDamage: 0,
+      bladeOrbitSpeed: 0,
+      bladeOrbitRadius: 0,
+      projectileCount: 1,
+      projectilePierce: 0,
+      projectileRicochet: 0,
+      projectileDamage: 18,
+      fireCooldownMs: 520,
+      projectileSpeed: 440,
+      maxHealth: 100,
+      health: 100,
+      pickupRadius: 48
+    };
+
+    expect(() => applyUpgrade(player, 'bladeCount')).toThrow('Unknown upgrade: bladeCount');
+  });
+
+  it('keeps the legacy damage and survivability upgrades working', () => {
+    const player = {
+      bladeUnlocked: false,
+      bladeCount: 0,
+      bladeDamage: 0,
+      bladeOrbitSpeed: 0,
+      bladeOrbitRadius: 0,
+      projectileCount: 1,
+      projectilePierce: 0,
+      projectileRicochet: 0,
+      projectileDamage: 18,
+      fireCooldownMs: 520,
+      projectileSpeed: 440,
+      maxHealth: 100,
+      health: 70,
+      pickupRadius: 48
+    };
+
+    applyUpgrade(player, 'damage');
+    applyUpgrade(player, 'maxHealth');
+    applyUpgrade(player, 'heal');
+
+    expect(player.projectileDamage).toBe(26);
+    expect(player.maxHealth).toBe(120);
+    expect(player.health).toBe(120);
   });
 
   it('adds projectile branching stats', () => {

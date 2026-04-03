@@ -168,7 +168,7 @@ export function getUpgradePool(player) {
 }
 
 export function applyUpgrade(player, key) {
-  const upgrade = UPGRADE_DEFINITIONS.find((entry) => entry.key === key);
+  const upgrade = getUpgradePool(player).find((entry) => entry.key === key);
 
   if (!upgrade) {
     throw new Error(`Unknown upgrade: ${key}`);
