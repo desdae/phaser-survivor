@@ -756,7 +756,9 @@ describe('GameScene update', () => {
       baseStats,
       16
     );
+    expect(sceneLike.temporaryBuffSystem.getEffectiveStats.mock.calls[0][0]).toBe(baseStats);
     expect(sceneLike.player.stats).toBe(baseStats);
+    expect(sceneLike.player.stats).not.toBe(buffedStats);
 
     GameScene.prototype.update.call(sceneLike, 30016, 16);
 
@@ -765,6 +767,7 @@ describe('GameScene update', () => {
       baseStats,
       30016
     );
+    expect(sceneLike.temporaryBuffSystem.getEffectiveStats.mock.calls[1][0]).toBe(baseStats);
 
     expect(sceneLike.projectileManager.tryFire).toHaveBeenNthCalledWith(
       1,
@@ -783,6 +786,7 @@ describe('GameScene update', () => {
     expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(1, sceneLike.player.sprite, 96);
     expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(2, sceneLike.player.sprite, 48);
     expect(sceneLike.player.stats).toBe(baseStats);
+    expect(sceneLike.player.stats).not.toBe(buffedStats);
   });
 });
 
