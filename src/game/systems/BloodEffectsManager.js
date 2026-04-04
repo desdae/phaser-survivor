@@ -1,6 +1,7 @@
 const HIT_SPLASH_COUNT = 6;
 const DEATH_SPLASH_COUNT = 14;
 const PUDDLE_LIFETIME_MS = 30000;
+const BLOOD_PUDDLE_VARIANTS = 8;
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
@@ -47,12 +48,13 @@ export class BloodEffectsManager {
   }
 
   spawnPuddle(target) {
-    const puddle = this.scene.add.image(target.x, target.y + 4, 'blood-puddle');
+    const textureKey = `blood-puddle-${Math.floor(Math.random() * BLOOD_PUDDLE_VARIANTS)}`;
+    const puddle = this.scene.add.image(target.x, target.y + 4, textureKey);
 
     puddle.setDepth(1.5);
-    puddle.setAlpha(0.68);
+    puddle.setAlpha(0.54);
     puddle.setScale(randomBetween(0.8, 1.25));
-    puddle.setTintFill(0x5f0c16);
+    puddle.setTintFill(0x7b1018);
 
     this.scene.time.delayedCall(PUDDLE_LIFETIME_MS, () => {
       this.scene.tweens.add({

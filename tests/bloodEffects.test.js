@@ -66,8 +66,9 @@ describe('BloodEffectsManager', () => {
     const delayedCall = vi.fn((delayMs, callback) => ({ callback, delayMs }));
     const scene = {
       add: {
-        image: vi.fn(() => {
+        image: vi.fn((x, y, key) => {
           const sprite = createParticleSprite();
+          sprite.textureKey = key;
           puddles.push(sprite);
           return sprite;
         })
@@ -85,6 +86,8 @@ describe('BloodEffectsManager', () => {
 
     expect(puddles).toHaveLength(1);
     expect(puddles[0].depth).toBe(1.5);
+    expect(puddles[0].textureKey).toMatch(/^blood-puddle-(\d|[1-7])$/);
+    expect(puddles[0].alpha).toBe(0.54);
     expect(delayedCall).toHaveBeenCalledWith(30000, expect.any(Function));
   });
 });

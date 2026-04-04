@@ -21,7 +21,7 @@ import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
-  it('generates the reward chest, temporary powerup, and grass background textures', () => {
+  it('generates the reward chest, temporary powerup, grass background, and blood puddle textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -55,6 +55,8 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('powerup-volley', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('grass-0', 128, 128);
     expect(generateTexture).toHaveBeenCalledWith('grass-15', 128, 128);
+    expect(generateTexture).toHaveBeenCalledWith('blood-puddle-0', 64, 48);
+    expect(generateTexture).toHaveBeenCalledWith('blood-puddle-7', 64, 48);
   });
 });
 

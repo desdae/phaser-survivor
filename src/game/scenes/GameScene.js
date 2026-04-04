@@ -634,12 +634,72 @@ export class GameScene extends Phaser.Scene {
     graphics.fillCircle(5, 5, 5);
     graphics.generateTexture('blood-drop', 10, 10);
 
-    graphics.clear();
-    graphics.fillStyle(0x5f0c16, 1);
-    graphics.fillEllipse(28, 18, 52, 24);
-    graphics.fillEllipse(16, 16, 18, 10);
-    graphics.fillEllipse(40, 20, 18, 10);
-    graphics.generateTexture('blood-puddle', 56, 36);
+    const drawBloodPuddleVariant = (variant) => {
+      const createSeededRng = (seed) => {
+        let value = (seed + 1) >>> 0;
+        return () => {
+          value = (value * 1664525 + 1013904223) >>> 0;
+          return value / 4294967296;
+        };
+      };
+      const rng = createSeededRng(variant * 131);
+      const width = 64;
+      const height = 48;
+      const centerX = 32;
+      const centerY = 22;
+      const lobeCount = 6 + Math.floor(rng() * 3);
+      const dripCount = 1 + Math.floor(rng() * 3);
+
+      graphics.clear();
+      graphics.fillStyle(0x8d0f14, 0.86);
+      graphics.fillEllipse(centerX, centerY, 30, 18);
+
+      for (let index = 0; index < lobeCount; index += 1) {
+        const angle = rng() * Math.PI * 2;
+        const distance = 8 + rng() * 14;
+        const radiusX = 7 + rng() * 9;
+        const radiusY = 6 + rng() * 8;
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * (distance * 0.58);
+
+        graphics.fillStyle(0xb9141a, 0.84);
+        graphics.fillEllipse(x, y, radiusX * 2, radiusY * 2);
+      }
+
+      for (let drip = 0; drip < dripCount; drip += 1) {
+        const dripX = 16 + rng() * 32;
+        const dripHeight = 8 + rng() * 16;
+        const dripWidth = 6 + rng() * 5;
+        const dripTop = 20 + rng() * 6;
+        const dripBottomY = Math.min(height - 6, dripTop + dripHeight);
+
+        graphics.fillStyle(0xb50f18, 0.82);
+        graphics.fillRect(dripX - dripWidth / 2, dripTop, dripWidth, dripBottomY - dripTop);
+        graphics.fillEllipse(dripX, dripTop, dripWidth + 4, 8 + rng() * 3);
+        graphics.fillEllipse(dripX, dripBottomY, dripWidth + 4, dripWidth + 6);
+      }
+
+      graphics.fillStyle(0xdb3034, 0.36);
+      for (let highlight = 0; highlight < 4; highlight += 1) {
+        const x = 16 + rng() * 32;
+        const y = 10 + rng() * 18;
+        graphics.fillEllipse(x, y, 5 + rng() * 6, 2 + rng() * 3);
+      }
+
+      graphics.fillStyle(0xffffff, 0.2);
+      for (let glint = 0; glint < 3; glint += 1) {
+        const x = 14 + rng() * 36;
+        const y = 9 + rng() * 20;
+        const radius = 1.2 + rng() * 1.8;
+        graphics.fillCircle(x, y, radius);
+      }
+
+      graphics.generateTexture(`blood-puddle-${variant}`, width, height);
+    };
+
+    for (let variant = 0; variant < 8; variant += 1) {
+      drawBloodPuddleVariant(variant);
+    }
 
     graphics.clear();
     graphics.fillStyle(0x7df0ac, 1);
