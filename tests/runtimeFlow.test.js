@@ -649,6 +649,127 @@ describe('GameScene update', () => {
     );
     expect(sceneLike.refreshHud).toHaveBeenCalledWith(3000);
   });
+
+  it('keeps temporary buffs out of permanent player stats across updates', () => {
+    const baseStats = Object.freeze({
+      bladeCount: 0,
+      fireCooldownMs: 520,
+      pickupRadius: 48,
+      projectileCount: 1
+    });
+    const buffedStats = {
+      ...baseStats,
+      pickupRadius: 96,
+      projectileCount: 3
+    };
+    const nearQuery = {
+      cellSize: 96,
+      cells: new Map(),
+      enemies: [],
+      enemiesByTier: { near: [], mid: [], far: [] }
+    };
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: 0,
+      enemyManager: {
+        getNearEnemyQuery: vi.fn().mockReturnValue(nearQuery),
+        update: vi.fn().mockReturnValue([])
+      },
+      handleStatsToggle: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: baseStats,
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      statsKey: {},
+      updateEliteWave: vi.fn(),
+      audioManager: {},
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      temporaryBuffSystem: {
+        getEffectiveStats: vi
+          .fn()
+          .mockReturnValueOnce(buffedStats)
+          .mockReturnValueOnce(baseStats),
+        update: vi.fn()
+      },
+      input: {
+        keyboard: {
+          addCapture: vi.fn()
+        }
+      },
+      time: {
+        now: 16
+      },
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+    GameScene.prototype.update.call(sceneLike, 30016, 16);
+
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenNthCalledWith(
+      1,
+      sceneLike.player,
+      buffedStats,
+      [],
+      16
+    );
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenNthCalledWith(
+      2,
+      sceneLike.player,
+      baseStats,
+      [],
+      30016
+    );
+    expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(1, sceneLike.player.sprite, 96);
+    expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(2, sceneLike.player.sprite, 48);
+    expect(sceneLike.player.stats).toEqual(baseStats);
+  });
 });
 
 describe('GameScene refreshHud', () => {
