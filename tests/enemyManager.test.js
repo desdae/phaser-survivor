@@ -423,6 +423,19 @@ describe('EnemyManager update', () => {
     expect(manager.getNearEnemyQuery().enemies.every((enemy) => enemy.lodTier === 'near')).toBe(true);
   });
 
+  it('computes initial intent immediately for newly seen distant enemies', () => {
+    const manager = createEnemyManagerHarness();
+    const farEnemy = makeEnemy({ x: 1400, y: 0, speed: 100 });
+    delete farEnemy.cachedMoveX;
+    delete farEnemy.cachedMoveY;
+    delete farEnemy.cachedWantsToShoot;
+    manager.getLivingEnemies = vi.fn().mockReturnValue([farEnemy]);
+
+    manager.update(16, 60, 1000);
+
+    expect(farEnemy.setVelocity).toHaveBeenCalledWith(-100, 0);
+  });
+
   it('reuses cached intent for far enemies between cadence ticks', () => {
     const manager = createEnemyManagerHarness();
     const farEnemy = makeEnemy({ x: 1400, y: 0 });

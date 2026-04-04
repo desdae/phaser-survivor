@@ -105,6 +105,10 @@ export class EnemyManager {
       const dx = playerSprite.x - enemy.x;
       const dy = playerSprite.y - enemy.y;
       const distance = Math.hypot(dx, dy) || 1;
+      const hasCachedIntent =
+        enemy.cachedMoveX !== undefined &&
+        enemy.cachedMoveY !== undefined &&
+        enemy.cachedWantsToShoot !== undefined;
 
       if (animationStepDue && (enemy.lodTier === 'near' || this.frameIndex % 2 === 0)) {
         const nextFrame = advanceVisualFrame(enemy);
@@ -114,7 +118,7 @@ export class EnemyManager {
         }
       }
 
-      if (shouldRefreshEnemyLogic(enemy.lodTier, this.frameIndex)) {
+      if (!hasCachedIntent || shouldRefreshEnemyLogic(enemy.lodTier, this.frameIndex)) {
         const baseIntent = getEnemyIntent(enemy, enemy, playerSprite);
         const intent =
           enemy.lodTier === 'near'
