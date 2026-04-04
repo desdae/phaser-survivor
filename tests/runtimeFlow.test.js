@@ -19,6 +19,39 @@ vi.mock('phaser', () => ({
 import { GameScene } from '../src/game/scenes/GameScene.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 
+describe('GameScene createTextures', () => {
+  it('generates the reward chest texture', () => {
+    const generateTexture = vi.fn();
+    const graphics = {
+      clear: vi.fn(),
+      fillStyle: vi.fn(),
+      fillCircle: vi.fn(),
+      fillEllipse: vi.fn(),
+      fillRect: vi.fn(),
+      fillTriangle: vi.fn(),
+      lineBetween: vi.fn(),
+      lineStyle: vi.fn(),
+      strokeRect: vi.fn(),
+      strokeCircle: vi.fn(),
+      strokeTriangle: vi.fn(),
+      generateTexture,
+      destroy: vi.fn()
+    };
+    const sceneLike = {
+      add: {
+        graphics: () => graphics
+      },
+      textures: {
+        exists: () => false
+      }
+    };
+
+    GameScene.prototype.createTextures.call(sceneLike);
+
+    expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
+  });
+});
+
 describe('GameScene openLevelUp', () => {
   it('pauses gameplay without zeroing in-flight projectiles', () => {
     const sceneLike = {
@@ -130,5 +163,38 @@ describe('PickupManager update', () => {
 
     expect(onCollect).toHaveBeenCalledWith({ kind: 'heart', value: 10 });
     expect(heart.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('does not auto-collect chest pickups yet', () => {
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            getChildren: () => []
+          })
+        }
+      }
+    };
+    const onCollect = vi.fn();
+    const manager = new PickupManager(scene, onCollect);
+    const chest = {
+      active: true,
+      kind: 'chest',
+      value: 0,
+      x: 12,
+      y: 4,
+      setVelocity: vi.fn(),
+      destroy: vi.fn()
+    };
+
+    manager.group = {
+      getChildren: () => [chest]
+    };
+
+    manager.update({ x: 0, y: 0 }, 48);
+
+    expect(onCollect).not.toHaveBeenCalled();
+    expect(chest.destroy).not.toHaveBeenCalled();
+    expect(chest.setVelocity).toHaveBeenCalledWith(0, 0);
   });
 });

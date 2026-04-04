@@ -42,6 +42,11 @@ export class PickupManager {
         continue;
       }
 
+      if (pickup.kind === 'chest') {
+        pickup.setVelocity(0, 0);
+        continue;
+      }
+
       const dx = playerSprite.x - pickup.x;
       const dy = playerSprite.y - pickup.y;
       const distanceSq = dx * dx + dy * dy;

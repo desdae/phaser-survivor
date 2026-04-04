@@ -89,6 +89,44 @@ describe('EnemyManager', () => {
     expect(effects.spawnPuddle).not.toHaveBeenCalled();
   });
 
+  it('restores the elite tint after the non-lethal flash ends', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const eliteTint = 0xf4bf63;
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn((_, callback) => callback())
+      }
+    };
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+    const enemy = {
+      active: true,
+      clearTint: vi.fn(),
+      eliteTint,
+      health: 20,
+      isElite: true,
+      setTintFill: vi.fn(),
+      x: 48,
+      y: 72
+    };
+
+    const died = manager.damageEnemy(enemy, 6);
+
+    expect(died).toBe(false);
+    expect(enemy.setTintFill).toHaveBeenNthCalledWith(1, 0xfff0f0);
+    expect(enemy.setTintFill).toHaveBeenNthCalledWith(2, eliteTint);
+    expect(enemy.clearTint).not.toHaveBeenCalled();
+  });
+
   it('triggers a bigger death splash and puddle when an enemy dies', () => {
     const enemyGroup = { id: 'enemies' };
     const projectileGroup = { id: 'enemy-projectiles' };

@@ -520,6 +520,17 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('heart-pickup', 21, 20);
 
     graphics.clear();
+    graphics.fillStyle(0x8b5a2b, 1);
+    graphics.fillRect(5, 9, 18, 10);
+    graphics.fillStyle(0xc58a45, 1);
+    graphics.fillRect(5, 6, 18, 5);
+    graphics.lineStyle(2, 0x4d2f14, 1);
+    graphics.strokeRect(5, 6, 18, 13);
+    graphics.lineStyle(1, 0xf6d28e, 0.9);
+    graphics.lineBetween(14, 6, 14, 19);
+    graphics.generateTexture('reward-chest', 28, 22);
+
+    graphics.clear();
     graphics.fillStyle(0x0b1721, 1);
     graphics.fillRect(0, 0, 128, 128);
     graphics.lineStyle(1, 0x15354b, 0.95);

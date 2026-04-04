@@ -173,6 +173,7 @@ export class EnemyManager {
 
     if (eliteModifiers) {
       enemy.isElite = true;
+      enemy.eliteTint = eliteModifiers.tint;
       enemy.health = Math.round(enemy.health * eliteModifiers.healthMultiplier);
       enemy.xpValue = Math.round(enemy.xpValue * eliteModifiers.xpMultiplier);
       enemy.contactDamage = Math.round(enemy.contactDamage * eliteModifiers.contactDamageMultiplier);
@@ -210,7 +211,11 @@ export class EnemyManager {
       enemy.setTintFill(0xfff0f0);
       this.scene.time.delayedCall(50, () => {
         if (enemy.active) {
-          enemy.clearTint();
+          if (enemy.isElite && enemy.eliteTint !== undefined) {
+            enemy.setTintFill(enemy.eliteTint);
+          } else {
+            enemy.clearTint();
+          }
         }
       });
       return false;
