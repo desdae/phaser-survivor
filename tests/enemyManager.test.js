@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getEliteModifiers } from '../src/game/logic/eliteWaves.js';
+import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { EnemyManager } from '../src/game/systems/EnemyManager.js';
 
 vi.mock('../src/game/logic/spawn.js', () => ({
@@ -87,6 +88,37 @@ function makeEnemy({ x = 0, y = 0, speed = 100, visualFrames = ['idle-0'] } = {}
     visualFrames,
     x,
     y
+  };
+}
+
+function createEnemySceneHarness() {
+  const enemyGroup = {
+    children: {
+      iterate: vi.fn()
+    },
+    getChildren: vi.fn().mockReturnValue([])
+  };
+  const enemyProjectileGroup = {
+    children: {
+      iterate: vi.fn()
+    },
+    getChildren: vi.fn().mockReturnValue([])
+  };
+
+  return {
+    physics: {
+      add: {
+        collider: vi.fn(),
+        group: vi
+          .fn()
+          .mockReturnValueOnce(enemyGroup)
+          .mockReturnValueOnce(enemyProjectileGroup)
+      }
+    },
+    time: {
+      now: 0,
+      delayedCall: vi.fn()
+    }
   };
 }
 
@@ -407,6 +439,85 @@ describe('EnemyManager', () => {
     expect(spawnOrb).toHaveBeenCalledWith(64, 96, 5);
     expect(spawnChest).toHaveBeenCalledWith(64, 96, 'spitter');
     expect(enemy.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('spawns a temporary powerup pickup through PickupManager', () => {
+    const createdPickup = {
+      setDepth: vi.fn().mockReturnThis(),
+      setDamping: vi.fn().mockReturnThis(),
+      setDrag: vi.fn().mockReturnThis(),
+      setMaxVelocity: vi.fn().mockReturnThis()
+    };
+    const pickupManager = new PickupManager(
+      {
+        physics: {
+          add: {
+            group: () => ({
+              create: vi.fn(() => createdPickup),
+              getChildren: () => []
+            })
+          }
+        }
+      },
+      vi.fn()
+    );
+
+    const pickup = pickupManager.spawnPowerup(10, 20, 'frenzy');
+
+    expect(pickup.kind).toBe('powerup');
+    expect(pickup.buffKey).toBe('frenzy');
+    expect(pickup.setDepth).toHaveBeenCalledWith(2.2);
+  });
+
+  it('uses the powerup drop roll for normal and elite enemy deaths', () => {
+    const normalManager = new EnemyManager(
+      createEnemySceneHarness(),
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnChest: vi.fn(), spawnPowerup: vi.fn() },
+      null,
+      () => 1
+    );
+    normalManager.powerupDropRoll = vi.fn().mockReturnValue('overcharge');
+
+    const normalEnemy = {
+      active: true,
+      destroy: vi.fn(),
+      health: 3,
+      type: 'basic',
+      x: 40,
+      xpValue: 4,
+      y: 80
+    };
+
+    normalManager.damageEnemy(normalEnemy, 10);
+
+    expect(normalManager.powerupDropRoll).toHaveBeenCalledWith({ isElite: false });
+    expect(normalManager.pickupManager.spawnPowerup).toHaveBeenCalledWith(40, 80, 'overcharge');
+
+    const eliteManager = new EnemyManager(
+      createEnemySceneHarness(),
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnChest: vi.fn(), spawnPowerup: vi.fn() },
+      null,
+      () => 1
+    );
+    eliteManager.powerupDropRoll = vi.fn().mockReturnValue(null);
+
+    const eliteEnemy = {
+      active: true,
+      destroy: vi.fn(),
+      health: 3,
+      isElite: true,
+      type: 'tough',
+      x: 10,
+      xpValue: 4,
+      y: 20
+    };
+
+    eliteManager.damageEnemy(eliteEnemy, 10);
+
+    expect(eliteManager.powerupDropRoll).toHaveBeenCalledWith({ isElite: true });
+    expect(eliteManager.pickupManager.spawnPowerup).not.toHaveBeenCalled();
   });
 
   it('reuses an inactive enemy projectile instead of creating a new one', () => {

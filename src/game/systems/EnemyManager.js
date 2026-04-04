@@ -9,6 +9,7 @@ import {
 import { getEliteModifiers } from '../logic/eliteWaves.js';
 import { advanceVisualFrame, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
+import { rollPowerupDrop } from '../logic/temporaryPowerups.js';
 
 const HEART_DROP_CHANCE = 0.03;
 const HEART_HEAL_AMOUNT = 10;
@@ -56,6 +57,12 @@ export class EnemyManager {
     this.audioManager = audioManager;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
+    this.powerupDropRoll = ({ isElite }) =>
+      rollPowerupDrop({
+        isElite,
+        roll: this.dropRoll(),
+        keyRoll: this.dropRoll()
+      });
     this.enemyQuery = createEnemyQuery([]);
     this.nearEnemyQuery = createEnemyQuery([]);
     this.frameIndex = 0;
@@ -292,6 +299,12 @@ export class EnemyManager {
       this.pickupManager.spawnChest(enemy.x, enemy.y, enemy.type);
     } else {
       this.audioManager?.playEnemyDeath?.();
+    }
+
+    const powerupKey = this.powerupDropRoll?.({ isElite: Boolean(enemy.isElite) });
+
+    if (powerupKey) {
+      this.pickupManager.spawnPowerup?.(enemy.x, enemy.y, powerupKey);
     }
 
     if (this.dropRoll() < HEART_DROP_CHANCE) {

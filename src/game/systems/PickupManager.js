@@ -13,6 +13,15 @@ export class PickupManager {
     return this.spawnPickup(x, y, 'heart-pickup', 'heart', value);
   }
 
+  spawnPowerup(x, y, buffKey) {
+    const pickup = this.spawnPickup(x, y, `powerup-${buffKey}`, 'powerup', 0);
+
+    pickup.buffKey = buffKey;
+    pickup.setDepth(2.2);
+
+    return pickup;
+  }
+
   spawnChest(x, y, rewardSeed = null) {
     const pickup = this.spawnPickup(x, y, 'reward-chest', 'chest', 0);
     pickup.rewardSeed = rewardSeed;
