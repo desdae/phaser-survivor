@@ -21,6 +21,7 @@ describe('DamageStatsManager', () => {
 
     manager.record('projectile', 18);
     manager.record('projectile', 12);
+    manager.unlock('meteor', 0);
     manager.record('meteor', 40);
 
     const rows = manager.getRows(10000);
@@ -45,5 +46,19 @@ describe('DamageStatsManager', () => {
     manager.record('projectile', 0);
 
     expect(manager.getRows(5000).every((row) => row.totalDamage === 0)).toBe(true);
+  });
+
+  it('calculates dps from the moment a weapon was unlocked', () => {
+    const manager = new DamageStatsManager();
+
+    manager.unlock('blade', 20000);
+    manager.record('blade', 60);
+
+    const rows = manager.getRows(30000);
+
+    expect(rows.find((row) => row.key === 'blade')).toMatchObject({
+      dps: 6,
+      totalDamage: 60
+    });
   });
 });

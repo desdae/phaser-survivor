@@ -111,6 +111,7 @@ export class GameScene extends Phaser.Scene {
 
     this.scale.on('resize', this.handleResize, this);
     this.handleResize({ width: this.scale.width, height: this.scale.height });
+    this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.refreshHud();
   }
 
@@ -227,6 +228,7 @@ export class GameScene extends Phaser.Scene {
 
   handleUpgradeSelected(choice) {
     this.upgradeSystem.apply(this.player, choice.key);
+    this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.levelUpOverlay.hide();
 
     if (!this.isGameOver) {
