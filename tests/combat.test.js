@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createEnemyQuery,
   getNearbyEnemies,
+  getQueryEnemiesByTier,
   getNearestEnemy,
   getProjectileVelocity,
   getRicochetTarget,
@@ -40,6 +41,41 @@ describe('createEnemyQuery', () => {
       'near-a',
       'near-b'
     ]);
+  });
+});
+
+describe('getQueryEnemiesByTier', () => {
+  it('returns only enemies in the requested tier bucket', () => {
+    const query = createEnemyQuery(
+      [
+        { active: true, id: 'near', x: 50, y: 0, lodTier: 'near' },
+        { active: true, id: 'mid', x: 500, y: 0, lodTier: 'mid' },
+        { active: true, id: 'far', x: 1200, y: 0, lodTier: 'far' }
+      ],
+      96
+    );
+
+    expect(getQueryEnemiesByTier(query, 'near').map((enemy) => enemy.id)).toEqual(['near']);
+    expect(getQueryEnemiesByTier(query, 'mid').map((enemy) => enemy.id)).toEqual(['mid']);
+  });
+});
+
+describe('getNearbyEnemies', () => {
+  it('prefers tier-filtered local buckets when a query is provided', () => {
+    const query = createEnemyQuery(
+      [
+        { active: true, id: 'near-a', x: 10, y: 10, lodTier: 'near' },
+        { active: true, id: 'near-b', x: 40, y: 0, lodTier: 'near' },
+        { active: true, id: 'mid-a', x: 60, y: 0, lodTier: 'mid' }
+      ],
+      96
+    );
+
+    expect(
+      getNearbyEnemies({ x: 0, y: 0 }, query, 80, Number.POSITIVE_INFINITY, null, ['near']).map(
+        (enemy) => enemy.id
+      )
+    ).toEqual(['near-a', 'near-b']);
   });
 });
 

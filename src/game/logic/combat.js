@@ -2,6 +2,10 @@ function getEnemyKey(enemy) {
   return enemy?.id ?? enemy;
 }
 
+function getEnemyTier(enemy) {
+  return enemy?.lodTier === 'mid' || enemy?.lodTier === 'far' ? enemy.lodTier : 'near';
+}
+
 function isEnemyQuery(enemySource) {
   return Boolean(enemySource?.cellSize && enemySource?.cells && Array.isArray(enemySource?.enemies));
 }
@@ -20,6 +24,11 @@ function getCellKey(cellX, cellY) {
 
 export function createEnemyQuery(enemies, cellSize = 96) {
   const cells = new Map();
+  const enemiesByTier = {
+    near: [],
+    mid: [],
+    far: []
+  };
   const activeEnemies = [];
 
   for (const enemy of enemies ?? []) {
@@ -28,6 +37,7 @@ export function createEnemyQuery(enemies, cellSize = 96) {
     }
 
     activeEnemies.push(enemy);
+    enemiesByTier[getEnemyTier(enemy)].push(enemy);
     const cellX = Math.floor(enemy.x / cellSize);
     const cellY = Math.floor(enemy.y / cellSize);
     const key = getCellKey(cellX, cellY);
@@ -42,22 +52,39 @@ export function createEnemyQuery(enemies, cellSize = 96) {
   return {
     cellSize,
     cells,
-    enemies: activeEnemies
+    enemies: activeEnemies,
+    enemiesByTier
   };
 }
 
-export function getNearbyEnemies(origin, enemySource, maxDistance, limit = Number.POSITIVE_INFINITY, excludedEnemyKeys = null) {
+export function getQueryEnemiesByTier(query, tier) {
+  return query?.enemiesByTier?.[tier] ?? [];
+}
+
+export function getNearbyEnemies(
+  origin,
+  enemySource,
+  maxDistance,
+  limit = Number.POSITIVE_INFINITY,
+  excludedEnemyKeys = null,
+  allowedTiers = null
+) {
   if (!origin || maxDistance <= 0) {
     return [];
   }
 
   const maxDistanceSq = maxDistance * maxDistance;
+  const allowedTierSet = allowedTiers ? new Set(allowedTiers) : null;
 
   if (!isEnemyQuery(enemySource)) {
     const results = [];
 
     for (const enemy of getEnemyList(enemySource)) {
       if (!enemy?.active) {
+        continue;
+      }
+
+      if (allowedTierSet && !allowedTierSet.has(getEnemyTier(enemy))) {
         continue;
       }
 
@@ -101,6 +128,10 @@ export function getNearbyEnemies(origin, enemySource, maxDistance, limit = Numbe
       }
 
       for (const enemy of bucket) {
+        if (allowedTierSet && !allowedTierSet.has(getEnemyTier(enemy))) {
+          continue;
+        }
+
         const enemyKey = getEnemyKey(enemy);
 
         if (excludedEnemyKeys?.has?.(enemyKey)) {
