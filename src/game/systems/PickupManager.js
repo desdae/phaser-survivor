@@ -13,17 +13,48 @@ export class PickupManager {
     return this.spawnPickup(x, y, 'heart-pickup', 'heart', value);
   }
 
+  spawnChest(x, y, rewardSeed = null) {
+    const pickup = this.spawnPickup(x, y, 'reward-chest', 'chest', 0);
+    pickup.rewardSeed = rewardSeed;
+    return pickup;
+  }
+
   spawnPickup(x, y, texture, kind, value) {
     const pickup = this.group.create(x, y, texture);
 
     pickup.kind = kind;
     pickup.value = value;
-    pickup.setDepth(kind === 'heart' ? 2.1 : 2);
+    pickup.setDepth(kind === 'heart' ? 2.1 : kind === 'chest' ? 2.4 : 2);
     pickup.setDamping(true);
     pickup.setDrag(0.96);
     pickup.setMaxVelocity(180, 180);
 
     return pickup;
+  }
+
+  pullNearbyToPlayer(playerSprite, radius = 260, speed = 440) {
+    if (!playerSprite) {
+      return;
+    }
+
+    const radiusSq = radius * radius;
+
+    for (const pickup of this.group.getChildren()) {
+      if (!pickup?.active || pickup.kind === 'chest') {
+        continue;
+      }
+
+      const dx = playerSprite.x - pickup.x;
+      const dy = playerSprite.y - pickup.y;
+      const distanceSq = dx * dx + dy * dy;
+
+      if (distanceSq > radiusSq) {
+        continue;
+      }
+
+      const distance = Math.hypot(dx, dy) || 1;
+      pickup.setVelocity((dx / distance) * speed, (dy / distance) * speed);
+    }
   }
 
   update(playerSprite, pickupRadius) {
@@ -41,11 +72,25 @@ export class PickupManager {
       const distanceSq = dx * dx + dy * dy;
 
       if (distanceSq <= pickupRadiusSq) {
-        const shouldPause = this.onCollect({ kind: pickup.kind ?? 'xp', value: pickup.value });
+        const collectPayload = {
+          kind: pickup.kind ?? 'xp',
+          value: pickup.value
+        };
+
+        if (pickup.rewardSeed !== undefined) {
+          collectPayload.rewardSeed = pickup.rewardSeed;
+        }
+
+        const shouldPause = this.onCollect(collectPayload);
         pickup.destroy();
         if (shouldPause) {
           break;
         }
+        continue;
+      }
+
+      if (pickup.kind === 'chest') {
+        pickup.setVelocity(0, 0);
         continue;
       }
 

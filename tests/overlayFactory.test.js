@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createGameOverOverlay, createLevelUpOverlay } from '../src/game/ui/overlayFactory.js';
+import {
+  createHud,
+  createChestOverlay,
+  createGameOverOverlay,
+  createLevelUpOverlay
+} from '../src/game/ui/overlayFactory.js';
 
 function createFakeDisplayObject() {
   const handlers = new Map();
@@ -77,6 +82,29 @@ function createFakeScene() {
   };
 }
 
+describe('createHud', () => {
+  it('shows elite warning text when eliteWarning is provided', () => {
+    const scene = createFakeScene();
+    const hud = createHud(scene);
+
+    hud.update({
+      health: 88,
+      maxHealth: 100,
+      level: 5,
+      xp: 12,
+      xpToNext: 20,
+      timeMs: 61000,
+      enemyCount: 14,
+      projectileCount: 2,
+      bladeCount: 1,
+      activeWeapons: 3,
+      eliteWarning: 'Elite wave incoming'
+    });
+
+    expect(scene.texts.some((text) => text.text.includes('Elite wave incoming'))).toBe(true);
+  });
+});
+
 describe('createLevelUpOverlay', () => {
   it('selects a choice when a pointer hits a visible card region', () => {
     const scene = createFakeScene();
@@ -114,6 +142,27 @@ describe('createLevelUpOverlay', () => {
 
     expect(selected).toBe(false);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe('createChestOverlay', () => {
+  it('selects a reward when a pointer hits a visible card region', () => {
+    const scene = createFakeScene();
+    const onSelect = vi.fn();
+    const overlay = createChestOverlay(scene, onSelect);
+    const rewards = [
+      { key: 'arsenalDraft', label: 'Arsenal Draft', description: 'Unlock a missing weapon.' },
+      { key: 'relicDamage', label: 'Relic: Impact', description: '+14 projectile damage' },
+      { key: 'soulMagnet', label: 'Soul Magnet', description: 'Vacuum nearby pickups.' }
+    ];
+
+    overlay.show(rewards);
+    overlay.layout(1280, 720);
+
+    const selected = overlay.choosePointer(340, 410);
+
+    expect(selected).toBe(true);
+    expect(onSelect).toHaveBeenCalledWith(rewards[0]);
   });
 });
 

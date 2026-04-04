@@ -8,10 +8,15 @@ import { ChainManager } from '../systems/ChainManager.js';
 import { DamageStatsManager } from '../systems/DamageStatsManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
+import { EliteWaveSystem } from '../systems/EliteWaveSystem.js';
+import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
+import { AudioManager } from '../systems/AudioManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
+import { getSpawnProfile } from '../logic/spawn.js';
 import {
+  createChestOverlay,
   createDamageStatsOverlay,
   createGameOverOverlay,
   createHud,
@@ -31,6 +36,7 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs = 0;
     this.isGameplayPaused = false;
     this.isGameOver = false;
+    this.activePauseOverlay = null;
 
     this.background = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, 'grid');
     this.background.setOrigin(0);
@@ -41,13 +47,15 @@ export class GameScene extends Phaser.Scene {
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
     this.damageStatsManager = new DamageStatsManager();
     this.bloodEffectsManager = new BloodEffectsManager(this);
+    this.audioManager = new AudioManager();
     this.enemyManager = new EnemyManager(
       this,
       this.player,
       this.pickupManager,
       this.bloodEffectsManager,
       Math.random,
-      this.damageStatsManager
+      this.damageStatsManager,
+      this.audioManager
     );
     this.projectileManager = new ProjectileManager(this);
     this.bladeManager = new BladeManager(this);
@@ -56,6 +64,9 @@ export class GameScene extends Phaser.Scene {
     this.boomerangManager = new BoomerangManager(this);
     this.meteorManager = new MeteorManager(this);
     this.upgradeSystem = new UpgradeSystem();
+    this.chestRewardSystem = new ChestRewardSystem();
+    this.eliteWaveSystem = new EliteWaveSystem();
+    this.eliteWarningPlayed = false;
 
     this.keys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -78,7 +89,14 @@ export class GameScene extends Phaser.Scene {
     this.hud = createHud(this);
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
+    this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
+    this.input.once('pointerdown', () => {
+      this.audioManager?.unlock?.();
+    });
+    this.input.keyboard.once('keydown', () => {
+      this.audioManager?.unlock?.();
+    });
     this.input.on('pointerdown', (pointer) => {
       if (this.isGameOver) {
         this.gameOverOverlay.choosePointer(pointer.x, pointer.y);
@@ -86,6 +104,11 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (this.isGameplayPaused) {
+        if (this.activePauseOverlay === 'chest') {
+          this.chestOverlay.choosePointer(pointer.x, pointer.y);
+          return;
+        }
+
         this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
       }
     });
@@ -103,6 +126,7 @@ export class GameScene extends Phaser.Scene {
 
       projectile.destroy();
       const died = this.player.takeDamage(projectile.damage);
+      this.audioManager?.playPlayerHurt?.();
 
       if (died) {
         this.openGameOver();
@@ -126,13 +150,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameplayPaused) {
-      this.handleUpgradeHotkeys();
+      this.handlePauseHotkeys();
       this.refreshHud();
       return;
     }
 
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
+    this.updateEliteWave();
     this.enemyManager.update(delta, this.elapsedMs / 1000, time);
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
@@ -161,12 +186,44 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  updateEliteWave() {
+    const eliteState = this.eliteWaveSystem.update(this.elapsedMs);
+
+    if (!eliteState?.pendingElite) {
+      this.eliteWarningPlayed = false;
+      return;
+    }
+
+    if (this.eliteWaveSystem.isWarningActive(this.elapsedMs)) {
+      if (!this.eliteWarningPlayed) {
+        this.audioManager?.playEliteWarning?.();
+        this.eliteWarningPlayed = true;
+      }
+
+      return;
+    }
+
+    const profile = getSpawnProfile(this.elapsedMs / 1000);
+    const typeKey = this.enemyManager.pickEnemyType(profile.weights);
+
+    this.enemyManager.spawnEnemy(typeKey, { elite: true });
+    this.eliteWaveSystem.consumeSpawn();
+    this.eliteWarningPlayed = false;
+  }
+
   handlePickupCollected(pickup) {
-    if (this.isGameOver) {
+    if (this.isGameOver || this.isGameplayPaused || this.activePauseOverlay) {
       return false;
     }
 
+    if (pickup.kind === 'chest') {
+      this.audioManager?.playChestOpen?.();
+      this.openChestReward(pickup);
+      return true;
+    }
+
     if (pickup.kind === 'heart') {
+      this.audioManager?.playPickup?.();
       this.player.heal(pickup.value);
       this.refreshHud();
       return false;
@@ -175,6 +232,7 @@ export class GameScene extends Phaser.Scene {
     const result = this.player.gainXp(pickup.value);
 
     if (result.leveledUp) {
+      this.audioManager?.playLevelUp?.();
       this.openLevelUp();
     }
 
@@ -193,6 +251,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const died = this.player.takeDamage(enemy.contactDamage);
+    this.audioManager?.playPlayerHurt?.();
     this.cameras.main.shake(90, 0.0026);
     this.refreshHud();
 
@@ -203,18 +262,37 @@ export class GameScene extends Phaser.Scene {
 
   openLevelUp() {
     this.isGameplayPaused = true;
+    this.activePauseOverlay = 'levelUp';
     this.physics.world.pause();
     this.player.stop();
     this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats));
   }
 
-  handleUpgradeHotkeys() {
+  openChestReward(pickup = null) {
+    if (this.isGameOver || this.isGameplayPaused || this.activePauseOverlay) {
+      return false;
+    }
+
+    this.isGameplayPaused = true;
+    this.activePauseOverlay = 'chest';
+    this.pendingChestPickup = pickup;
+    this.physics.world.pause();
+    this.player.stop();
+    this.chestOverlay.show(this.chestRewardSystem.getChoices(this.player.stats));
+  }
+
+  handlePauseHotkeys() {
     if (this.isGameOver) {
       return;
     }
 
     this.upgradeKeys.forEach((key, index) => {
       if (Phaser.Input.Keyboard.JustDown(key)) {
+        if (this.activePauseOverlay === 'chest') {
+          this.chestOverlay.chooseIndex(index);
+          return;
+        }
+
         this.levelUpOverlay.chooseIndex(index);
       }
     });
@@ -230,6 +308,22 @@ export class GameScene extends Phaser.Scene {
     this.upgradeSystem.apply(this.player, choice.key);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.levelUpOverlay.hide();
+    this.activePauseOverlay = null;
+
+    if (!this.isGameOver) {
+      this.physics.world.resume();
+      this.isGameplayPaused = false;
+    }
+
+    this.refreshHud();
+  }
+
+  handleChestRewardSelected(reward) {
+    this.chestRewardSystem.apply(this.player, reward, this.pickupManager);
+    this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
+    this.chestOverlay.hide();
+    this.activePauseOverlay = null;
+    this.pendingChestPickup = null;
 
     if (!this.isGameOver) {
       this.physics.world.resume();
@@ -242,11 +336,14 @@ export class GameScene extends Phaser.Scene {
   openGameOver() {
     this.isGameOver = true;
     this.isGameplayPaused = true;
+    this.activePauseOverlay = null;
+    this.audioManager?.playGameOver?.();
     this.physics.world.pause();
     this.player.stop();
     this.enemyManager.stopAll();
     this.projectileManager.stopAll();
     this.levelUpOverlay.hide();
+    this.chestOverlay.hide();
     this.gameOverOverlay.show({
       timeMs: this.elapsedMs,
       level: this.player.stats.level
@@ -270,7 +367,8 @@ export class GameScene extends Phaser.Scene {
         Number(this.player.stats.chainUnlocked) +
         Number(this.player.stats.novaUnlocked) +
         Number(this.player.stats.boomerangUnlocked) +
-        Number(this.player.stats.meteorUnlocked)
+        Number(this.player.stats.meteorUnlocked),
+      eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
     this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }
@@ -293,6 +391,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.levelUpOverlay) {
       this.levelUpOverlay.layout(width, height);
+    }
+
+    if (this.chestOverlay) {
+      this.chestOverlay.layout(width, height);
     }
 
     if (this.gameOverOverlay) {
@@ -518,6 +620,17 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(1, 0xffd6dc, 0.85);
     graphics.strokeTriangle(4, 11, 17, 11, 10.5, 18);
     graphics.generateTexture('heart-pickup', 21, 20);
+
+    graphics.clear();
+    graphics.fillStyle(0x8b5a2b, 1);
+    graphics.fillRect(5, 9, 18, 10);
+    graphics.fillStyle(0xc58a45, 1);
+    graphics.fillRect(5, 6, 18, 5);
+    graphics.lineStyle(2, 0x4d2f14, 1);
+    graphics.strokeRect(5, 6, 18, 13);
+    graphics.lineStyle(1, 0xf6d28e, 0.9);
+    graphics.lineBetween(14, 6, 14, 19);
+    graphics.generateTexture('reward-chest', 28, 22);
 
     graphics.clear();
     graphics.fillStyle(0x0b1721, 1);

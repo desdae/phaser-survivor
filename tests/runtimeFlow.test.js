@@ -18,6 +18,40 @@ vi.mock('phaser', () => ({
 
 import { GameScene } from '../src/game/scenes/GameScene.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
+import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
+
+describe('GameScene createTextures', () => {
+  it('generates the reward chest texture', () => {
+    const generateTexture = vi.fn();
+    const graphics = {
+      clear: vi.fn(),
+      fillStyle: vi.fn(),
+      fillCircle: vi.fn(),
+      fillEllipse: vi.fn(),
+      fillRect: vi.fn(),
+      fillTriangle: vi.fn(),
+      lineBetween: vi.fn(),
+      lineStyle: vi.fn(),
+      strokeRect: vi.fn(),
+      strokeCircle: vi.fn(),
+      strokeTriangle: vi.fn(),
+      generateTexture,
+      destroy: vi.fn()
+    };
+    const sceneLike = {
+      add: {
+        graphics: () => graphics
+      },
+      textures: {
+        exists: () => false
+      }
+    };
+
+    GameScene.prototype.createTextures.call(sceneLike);
+
+    expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
+  });
+});
 
 describe('GameScene openLevelUp', () => {
   it('pauses gameplay without zeroing in-flight projectiles', () => {
@@ -53,6 +87,321 @@ describe('GameScene openLevelUp', () => {
     expect(sceneLike.enemyManager.stopAll).not.toHaveBeenCalled();
     expect(sceneLike.projectileManager.stopAll).not.toHaveBeenCalled();
     expect(sceneLike.levelUpOverlay.show).toHaveBeenCalledWith([{ key: 'damage' }]);
+  });
+});
+
+describe('GameScene openChestReward', () => {
+  it('pauses gameplay and shows rolled chest rewards', () => {
+    const sceneLike = {
+      isGameplayPaused: false,
+      physics: {
+        world: {
+          pause: vi.fn()
+        }
+      },
+      player: {
+        stats: { level: 2 },
+        stop: vi.fn()
+      },
+      enemyManager: {
+        stopAll: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn()
+      },
+      chestOverlay: {
+        show: vi.fn()
+      },
+      chestRewardSystem: {
+        getChoices: vi.fn().mockReturnValue([{ key: 'arsenalDraft' }])
+      }
+    };
+
+    GameScene.prototype.openChestReward.call(sceneLike);
+
+    expect(sceneLike.isGameplayPaused).toBe(true);
+    expect(sceneLike.physics.world.pause).toHaveBeenCalledOnce();
+    expect(sceneLike.player.stop).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.stopAll).not.toHaveBeenCalled();
+    expect(sceneLike.projectileManager.stopAll).not.toHaveBeenCalled();
+    expect(sceneLike.chestOverlay.show).toHaveBeenCalledWith([{ key: 'arsenalDraft' }]);
+  });
+});
+
+describe('GameScene handlePickupCollected', () => {
+  it('does not open the chest reward overlay while another pause overlay is active', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      audioManager: {
+        playChestOpen: vi.fn()
+      },
+      isGameOver: false,
+      isGameplayPaused: true,
+      openChestReward: vi.fn(),
+      player: {
+        heal: vi.fn(),
+        gainXp: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'chest',
+      rewardSeed: 'ogre'
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playChestOpen).not.toHaveBeenCalled();
+    expect(sceneLike.openChestReward).not.toHaveBeenCalled();
+  });
+
+  it('special-cases chest pickups and opens the chest reward overlay', () => {
+    const sceneLike = {
+      audioManager: {
+        playChestOpen: vi.fn()
+      },
+      isGameOver: false,
+      openChestReward: vi.fn(),
+      player: {
+        heal: vi.fn(),
+        gainXp: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'chest',
+      rewardSeed: 'ogre'
+    });
+
+    expect(result).toBe(true);
+    expect(sceneLike.audioManager.playChestOpen).toHaveBeenCalledOnce();
+    expect(sceneLike.openChestReward).toHaveBeenCalledWith({ kind: 'chest', rewardSeed: 'ogre' });
+    expect(sceneLike.player.heal).not.toHaveBeenCalled();
+    expect(sceneLike.player.gainXp).not.toHaveBeenCalled();
+  });
+
+  it('plays level-up audio when xp gain levels the player', () => {
+    const sceneLike = {
+      audioManager: {
+        playLevelUp: vi.fn()
+      },
+      isGameOver: false,
+      openLevelUp: vi.fn(),
+      player: {
+        gainXp: vi.fn().mockReturnValue({ leveledUp: true }),
+        heal: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'xp',
+      value: 7
+    });
+
+    expect(result).toBe(true);
+    expect(sceneLike.audioManager.playLevelUp).toHaveBeenCalledOnce();
+    expect(sceneLike.openLevelUp).toHaveBeenCalledOnce();
+  });
+
+  it('plays pickup audio for heart pickups', () => {
+    const sceneLike = {
+      audioManager: {
+        playPickup: vi.fn()
+      },
+      isGameOver: false,
+      openChestReward: vi.fn(),
+      player: {
+        gainXp: vi.fn(),
+        heal: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'heart',
+      value: 10
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
+    expect(sceneLike.player.heal).toHaveBeenCalledWith(10);
+  });
+});
+
+describe('GameScene update', () => {
+  it('plays warning audio first, then spawns the elite after the warning window ends', () => {
+    const eliteState = {
+      pendingElite: false,
+      warningUntilMs: 0,
+      nextEliteAtMs: ELITE_WAVE_INTERVAL_MS
+    };
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      audioManager: {
+        playEliteWarning: vi.fn()
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: ELITE_WAVE_INTERVAL_MS,
+      enemyManager: {
+        getLivingEnemies: vi.fn().mockReturnValue([]),
+        pickEnemyType: vi.fn().mockReturnValue('basic'),
+        spawnEnemy: vi.fn(),
+        update: vi.fn()
+      },
+      handleStatsToggle: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          bladeCount: 0,
+          bladeUnlocked: false,
+          boomerangUnlocked: false,
+          chainUnlocked: false,
+          level: 1,
+          meteorUnlocked: false,
+          novaUnlocked: false,
+          pickupRadius: 48,
+          projectileCount: 1,
+          health: 100,
+          maxHealth: 100,
+          xp: 0,
+          xpToNext: 10
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn(),
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      updateEliteWave: GameScene.prototype.updateEliteWave,
+      statsKey: {},
+      input: {
+        keyboard: {
+          addCapture: vi.fn()
+        }
+      },
+      time: {
+        now: ELITE_WAVE_INTERVAL_MS
+      },
+      upgradeKeys: [],
+      eliteWaveSystem: {
+        state: eliteState,
+        update: vi.fn().mockImplementation((elapsedMs) => {
+          if (!eliteState.pendingElite) {
+            eliteState.pendingElite = true;
+            eliteState.warningUntilMs = elapsedMs + 3000;
+            eliteState.nextEliteAtMs = ELITE_WAVE_INTERVAL_MS * 2;
+          }
+          return eliteState;
+        }),
+        isWarningActive: vi.fn().mockImplementation((nowMs) => nowMs <= eliteState.warningUntilMs),
+        consumeSpawn: vi.fn(),
+      }
+    };
+
+    GameScene.prototype.update.call(sceneLike, ELITE_WAVE_INTERVAL_MS, 16);
+
+    expect(sceneLike.audioManager.playEliteWarning).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.spawnEnemy).not.toHaveBeenCalled();
+    expect(sceneLike.eliteWaveSystem.consumeSpawn).not.toHaveBeenCalled();
+
+    sceneLike.enemyManager.spawnEnemy.mockClear();
+    sceneLike.audioManager.playEliteWarning.mockClear();
+    sceneLike.eliteWaveSystem.consumeSpawn.mockClear();
+
+    GameScene.prototype.update.call(sceneLike, ELITE_WAVE_INTERVAL_MS + 4000, 4000);
+
+    expect(sceneLike.audioManager.playEliteWarning).not.toHaveBeenCalled();
+    expect(sceneLike.enemyManager.pickEnemyType).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('basic', { elite: true });
+    expect(sceneLike.eliteWaveSystem.consumeSpawn).toHaveBeenCalledOnce();
+  });
+});
+
+describe('GameScene openGameOver', () => {
+  it('plays game over audio when the run ends', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      audioManager: {
+        playGameOver: vi.fn()
+      },
+      chestOverlay: {
+        hide: vi.fn()
+      },
+      elapsedMs: 12000,
+      enemyManager: {
+        stopAll: vi.fn()
+      },
+      gameOverOverlay: {
+        show: vi.fn()
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      levelUpOverlay: {
+        hide: vi.fn()
+      },
+      physics: {
+        world: {
+          pause: vi.fn()
+        }
+      },
+      player: {
+        stats: { level: 4 },
+        stop: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn()
+      }
+    };
+
+    GameScene.prototype.openGameOver.call(sceneLike);
+
+    expect(sceneLike.audioManager.playGameOver).toHaveBeenCalledOnce();
+    expect(sceneLike.gameOverOverlay.show).toHaveBeenCalledWith({ level: 4, timeMs: 12000 });
   });
 });
 
@@ -130,5 +479,38 @@ describe('PickupManager update', () => {
 
     expect(onCollect).toHaveBeenCalledWith({ kind: 'heart', value: 10 });
     expect(heart.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('collects chest pickups once chest rewards are wired', () => {
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            getChildren: () => []
+          })
+        }
+      }
+    };
+    const onCollect = vi.fn();
+    const manager = new PickupManager(scene, onCollect);
+    const chest = {
+      active: true,
+      kind: 'chest',
+      value: 0,
+      rewardSeed: 'bat',
+      x: 12,
+      y: 4,
+      setVelocity: vi.fn(),
+      destroy: vi.fn()
+    };
+
+    manager.group = {
+      getChildren: () => [chest]
+    };
+
+    manager.update({ x: 0, y: 0 }, 48);
+
+    expect(onCollect).toHaveBeenCalledWith({ kind: 'chest', value: 0, rewardSeed: 'bat' });
+    expect(chest.destroy).toHaveBeenCalledOnce();
   });
 });

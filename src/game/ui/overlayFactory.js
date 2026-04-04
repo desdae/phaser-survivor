@@ -43,6 +43,37 @@ function createButtonCard(scene, onClick) {
   return card;
 }
 
+function chooseCardByIndex(cards, index, onSelect) {
+  const choice = getChoiceByIndex(cards.map((card) => card.choice).filter(Boolean), index);
+
+  if (choice) {
+    onSelect(choice);
+  }
+}
+
+function chooseCardByPointer(cards, pointerX, pointerY, onSelect) {
+  for (const card of cards) {
+    if (!card.visible || !card.choice) {
+      continue;
+    }
+
+    const width = 280 * card.scaleX;
+    const height = 170 * card.scaleY;
+    const withinX = pointerX >= card.x - width / 2 && pointerX <= card.x + width / 2;
+    const withinY = pointerY >= card.y - height / 2 && pointerY <= card.y + height / 2;
+
+    if (!withinX || !withinY) {
+      continue;
+    }
+
+    card.background.setFillStyle(card.hoverFill ?? 0x1f4561, 1);
+    onSelect(card.choice);
+    return true;
+  }
+
+  return false;
+}
+
 export function formatTime(elapsedMs) {
   const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
   const minutes = Math.floor(totalSeconds / 60)
@@ -53,7 +84,7 @@ export function formatTime(elapsedMs) {
 }
 
 export function createHud(scene) {
-  const panel = scene.add.rectangle(0, 0, 340, 138, 0x08121c, 0.75).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 340, 164, 0x08121c, 0.75).setOrigin(0);
   panel.setStrokeStyle(2, 0x4da2ff, 0.35);
   const hpText = scene.add.text(18, 16, '', {
     fontFamily: 'Trebuchet MS',
@@ -75,7 +106,20 @@ export function createHud(scene) {
     fontSize: '18px',
     color: '#ffd17a'
   });
-  const container = scene.add.container(18, 18, [panel, hpText, levelText, xpText, timeText]);
+  const eliteWarningText = scene.add.text(18, 130, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#f4bf63',
+    fontStyle: 'bold'
+  });
+  const container = scene.add.container(18, 18, [
+    panel,
+    hpText,
+    levelText,
+    xpText,
+    timeText,
+    eliteWarningText
+  ]);
 
   container.setDepth(40);
   container.setScrollFactor(0);
@@ -94,12 +138,14 @@ export function createHud(scene) {
       enemyCount,
       projectileCount,
       bladeCount,
-      activeWeapons
+      activeWeapons,
+      eliteWarning
     }) {
       hpText.setText(`HP ${Math.ceil(health)} / ${maxHealth}`);
       levelText.setText(`Level ${level}   Threats ${enemyCount}`);
       xpText.setText(`XP ${xp} / ${xpToNext}   Shots ${projectileCount}   Blades ${bladeCount}`);
       timeText.setText(`Time ${formatTime(timeMs)}   Arsenal ${activeWeapons}`);
+      eliteWarningText.setText(eliteWarning ?? '');
     }
   };
 }
@@ -225,6 +271,7 @@ export function createLevelUpOverlay(scene, onSelect) {
         card.setVisible(true);
         card.choice = choice;
         card.isUnlock = isUnlock;
+        card.hoverFill = isUnlock ? 0x243a2b : 0x1f4561;
         card.background.setFillStyle(isUnlock ? 0x1b2f22 : 0x163042, 0.96);
         card.background.setStrokeStyle(2, isUnlock ? 0xa6f0b8 : 0x89c7ff, isUnlock ? 0.75 : 0.65);
         card.badge.setText(isUnlock ? 'UNLOCK' : 'UPGRADE');
@@ -244,33 +291,91 @@ export function createLevelUpOverlay(scene, onSelect) {
       container.setVisible(true);
     },
     chooseIndex(index) {
-      const choice = getChoiceByIndex(cards.map((card) => card.choice).filter(Boolean), index);
-
-      if (choice) {
-        onSelect(choice);
-      }
+      chooseCardByIndex(cards, index, onSelect);
     },
     choosePointer(pointerX, pointerY) {
-      for (const card of cards) {
-        if (!card.visible || !card.choice) {
-          continue;
+      return chooseCardByPointer(cards, pointerX, pointerY, onSelect);
+    }
+  };
+}
+
+export function createChestOverlay(scene, onSelect) {
+  const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x090503, 0.82).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 940, 420, 0x1c120b, 0.97).setStrokeStyle(2, 0xe2b96c, 0.7);
+  const title = scene.add.text(0, -150, 'Elite Chest', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '40px',
+    color: '#fff2d6',
+    fontStyle: 'bold'
+  });
+  const subtitle = scene.add.text(0, -104, 'Choose one relic reward before the swarm closes back in.', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#f0d7aa'
+  });
+  const cards = [createButtonCard(scene, onSelect), createButtonCard(scene, onSelect), createButtonCard(scene, onSelect)];
+  const container = scene.add.container(0, 0, [backdrop, panel, title, subtitle, ...cards]);
+
+  title.setOrigin(0.5);
+  subtitle.setOrigin(0.5);
+  container.setDepth(61);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  return {
+    hide() {
+      container.setVisible(false);
+    },
+    layout(width, height) {
+      backdrop.setSize(width, height);
+      panel.setPosition(width / 2, height / 2);
+      title.setPosition(width / 2, height / 2 - 150);
+      subtitle.setPosition(width / 2, height / 2 - 104);
+
+      const compact = width < 1024;
+      cards.forEach((card, index) => {
+        const x = compact ? width / 2 : width / 2 - 300 + index * 300;
+        const y = compact ? height / 2 - 5 + index * 115 : height / 2 + 50;
+        card.setPosition(x, y);
+        card.setScale(compact ? 0.82 : 1);
+      });
+    },
+    show(choices) {
+      cards.forEach((card, index) => {
+        const choice = getChoiceByIndex(choices, index);
+
+        if (!choice) {
+          card.setVisible(false);
+          card.choice = null;
+          return;
         }
 
-        const width = 280 * card.scaleX;
-        const height = 170 * card.scaleY;
-        const withinX = pointerX >= card.x - width / 2 && pointerX <= card.x + width / 2;
-        const withinY = pointerY >= card.y - height / 2 && pointerY <= card.y + height / 2;
+        card.setVisible(true);
+        card.choice = choice;
+        card.hoverFill = 0x4a2f18;
+        card.background.setFillStyle(0x2d2013, 0.98);
+        card.background.setStrokeStyle(2, 0xe2b96c, 0.78);
+        card.badge.setText('REWARD');
+        card.badge.setStyle({
+          fontFamily: 'Trebuchet MS',
+          fontSize: '13px',
+          color: '#201309',
+          fontStyle: 'bold',
+          backgroundColor: '#f0c778',
+          padding: { left: 8, right: 8, top: 2, bottom: 2 }
+        });
+        card.title.setText(choice.label);
+        card.description.setText(choice.description);
+        card.hint.setText(`Press ${index + 1} or click`);
+      });
 
-        if (!withinX || !withinY) {
-          continue;
-        }
-
-        card.background.setFillStyle(card.isUnlock ? 0x243a2b : 0x1f4561, 1);
-        onSelect(card.choice);
-        return true;
-      }
-
-      return false;
+      container.setVisible(true);
+    },
+    chooseIndex(index) {
+      chooseCardByIndex(cards, index, onSelect);
+    },
+    choosePointer(pointerX, pointerY) {
+      return chooseCardByPointer(cards, pointerX, pointerY, onSelect);
     }
   };
 }
