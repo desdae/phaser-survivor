@@ -41,14 +41,14 @@ export class BoomerangManager {
       }
 
       enemies.forEach((enemy) => {
-        if (!enemy?.active || !registerBoomerangHit(boomerang, enemy)) {
+        if (!enemy?.active) {
           return;
         }
 
         const dx = enemy.x - boomerang.x;
         const dy = enemy.y - boomerang.y;
 
-        if (Math.hypot(dx, dy) <= BOOMERANG_HIT_RADIUS) {
+        if (Math.hypot(dx, dy) <= BOOMERANG_HIT_RADIUS && registerBoomerangHit(boomerang, enemy)) {
           enemyManager.damageEnemy(enemy, boomerang.damage, 'boomerang');
         }
       });
