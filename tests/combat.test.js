@@ -215,20 +215,20 @@ describe('ProjectileManager', () => {
   it('emits one projectile per shot direction and preserves branch counters', () => {
     const { manager, projectiles } = createManager();
     const player = {
-      sprite: { x: 0, y: 0 },
-      stats: {
-        fireCooldownMs: 150,
-        projectileCount: 3,
-        projectileDamage: 9,
-        projectilePierce: 2,
-        projectileRicochet: 1,
-        projectileSpeed: 120,
-        projectileSpreadDeg: 20
-      }
+      sprite: { x: 0, y: 0 }
+    };
+    const stats = {
+      fireCooldownMs: 150,
+      projectileCount: 3,
+      projectileDamage: 9,
+      projectilePierce: 2,
+      projectileRicochet: 1,
+      projectileSpeed: 120,
+      projectileSpreadDeg: 20
     };
     const enemies = [{ active: true, id: 'target', x: 100, y: 0 }];
 
-    const shots = manager.tryFire(player, enemies, 0);
+    const shots = manager.tryFire(player, stats, enemies, 0);
 
     expect(shots).toHaveLength(3);
     expect(projectiles).toHaveLength(3);
@@ -240,16 +240,16 @@ describe('ProjectileManager', () => {
   it('skips duplicate hits and ricochets to a fresh target', () => {
     const { manager } = createManager();
     const player = {
-      sprite: { x: 0, y: 0 },
-      stats: {
-        fireCooldownMs: 150,
-        projectileCount: 1,
-        projectileDamage: 9,
-        projectilePierce: 0,
-        projectileRicochet: 2,
-        projectileSpeed: 120,
-        projectileSpreadDeg: 0
-      }
+      sprite: { x: 0, y: 0 }
+    };
+    const stats = {
+      fireCooldownMs: 150,
+      projectileCount: 1,
+      projectileDamage: 9,
+      projectilePierce: 0,
+      projectileRicochet: 2,
+      projectileSpeed: 120,
+      projectileSpreadDeg: 0
     };
     const enemy1 = { active: true, id: 'enemy-1', x: 100, y: 0 };
     const enemy2 = { active: true, id: 'enemy-2', x: 130, y: 0 };
@@ -261,7 +261,7 @@ describe('ProjectileManager', () => {
       },
       getLivingEnemies: () => [enemy1, enemy2, enemy3]
     };
-    const projectile = manager.tryFire(player, [enemy1, enemy2, enemy3], 0)[0];
+    const projectile = manager.tryFire(player, stats, [enemy1, enemy2, enemy3], 0)[0];
 
     manager.handleEnemyHit(projectile, enemy1, enemyManager);
     expect(enemyManager.damageEnemyCalls).toHaveLength(1);

@@ -49,7 +49,7 @@ export class ProjectileManager {
     });
   }
 
-  tryFire(player, enemies, now) {
+  tryFire(player, stats, enemies, now) {
     if (now < this.nextShotAt) {
       return [];
     }
@@ -60,7 +60,6 @@ export class ProjectileManager {
       return [];
     }
 
-    const stats = player.stats;
     const projectileSpeed = stats.projectileSpeed ?? 0;
     const projectileCount = stats.projectileCount ?? 1;
     const projectileSpreadDeg = stats.projectileSpreadDeg ?? 0;

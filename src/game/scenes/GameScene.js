@@ -13,6 +13,7 @@ import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
+import { TemporaryBuffSystem } from '../systems/TemporaryBuffSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
 import { getSpawnProfile } from '../logic/spawn.js';
 import {
@@ -66,6 +67,7 @@ export class GameScene extends Phaser.Scene {
     this.boomerangManager = new BoomerangManager(this);
     this.meteorManager = new MeteorManager(this);
     this.upgradeSystem = new UpgradeSystem();
+    this.temporaryBuffSystem = new TemporaryBuffSystem();
     this.chestRewardSystem = new ChestRewardSystem();
     this.eliteWaveSystem = new EliteWaveSystem();
     this.eliteWarningPlayed = false;
@@ -162,32 +164,34 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
     this.updateEliteWave();
+    this.temporaryBuffSystem?.update?.(time);
+    const effectiveStats = this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, time) ?? this.player.stats;
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
     this.projectileManager.update(time);
-    this.projectileManager.tryFire(this.player, livingEnemies, time);
-    this.bladeManager.syncToPlayer(this.player.stats);
+    this.projectileManager.tryFire(this.player, effectiveStats, livingEnemies, time);
+    this.bladeManager.syncToPlayer(effectiveStats);
     this.bladeManager.update(
       this.player,
-      this.player.stats,
+      effectiveStats,
       delta,
       time,
       nearEnemyQuery,
       this.enemyManager
     );
-    this.chainManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
-    this.novaManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
+    this.chainManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
+    this.novaManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
     this.boomerangManager.update(
       this.player,
-      this.player.stats,
+      effectiveStats,
       delta,
       time,
       nearEnemyQuery,
       this.enemyManager
     );
-    this.meteorManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
-    this.pickupManager.update(this.player.sprite, this.player.stats.pickupRadius);
+    this.meteorManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
+    this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
     this.refreshHud(livingEnemies.length);
   }
 
@@ -225,6 +229,13 @@ export class GameScene extends Phaser.Scene {
       this.audioManager?.playChestOpen?.();
       this.openChestReward(pickup);
       return true;
+    }
+
+    if (pickup.kind === 'powerup') {
+      this.audioManager?.playPickup?.();
+      this.temporaryBuffSystem.addStack(pickup.buffKey, this.time.now);
+      this.refreshHud();
+      return false;
     }
 
     if (pickup.kind === 'heart') {

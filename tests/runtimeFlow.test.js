@@ -228,10 +228,37 @@ describe('GameScene handlePickupCollected', () => {
     expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
     expect(sceneLike.player.heal).toHaveBeenCalledWith(10);
   });
+
+  it('collects temporary powerups through the temporary buff system', () => {
+    const sceneLike = {
+      audioManager: {
+        playPickup: vi.fn()
+      },
+      isGameOver: false,
+      refreshHud: vi.fn(),
+      temporaryBuffSystem: {
+        addStack: vi.fn()
+      },
+      time: {
+        now: 1234
+      }
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'powerup',
+      buffKey: 'frenzy',
+      value: 0
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
+    expect(sceneLike.temporaryBuffSystem.addStack).toHaveBeenCalledWith('frenzy', 1234);
+    expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
+  });
 });
 
 describe('GameScene update', () => {
-  it('passes the near-only query to local combat systems while keeping the full living snapshot', () => {
+  it('passes effective stats to combat systems while keeping broad and near enemy sources split', () => {
     const returnedEnemies = [{ active: true, id: 'returned' }];
     const fallbackEnemies = [{ active: true, id: 'fallback' }];
     const nearQuery = {
@@ -239,6 +266,12 @@ describe('GameScene update', () => {
       cells: new Map(),
       enemies: [{ active: true, id: 'near-1' }],
       enemiesByTier: { near: [{ active: true, id: 'near-1' }], mid: [], far: [] }
+    };
+    const effectiveStats = {
+      bladeCount: 3,
+      fireCooldownMs: 400,
+      pickupRadius: 72,
+      projectileCount: 2
     };
     const sceneLike = {
       activePauseOverlay: null,
@@ -307,6 +340,10 @@ describe('GameScene update', () => {
       damageStatsManager: {
         getRows: vi.fn().mockReturnValue([])
       },
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockReturnValue(effectiveStats),
+        update: vi.fn()
+      },
       input: {
         keyboard: {
           addCapture: vi.fn()
@@ -320,14 +357,20 @@ describe('GameScene update', () => {
 
     GameScene.prototype.update.call(sceneLike, 16, 16);
 
+    expect(sceneLike.temporaryBuffSystem.update).toHaveBeenCalledWith(16);
+    expect(sceneLike.temporaryBuffSystem.getEffectiveStats).toHaveBeenCalledWith(
+      sceneLike.player.stats,
+      16
+    );
     expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(
       sceneLike.player,
+      effectiveStats,
       returnedEnemies,
       16
     );
     expect(sceneLike.bladeManager.update).toHaveBeenCalledWith(
       sceneLike.player,
-      sceneLike.player.stats,
+      effectiveStats,
       16,
       16,
       nearQuery,
@@ -335,21 +378,21 @@ describe('GameScene update', () => {
     );
     expect(sceneLike.chainManager.update).toHaveBeenCalledWith(
       sceneLike.player,
-      sceneLike.player.stats,
+      effectiveStats,
       16,
       nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.novaManager.update).toHaveBeenCalledWith(
       sceneLike.player,
-      sceneLike.player.stats,
+      effectiveStats,
       16,
       nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.boomerangManager.update).toHaveBeenCalledWith(
       sceneLike.player,
-      sceneLike.player.stats,
+      effectiveStats,
       16,
       16,
       nearQuery,
@@ -357,11 +400,13 @@ describe('GameScene update', () => {
     );
     expect(sceneLike.meteorManager.update).toHaveBeenCalledWith(
       sceneLike.player,
-      sceneLike.player.stats,
+      effectiveStats,
       16,
       nearQuery,
       sceneLike.enemyManager
     );
+    expect(sceneLike.bladeManager.syncToPlayer).toHaveBeenCalledWith(effectiveStats);
+    expect(sceneLike.pickupManager.update).toHaveBeenCalledWith(sceneLike.player.sprite, 72);
     expect(sceneLike.enemyManager.getLivingEnemies).not.toHaveBeenCalled();
   });
 
@@ -412,6 +457,10 @@ describe('GameScene update', () => {
       },
       damageStatsManager: {
         getRows: vi.fn().mockReturnValue([])
+      },
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        update: vi.fn()
       },
       meteorManager: {
         update: vi.fn()
@@ -572,6 +621,10 @@ describe('GameScene update', () => {
       damageStatsManager: {
         getRows: vi.fn().mockReturnValue([])
       },
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        update: vi.fn()
+      },
       input: {
         keyboard: {
           addCapture: vi.fn()
@@ -587,6 +640,7 @@ describe('GameScene update', () => {
 
     expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(
       sceneLike.player,
+      sceneLike.player.stats,
       livingEnemies,
       16
     );
