@@ -165,17 +165,33 @@ describe('ProjectileManager', () => {
           projectiles.forEach(callback);
         }
       },
+      getChildren: () => projectiles,
       create: (x, y, key) => {
         const projectile = {
           active: true,
           body: { velocity: { x: 0, y: 0 } },
           expiresAt: 0,
           key,
+          setActive(value) {
+            this.active = value;
+            return this;
+          },
           setCircle: () => {},
           setDepth: () => {},
+          setPosition(xPos, yPos) {
+            this.x = xPos;
+            this.y = yPos;
+            return this;
+          },
           setVelocity(xVel, yVel) {
             this.body.velocity = { x: xVel, y: yVel };
+            return this;
           },
+          setVisible(value) {
+            this.visible = value;
+            return this;
+          },
+          visible: true,
           x,
           y
         };
@@ -259,5 +275,34 @@ describe('ProjectileManager', () => {
     expect(enemyManager.damageEnemyCalls[1].enemy).toBe(enemy2);
     expect(projectile.body.velocity.x).toBeCloseTo(170 / Math.hypot(170, 30) * 120, 3);
     expect(projectile.body.velocity.y).toBeCloseTo(30 / Math.hypot(170, 30) * 120, 3);
+  });
+
+  it('reuses an inactive projectile instead of creating a new one', () => {
+    const { group, manager, projectiles } = createManager();
+    const recycled = group.create(4, 6, 'projectile');
+    recycled.setActive(false);
+    recycled.setVisible(false);
+    group.create = () => {
+      throw new Error('should not create a fresh projectile');
+    };
+
+    const projectile = manager.fireProjectile(
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      {
+        projectileDamage: 8,
+        projectilePierce: 0,
+        projectileRicochet: 0,
+        projectileSpeed: 120
+      },
+      1000
+    );
+
+    expect(projectile).toBe(recycled);
+    expect(projectiles).toHaveLength(1);
+    expect(recycled.active).toBe(true);
+    expect(recycled.visible).toBe(true);
+    expect(recycled.x).toBe(0);
+    expect(recycled.y).toBe(0);
   });
 });

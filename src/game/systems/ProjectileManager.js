@@ -13,6 +13,24 @@ export class ProjectileManager {
     this.nextShotAt = 0;
   }
 
+  getReusableProjectile() {
+    for (const projectile of this.group.getChildren?.() ?? []) {
+      if (!projectile?.active) {
+        projectile.setActive?.(true);
+        projectile.setVisible?.(true);
+        return projectile;
+      }
+    }
+
+    return this.group.create(0, 0, 'projectile');
+  }
+
+  deactivateProjectile(projectile) {
+    projectile?.setVelocity?.(0, 0);
+    projectile?.setActive?.(false);
+    projectile?.setVisible?.(false);
+  }
+
   update(now) {
     this.group.children.iterate((projectile) => {
       if (!projectile?.active) {
@@ -20,7 +38,7 @@ export class ProjectileManager {
       }
 
       if (projectile.expiresAt <= now) {
-        projectile.destroy();
+        this.deactivateProjectile(projectile);
       }
     });
   }
@@ -53,9 +71,10 @@ export class ProjectileManager {
   }
 
   fireProjectile(origin, direction, stats, now) {
-    const projectile = this.group.create(origin.x, origin.y, 'projectile');
+    const projectile = this.getReusableProjectile();
     const speed = stats.projectileSpeed ?? 0;
 
+    projectile.setPosition?.(origin.x, origin.y);
     projectile.damage = stats.projectileDamage ?? 0;
     projectile.remainingPierce = stats.projectilePierce ?? 0;
     projectile.remainingRicochet = stats.projectileRicochet ?? 0;
@@ -101,7 +120,7 @@ export class ProjectileManager {
       }
     }
 
-    projectile.destroy();
+    this.deactivateProjectile(projectile);
   }
 
   stopAll() {

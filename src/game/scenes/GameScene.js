@@ -127,7 +127,7 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      projectile.destroy();
+      this.enemyManager.deactivateEnemyProjectile?.(projectile) ?? projectile.destroy?.();
       const died = this.player.takeDamage(projectile.damage);
       this.audioManager?.playPlayerHurt?.();
 

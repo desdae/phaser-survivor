@@ -45,7 +45,8 @@ function createEnemyManagerHarness() {
   const enemyProjectileGroup = {
     children: {
       iterate: vi.fn()
-    }
+    },
+    getChildren: vi.fn().mockReturnValue([])
   };
   const scene = {
     physics: {
@@ -406,6 +407,65 @@ describe('EnemyManager', () => {
     expect(spawnOrb).toHaveBeenCalledWith(64, 96, 5);
     expect(spawnChest).toHaveBeenCalledWith(64, 96, 'spitter');
     expect(enemy.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('reuses an inactive enemy projectile instead of creating a new one', () => {
+    const manager = createEnemyManagerHarness();
+    const recycled = {
+      active: false,
+      body: { velocity: { x: 0, y: 0 } },
+      setActive: vi.fn(function setActive(value) {
+        this.active = value;
+        return this;
+      }),
+      setCircle: vi.fn(function setCircle() {
+        return this;
+      }),
+      setDepth: vi.fn(function setDepth() {
+        return this;
+      }),
+      setPosition: vi.fn(function setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+      }),
+      setTintFill: vi.fn(function setTintFill() {
+        return this;
+      }),
+      setVelocity: vi.fn(function setVelocity(x, y) {
+        this.body.velocity = { x, y };
+        return this;
+      }),
+      setVisible: vi.fn(function setVisible(value) {
+        this.visible = value;
+        return this;
+      }),
+      visible: false,
+      x: 5,
+      y: 7
+    };
+    manager.enemyProjectileGroup.getChildren.mockReturnValue([recycled]);
+    manager.enemyProjectileGroup.create = vi.fn(() => {
+      throw new Error('should not create a fresh projectile');
+    });
+
+    const projectile = manager.fireEnemyProjectile(
+      {
+        projectileDamage: 9,
+        projectileSpeed: 150,
+        x: 12,
+        y: 16
+      },
+      1,
+      0,
+      1000
+    );
+
+    expect(projectile).toBe(recycled);
+    expect(recycled.active).toBe(true);
+    expect(recycled.visible).toBe(true);
+    expect(recycled.x).toBe(12);
+    expect(recycled.y).toBe(16);
   });
 });
 

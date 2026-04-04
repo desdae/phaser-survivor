@@ -68,6 +68,24 @@ export class EnemyManager {
     };
   }
 
+  getReusableEnemyProjectile() {
+    for (const projectile of this.enemyProjectileGroup.getChildren?.() ?? []) {
+      if (!projectile?.active) {
+        projectile.setActive?.(true);
+        projectile.setVisible?.(true);
+        return projectile;
+      }
+    }
+
+    return this.enemyProjectileGroup.create(0, 0, 'projectile');
+  }
+
+  deactivateEnemyProjectile(projectile) {
+    projectile?.setVelocity?.(0, 0);
+    projectile?.setActive?.(false);
+    projectile?.setVisible?.(false);
+  }
+
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
     this.frameIndex += 1;
     this.spawnAccumulatorMs += deltaMs;
@@ -85,7 +103,7 @@ export class EnemyManager {
       }
 
       if (projectile.expiresAt <= now) {
-        projectile.destroy();
+        this.deactivateEnemyProjectile(projectile);
       }
     });
 
@@ -220,9 +238,10 @@ export class EnemyManager {
   }
 
   fireEnemyProjectile(enemy, directionX, directionY, now) {
-    const projectile = this.enemyProjectileGroup.create(enemy.x, enemy.y, 'projectile');
+    const projectile = this.getReusableEnemyProjectile();
     const speed = enemy.projectileSpeed ?? 0;
 
+    projectile.setPosition?.(enemy.x, enemy.y);
     projectile.damage = enemy.projectileDamage ?? 0;
     projectile.expiresAt = now + 3000;
     projectile.setDepth(3);
