@@ -22,7 +22,7 @@ export function resolveMeteorStrike(strike, enemies, enemyManager) {
     const dy = enemy.y - strike.y;
 
     if (dx * dx + dy * dy <= radiusSq) {
-      enemyManager.damageEnemy(enemy, strike.damage);
+      enemyManager.damageEnemy(enemy, strike.damage, 'meteor');
     }
   });
 }

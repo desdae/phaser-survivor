@@ -5,12 +5,18 @@ import { BladeManager } from '../systems/BladeManager.js';
 import { BoomerangManager } from '../systems/BoomerangManager.js';
 import { BloodEffectsManager } from '../systems/BloodEffectsManager.js';
 import { ChainManager } from '../systems/ChainManager.js';
+import { DamageStatsManager } from '../systems/DamageStatsManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
-import { createGameOverOverlay, createHud, createLevelUpOverlay } from '../ui/overlayFactory.js';
+import {
+  createDamageStatsOverlay,
+  createGameOverOverlay,
+  createHud,
+  createLevelUpOverlay
+} from '../ui/overlayFactory.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -33,8 +39,16 @@ export class GameScene extends Phaser.Scene {
 
     this.player = new Player(this, 0, 0);
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
+    this.damageStatsManager = new DamageStatsManager();
     this.bloodEffectsManager = new BloodEffectsManager(this);
-    this.enemyManager = new EnemyManager(this, this.player, this.pickupManager, this.bloodEffectsManager);
+    this.enemyManager = new EnemyManager(
+      this,
+      this.player,
+      this.pickupManager,
+      this.bloodEffectsManager,
+      Math.random,
+      this.damageStatsManager
+    );
     this.projectileManager = new ProjectileManager(this);
     this.bladeManager = new BladeManager(this);
     this.chainManager = new ChainManager(this);
@@ -50,6 +64,8 @@ export class GameScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.statsKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+    this.input.keyboard.addCapture?.(Phaser.Input.Keyboard.KeyCodes.TAB);
     this.upgradeKeys = [
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
       this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
@@ -60,6 +76,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.roundPixels = true;
 
     this.hud = createHud(this);
+    this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
     this.input.on('pointerdown', (pointer) => {
@@ -100,6 +117,7 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     this.background.tilePositionX = this.cameras.main.scrollX;
     this.background.tilePositionY = this.cameras.main.scrollY;
+    this.handleStatsToggle();
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
       this.scene.restart();
@@ -201,6 +219,12 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  handleStatsToggle() {
+    if (Phaser.Input.Keyboard.JustDown(this.statsKey)) {
+      this.damageStatsOverlay.toggle();
+    }
+  }
+
   handleUpgradeSelected(choice) {
     this.upgradeSystem.apply(this.player, choice.key);
     this.levelUpOverlay.hide();
@@ -246,6 +270,7 @@ export class GameScene extends Phaser.Scene {
         Number(this.player.stats.boomerangUnlocked) +
         Number(this.player.stats.meteorUnlocked)
     });
+    this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }
 
   handleResize(gameSize) {
@@ -258,6 +283,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.hud) {
       this.hud.layout(width, height);
+    }
+
+    if (this.damageStatsOverlay) {
+      this.damageStatsOverlay.layout(width, height);
     }
 
     if (this.levelUpOverlay) {

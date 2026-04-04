@@ -31,7 +31,7 @@ export class NovaManager {
       const burst = this.pendingBursts.shift();
       const targets = getNovaTargets(burst, enemies, burst.radius);
 
-      targets.forEach((enemy) => enemyManager.damageEnemy(enemy, burst.damage));
+      targets.forEach((enemy) => enemyManager.damageEnemy(enemy, burst.damage, 'nova'));
       this.renderBurst(burst);
       triggeredBurst = true;
     }

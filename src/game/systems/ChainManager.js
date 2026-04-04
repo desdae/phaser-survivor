@@ -18,7 +18,7 @@ export class ChainManager {
     }
 
     this.nextCastAt = now + stats.chainCooldownMs;
-    targets.forEach((enemy) => enemyManager.damageEnemy(enemy, stats.chainDamage));
+    targets.forEach((enemy) => enemyManager.damageEnemy(enemy, stats.chainDamage, 'chain'));
     this.renderArc(player.sprite, targets);
     return true;
   }

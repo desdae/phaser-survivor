@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest';
+import {
+  DAMAGE_STAT_DEFINITIONS,
+  DamageStatsManager,
+  getDamagePerSecond
+} from '../src/game/systems/DamageStatsManager.js';
+
+describe('getDamagePerSecond', () => {
+  it('returns zero before a run has elapsed', () => {
+    expect(getDamagePerSecond(120, 0)).toBe(0);
+  });
+
+  it('returns run-average dps when time has elapsed', () => {
+    expect(getDamagePerSecond(120, 30000)).toBeCloseTo(4, 3);
+  });
+});
+
+describe('DamageStatsManager', () => {
+  it('tracks totals by weapon and exposes ordered stat rows', () => {
+    const manager = new DamageStatsManager();
+
+    manager.record('projectile', 18);
+    manager.record('projectile', 12);
+    manager.record('meteor', 40);
+
+    const rows = manager.getRows(10000);
+
+    expect(rows).toHaveLength(DAMAGE_STAT_DEFINITIONS.length);
+    expect(rows.find((row) => row.key === 'projectile')).toMatchObject({
+      dps: 3,
+      label: 'Auto Shot',
+      totalDamage: 30
+    });
+    expect(rows.find((row) => row.key === 'meteor')).toMatchObject({
+      dps: 4,
+      label: 'Starcall',
+      totalDamage: 40
+    });
+  });
+
+  it('ignores unknown weapons and non-positive damage', () => {
+    const manager = new DamageStatsManager();
+
+    manager.record('unknown', 30);
+    manager.record('projectile', 0);
+
+    expect(manager.getRows(5000).every((row) => row.totalDamage === 0)).toBe(true);
+  });
+});

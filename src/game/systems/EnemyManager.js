@@ -37,12 +37,13 @@ const ENEMY_TYPES = {
 };
 
 export class EnemyManager {
-  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random) {
+  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random, damageStats = null) {
     this.scene = scene;
     this.player = player;
     this.pickupManager = pickupManager;
     this.effects = effects;
     this.dropRoll = dropRoll;
+    this.damageStats = damageStats;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.scene.physics.add.collider(this.group, this.group);
@@ -164,12 +165,14 @@ export class EnemyManager {
     return projectile;
   }
 
-  damageEnemy(enemy, damage) {
+  damageEnemy(enemy, damage, sourceKey = null) {
     if (!enemy?.active) {
       return false;
     }
 
+    const appliedDamage = Math.min(enemy.health, damage);
     enemy.health -= damage;
+    this.damageStats?.record?.(sourceKey, appliedDamage);
 
     if (enemy.health > 0) {
       this.effects?.spawnHitSplash?.(enemy, false);

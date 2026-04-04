@@ -49,7 +49,7 @@ export class BoomerangManager {
         const dy = enemy.y - boomerang.y;
 
         if (Math.hypot(dx, dy) <= BOOMERANG_HIT_RADIUS) {
-          enemyManager.damageEnemy(enemy, boomerang.damage);
+          enemyManager.damageEnemy(enemy, boomerang.damage, 'boomerang');
         }
       });
     }

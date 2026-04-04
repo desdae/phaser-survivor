@@ -104,6 +104,71 @@ export function createHud(scene) {
   };
 }
 
+function formatDamageNumber(value) {
+  return Math.round(value).toString();
+}
+
+function formatDpsNumber(value) {
+  return value >= 100 ? value.toFixed(0) : value.toFixed(1);
+}
+
+export function createDamageStatsOverlay(scene) {
+  const panel = scene.add.rectangle(0, 0, 344, 254, 0x08121c, 0.9).setOrigin(0);
+  panel.setStrokeStyle(2, 0x8bc7ff, 0.35);
+  const title = scene.add.text(18, 16, 'Damage Stats', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '22px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  const hint = scene.add.text(18, 220, 'Tab to toggle', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '14px',
+    color: '#ffd17a'
+  });
+  const rows = Array.from({ length: 6 }, (_, index) =>
+    scene.add.text(18, 52 + index * 26, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '15px',
+      color: '#cde4f8'
+    })
+  );
+  const container = scene.add.container(0, 0, [panel, title, ...rows, hint]);
+
+  container.setDepth(52);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  return {
+    hide() {
+      container.setVisible(false);
+    },
+    isVisible() {
+      return container.visible;
+    },
+    layout(width) {
+      container.setPosition(width - 362, 18);
+    },
+    toggle() {
+      container.setVisible(!container.visible);
+    },
+    update(statRows) {
+      rows.forEach((rowText, index) => {
+        const row = statRows[index];
+
+        if (!row) {
+          rowText.setText('');
+          return;
+        }
+
+        rowText.setText(
+          `${row.label.padEnd(14, ' ')} ${formatDamageNumber(row.totalDamage)} dmg   ${formatDpsNumber(row.dps)} dps`
+        );
+      });
+    }
+  };
+}
+
 export function createLevelUpOverlay(scene, onSelect) {
   const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.76).setOrigin(0);
   const panel = scene.add.rectangle(0, 0, 940, 420, 0x0b1926, 0.96).setStrokeStyle(2, 0x4da2ff, 0.5);

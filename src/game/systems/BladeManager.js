@@ -58,7 +58,7 @@ export class BladeManager {
 
         if (distance <= BLADE_CONTACT_RADIUS && shouldBladeDamageEnemy(now, enemy.nextBladeDamageAt ?? 0)) {
           enemy.nextBladeDamageAt = now + BLADE_DAMAGE_COOLDOWN_MS;
-          enemyManager.damageEnemy(enemy, playerStats.bladeDamage);
+          enemyManager.damageEnemy(enemy, playerStats.bladeDamage, 'blade');
         }
       }
     }

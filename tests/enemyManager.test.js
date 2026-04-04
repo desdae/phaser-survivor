@@ -148,4 +148,47 @@ describe('EnemyManager', () => {
 
     expect(spawnHeart).toHaveBeenCalledWith(64, 96, 10);
   });
+
+  it('records actual applied damage for the weapon source instead of overkill', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const damageStats = {
+      record: vi.fn()
+    };
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn()
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnHeart: vi.fn() },
+      null,
+      () => 1,
+      damageStats
+    );
+    const enemy = {
+      active: true,
+      destroy: vi.fn(),
+      health: 6,
+      setTintFill: vi.fn(),
+      x: 10,
+      xpValue: 3,
+      y: 20
+    };
+
+    manager.damageEnemy(enemy, 20, 'meteor');
+
+    expect(damageStats.record).toHaveBeenCalledWith('meteor', 6);
+  });
 });
