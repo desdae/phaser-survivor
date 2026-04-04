@@ -18,6 +18,7 @@ import { getSpawnProfile } from '../logic/spawn.js';
 import {
   createChestOverlay,
   createDamageStatsOverlay,
+  createFpsCounter,
   createGameOverOverlay,
   createHud,
   createLevelUpOverlay
@@ -34,6 +35,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(-1000000, -1000000, 2000000, 2000000);
 
     this.elapsedMs = 0;
+    this.nextFpsUpdateAt = 0;
     this.isGameplayPaused = false;
     this.isGameOver = false;
     this.activePauseOverlay = null;
@@ -87,6 +89,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.roundPixels = true;
 
     this.hud = createHud(this);
+    this.fpsCounter = createFpsCounter(this);
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
@@ -143,6 +146,7 @@ export class GameScene extends Phaser.Scene {
     this.background.tilePositionX = this.cameras.main.scrollX;
     this.background.tilePositionY = this.cameras.main.scrollY;
     this.handleStatsToggle();
+    this.updateFpsCounter?.(time);
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
       this.scene.restart();
@@ -372,6 +376,15 @@ export class GameScene extends Phaser.Scene {
     this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }
 
+  updateFpsCounter(now) {
+    if (!this.fpsCounter || now < this.nextFpsUpdateAt) {
+      return;
+    }
+
+    this.nextFpsUpdateAt = now + 200;
+    this.fpsCounter.update(this.game.loop.actualFps);
+  }
+
   handleResize(gameSize) {
     const width = gameSize.width;
     const height = gameSize.height;
@@ -382,6 +395,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.hud) {
       this.hud.layout(width, height);
+    }
+
+    if (this.fpsCounter) {
+      this.fpsCounter.layout(width, height);
     }
 
     if (this.damageStatsOverlay) {

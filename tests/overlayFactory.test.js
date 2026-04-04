@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createHud,
   createChestOverlay,
+  createFpsCounter,
   createGameOverOverlay,
   createLevelUpOverlay
 } from '../src/game/ui/overlayFactory.js';
@@ -102,6 +103,20 @@ describe('createHud', () => {
     });
 
     expect(scene.texts.some((text) => text.text.includes('Elite wave incoming'))).toBe(true);
+  });
+});
+
+describe('createFpsCounter', () => {
+  it('pins a lightweight fps label to the top-right corner and updates the shown value', () => {
+    const scene = createFakeScene();
+    const fpsCounter = createFpsCounter(scene);
+
+    fpsCounter.layout(1280);
+    fpsCounter.update(58);
+
+    expect(scene.texts.at(-1)?.x).toBe(1262);
+    expect(scene.texts.at(-1)?.y).toBe(18);
+    expect(scene.texts.at(-1)?.text).toBe('FPS 58');
   });
 });
 

@@ -150,6 +150,36 @@ export function createHud(scene) {
   };
 }
 
+export function createFpsCounter(scene) {
+  const text = scene.add.text(0, 0, 'FPS 0', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '14px',
+    color: '#b7d7f4'
+  });
+
+  text.setDepth(53);
+  text.setScrollFactor(0);
+
+  let shownLabel = 'FPS 0';
+
+  return {
+    layout(width) {
+      text.setPosition(width - 18, 18);
+      text.setOrigin(1, 0);
+    },
+    update(fps) {
+      const nextLabel = `FPS ${Math.max(0, Math.round(fps ?? 0))}`;
+
+      if (nextLabel === shownLabel) {
+        return;
+      }
+
+      shownLabel = nextLabel;
+      text.setText(nextLabel);
+    }
+  };
+}
+
 function formatDamageNumber(value) {
   return Math.round(value).toString();
 }
