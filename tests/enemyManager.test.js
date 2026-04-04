@@ -17,6 +17,16 @@ vi.mock('../src/game/logic/spawn.js', () => ({
 
 vi.mock('../src/game/logic/enemyVisuals.js', () => ({
   getAnimatedTextureKey: () => null,
+  advanceVisualFrame: (enemy) => {
+    const frames = enemy.visualFrames ?? [];
+
+    if (frames.length <= 1) {
+      return frames[0] ?? enemy.texture?.key ?? null;
+    }
+
+    enemy.visualFrameIndex = ((enemy.visualFrameIndex ?? 0) + 1) % frames.length;
+    return frames[enemy.visualFrameIndex];
+  },
   getEnemyVisualConfig: () => ({
     key: 'zombie',
     frames: ['mob-zombie-0'],
@@ -24,6 +34,60 @@ vi.mock('../src/game/logic/enemyVisuals.js', () => ({
     scale: 1
   })
 }));
+
+function createEnemyManagerHarness() {
+  const enemyGroup = {
+    children: {
+      iterate: vi.fn()
+    },
+    getChildren: vi.fn().mockReturnValue([])
+  };
+  const enemyProjectileGroup = {
+    children: {
+      iterate: vi.fn()
+    }
+  };
+  const scene = {
+    physics: {
+      add: {
+        collider: vi.fn(),
+        group: vi
+          .fn()
+          .mockReturnValueOnce(enemyGroup)
+          .mockReturnValueOnce(enemyProjectileGroup)
+      }
+    },
+    time: {
+      now: 0,
+      delayedCall: vi.fn()
+    }
+  };
+
+  return new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+}
+
+function makeEnemy({ x = 0, y = 0, speed = 100, visualFrames = ['idle-0'] } = {}) {
+  return {
+    active: true,
+    attackCooldownMs: 0,
+    attackRange: 0,
+    cachedMoveX: 0,
+    cachedMoveY: 0,
+    nextShotAt: 0,
+    preferredRange: undefined,
+    projectileDamage: 0,
+    projectileSpeed: 0,
+    setTexture: vi.fn(function setTexture(textureKey) {
+      this.texture = { key: textureKey };
+    }),
+    setVelocity: vi.fn(),
+    speed,
+    texture: { key: visualFrames[0] ?? 'idle-0' },
+    visualFrames,
+    x,
+    y
+  };
+}
 
 describe('EnemyManager', () => {
   it('skips the full enemy self-collider so dense swarms do not pay pairwise physics costs', () => {
@@ -342,5 +406,48 @@ describe('EnemyManager', () => {
     expect(spawnOrb).toHaveBeenCalledWith(64, 96, 5);
     expect(spawnChest).toHaveBeenCalledWith(64, 96, 'spitter');
     expect(enemy.destroy).toHaveBeenCalledOnce();
+  });
+});
+
+describe('EnemyManager update', () => {
+  it('stores enemy tiers and builds a near-only query for local combat systems', () => {
+    const manager = createEnemyManagerHarness();
+    const nearEnemy = makeEnemy({ x: 80, y: 0 });
+    const farEnemy = makeEnemy({ x: 1400, y: 0 });
+    manager.getLivingEnemies = vi.fn().mockReturnValue([nearEnemy, farEnemy]);
+
+    manager.update(16, 60, 1000);
+
+    expect(nearEnemy.lodTier).toBe('near');
+    expect(farEnemy.lodTier).toBe('far');
+    expect(manager.getNearEnemyQuery().enemies.every((enemy) => enemy.lodTier === 'near')).toBe(true);
+  });
+
+  it('reuses cached intent for far enemies between cadence ticks', () => {
+    const manager = createEnemyManagerHarness();
+    const farEnemy = makeEnemy({ x: 1400, y: 0 });
+    farEnemy.cachedMoveX = -0.4;
+    farEnemy.cachedMoveY = 0.2;
+    manager.getLivingEnemies = vi.fn().mockReturnValue([farEnemy]);
+
+    manager.frameIndex = 1;
+    manager.update(16, 60, 1000);
+
+    expect(farEnemy.setVelocity).toHaveBeenCalledWith(
+      farEnemy.cachedMoveX * farEnemy.speed,
+      farEnemy.cachedMoveY * farEnemy.speed
+    );
+  });
+
+  it('only advances animated textures when the animation timer ticks', () => {
+    const manager = createEnemyManagerHarness();
+    const enemy = makeEnemy({ x: 80, y: 0, visualFrames: ['a', 'b', 'c'] });
+    manager.getLivingEnemies = vi.fn().mockReturnValue([enemy]);
+
+    manager.nextAnimationStepAt = 1000;
+    manager.update(16, 60, 999);
+    manager.update(16, 60, 1000);
+
+    expect(enemy.setTexture).toHaveBeenCalledTimes(1);
   });
 });

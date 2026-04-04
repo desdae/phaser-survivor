@@ -322,6 +322,35 @@ describe('GameScene update', () => {
       returnedEnemies,
       sceneLike.enemyManager
     );
+    expect(sceneLike.chainManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      16,
+      returnedEnemies,
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.novaManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      16,
+      returnedEnemies,
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.boomerangManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      16,
+      16,
+      returnedEnemies,
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.meteorManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      16,
+      returnedEnemies,
+      sceneLike.enemyManager
+    );
     expect(sceneLike.enemyManager.getLivingEnemies).not.toHaveBeenCalled();
   });
 
