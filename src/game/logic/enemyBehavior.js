@@ -23,9 +23,9 @@ export function getEnemyIntent(enemy, enemyPosition, playerPosition) {
   return { moveX: 0, moveY: 0, wantsToShoot: true };
 }
 
-export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42) {
-  let offsetX = 0;
-  let offsetY = 0;
+export function getSpacingNeighbors(enemy, neighbors, spacingRadius = 42, maxNeighbors = 8) {
+  const spacingRadiusSq = spacingRadius * spacingRadius;
+  const spacingNeighbors = [];
 
   for (const neighbor of neighbors) {
     if (!neighbor?.active || neighbor === enemy) {
@@ -34,12 +34,37 @@ export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42) {
 
     const dx = enemy.x - neighbor.x;
     const dy = enemy.y - neighbor.y;
-    const distance = Math.hypot(dx, dy);
+    const distanceSq = dx * dx + dy * dy;
 
-    if (distance === 0 || distance >= spacingRadius) {
+    if (distanceSq === 0 || distanceSq >= spacingRadiusSq) {
       continue;
     }
 
+    spacingNeighbors.push(neighbor);
+
+    if (spacingNeighbors.length >= maxNeighbors) {
+      break;
+    }
+  }
+
+  return spacingNeighbors;
+}
+
+export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42, maxNeighbors = 8) {
+  let offsetX = 0;
+  let offsetY = 0;
+  const spacingNeighbors = getSpacingNeighbors(enemy, neighbors, spacingRadius, maxNeighbors);
+
+  for (const neighbor of spacingNeighbors) {
+    const dx = enemy.x - neighbor.x;
+    const dy = enemy.y - neighbor.y;
+    const distanceSq = dx * dx + dy * dy;
+
+    if (distanceSq === 0) {
+      continue;
+    }
+
+    const distance = Math.sqrt(distanceSq);
     const pushWeight = (spacingRadius - distance) / spacingRadius;
     offsetX += (dx / distance) * pushWeight;
     offsetY += (dy / distance) * pushWeight;

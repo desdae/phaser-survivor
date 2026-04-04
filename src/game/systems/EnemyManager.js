@@ -107,6 +107,8 @@ export class EnemyManager {
         enemy.nextShotAt = now + enemy.attackCooldownMs;
       }
     });
+
+    return livingEnemies;
   }
 
   spawnBatch(profile) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applySwarmSpacing,
   getEnemyIntent,
+  getSpacingNeighbors,
   getSwarmSpacingOffset,
   shouldEnemyShoot
 } from '../src/game/logic/enemyBehavior.js';
@@ -19,6 +20,27 @@ describe('getEnemyIntent', () => {
 });
 
 describe('getSwarmSpacingOffset', () => {
+  it('limits spacing work to a capped set of nearby active neighbors', () => {
+    const enemy = { active: true, x: 0, y: 0 };
+    const neighbors = [
+      enemy,
+      { active: false, x: 1, y: 1 },
+      { active: true, x: 80, y: 0 },
+      ...Array.from({ length: 12 }, (_, index) => ({
+        active: true,
+        x: 8 + index,
+        y: 4
+      }))
+    ];
+
+    const spacingNeighbors = getSpacingNeighbors(enemy, neighbors, 42, 8);
+
+    expect(spacingNeighbors).toHaveLength(8);
+    expect(spacingNeighbors.every((neighbor) => neighbor.active)).toBe(true);
+    expect(spacingNeighbors.includes(enemy)).toBe(false);
+    expect(spacingNeighbors.every((neighbor) => Math.hypot(neighbor.x - enemy.x, neighbor.y - enemy.y) < 42)).toBe(true);
+  });
+
   it('pushes an enemy away from close neighbors', () => {
     const offset = getSwarmSpacingOffset(
       { active: true, x: 0, y: 0 },

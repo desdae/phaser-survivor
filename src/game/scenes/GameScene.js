@@ -158,11 +158,10 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
     this.updateEliteWave();
-    this.enemyManager.update(delta, this.elapsedMs / 1000, time);
+    const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
     this.projectileManager.update(time);
-    this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
+    this.projectileManager.tryFire(this.player, livingEnemies, time);
     this.bladeManager.syncToPlayer(this.player.stats);
-    const livingEnemies = this.enemyManager.getLivingEnemies();
     this.bladeManager.update(
       this.player,
       this.player.stats,
@@ -183,7 +182,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.meteorManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
     this.pickupManager.update(this.player.sprite, this.player.stats.pickupRadius);
-    this.refreshHud();
+    this.refreshHud(livingEnemies.length);
   }
 
   updateEliteWave() {
@@ -350,7 +349,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  refreshHud() {
+  refreshHud(enemyCount = this.enemyManager.getLivingEnemies().length) {
     this.hud.update({
       health: this.player.stats.health,
       maxHealth: this.player.stats.maxHealth,
@@ -358,7 +357,7 @@ export class GameScene extends Phaser.Scene {
       xp: this.player.stats.xp,
       xpToNext: this.player.stats.xpToNext,
       timeMs: this.elapsedMs,
-      enemyCount: this.enemyManager.getLivingEnemies().length,
+      enemyCount,
       projectileCount: this.player.stats.projectileCount,
       bladeCount: this.player.stats.bladeCount,
       activeWeapons:

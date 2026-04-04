@@ -231,6 +231,100 @@ describe('GameScene handlePickupCollected', () => {
 });
 
 describe('GameScene update', () => {
+  it('reuses the enemy snapshot returned by EnemyManager.update for combat systems', () => {
+    const returnedEnemies = [{ active: true, id: 'returned' }];
+    const fallbackEnemies = [{ active: true, id: 'fallback' }];
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: 0,
+      enemyManager: {
+        getLivingEnemies: vi.fn().mockReturnValue(fallbackEnemies),
+        update: vi.fn().mockReturnValue(returnedEnemies)
+      },
+      handleStatsToggle: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          bladeCount: 0,
+          pickupRadius: 48
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      statsKey: {},
+      updateEliteWave: vi.fn(),
+      audioManager: {},
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      input: {
+        keyboard: {
+          addCapture: vi.fn()
+        }
+      },
+      time: {
+        now: 16
+      },
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, returnedEnemies, 16);
+    expect(sceneLike.bladeManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      16,
+      16,
+      returnedEnemies,
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.enemyManager.getLivingEnemies).not.toHaveBeenCalled();
+  });
+
   it('plays warning audio first, then spawns the elite after the warning window ends', () => {
     const eliteState = {
       pendingElite: false,
