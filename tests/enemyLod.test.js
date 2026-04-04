@@ -37,8 +37,8 @@ describe('shouldRefreshEnemyLogic', () => {
 });
 
 describe('shouldAdvanceAnimation', () => {
-  it('only advances when the animation timer reaches the next step', () => {
-    expect(shouldAdvanceAnimation(ANIMATION_STEP_MS - 1, 0)).toBe(false);
-    expect(shouldAdvanceAnimation(ANIMATION_STEP_MS, 0)).toBe(true);
+  it('only advances when the current time reaches the next animation timestamp', () => {
+    expect(shouldAdvanceAnimation(ANIMATION_STEP_MS - 1, ANIMATION_STEP_MS)).toBe(false);
+    expect(shouldAdvanceAnimation(ANIMATION_STEP_MS, ANIMATION_STEP_MS)).toBe(true);
   });
 });

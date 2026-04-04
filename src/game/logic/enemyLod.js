@@ -35,5 +35,5 @@ export function shouldRefreshEnemyLogic(tier, frameIndex) {
 }
 
 export function shouldAdvanceAnimation(now, nextAnimationAt) {
-  return now - nextAnimationAt >= ANIMATION_STEP_MS;
+  return now >= nextAnimationAt;
 }
