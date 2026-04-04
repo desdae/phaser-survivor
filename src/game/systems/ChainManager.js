@@ -11,7 +11,7 @@ export class ChainManager {
       return false;
     }
 
-    const targets = getChainTargets(player.sprite, enemies, stats.chainLinks, stats.chainRange);
+    const targets = getChainTargets(player.sprite, enemies?.enemies ?? enemies, stats.chainLinks, stats.chainRange);
 
     if (targets.length === 0) {
       return false;

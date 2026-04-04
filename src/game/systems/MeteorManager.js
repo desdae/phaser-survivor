@@ -14,10 +14,10 @@ export class MeteorManager {
       return false;
     }
 
-    const enemyQuery = enemyManager.getEnemyQuery?.() ?? enemies;
+    const meteorTargets = enemies?.enemies ?? enemies;
 
     if (now >= this.nextCastAt) {
-      const targets = getMeteorTargets(player.sprite, enemies, stats.meteorCount);
+      const targets = getMeteorTargets(player.sprite, meteorTargets, stats.meteorCount);
 
       if (targets.length > 0) {
         targets.forEach((enemy) => this.queueStrike(enemy, stats, now));
@@ -30,7 +30,7 @@ export class MeteorManager {
     while (this.pendingStrikes[0] && this.pendingStrikes[0].impactAt <= now) {
       const strike = this.pendingStrikes.shift();
       strike.marker.destroy?.();
-      resolveMeteorStrike(strike, enemyQuery, enemyManager);
+      resolveMeteorStrike(strike, enemies, enemyManager);
       this.renderImpact(strike);
       resolvedStrike = true;
     }

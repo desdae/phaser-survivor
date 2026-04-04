@@ -29,7 +29,6 @@ export class BoomerangManager {
     for (let index = this.boomerangs.length - 1; index >= 0; index -= 1) {
       const boomerang = this.boomerangs[index];
       const caught = advanceBoomerang(boomerang, player.sprite, deltaMs);
-      const enemyQuery = enemyManager.getEnemyQuery?.() ?? enemies;
       const queryRadius = BOOMERANG_HIT_RADIUS + (boomerang.speed * deltaMs) / 1000 + 12;
 
       boomerang.rotation += deltaMs * 0.018;
@@ -42,7 +41,7 @@ export class BoomerangManager {
         continue;
       }
 
-      getNearbyEnemies(boomerang, enemyQuery, queryRadius).forEach((enemy) => {
+      getNearbyEnemies(boomerang, enemies, queryRadius).forEach((enemy) => {
         const dx = enemy.x - boomerang.x;
         const dy = enemy.y - boomerang.y;
 

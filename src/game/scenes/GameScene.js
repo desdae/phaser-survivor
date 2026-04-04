@@ -163,28 +163,30 @@ export class GameScene extends Phaser.Scene {
     this.player.updateMovement(this.keys);
     this.updateEliteWave();
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
+    const nearEnemyQuery =
+      this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
     this.projectileManager.update(time);
-    this.projectileManager.tryFire(this.player, livingEnemies, time);
+    this.projectileManager.tryFire(this.player, nearEnemyQuery, time);
     this.bladeManager.syncToPlayer(this.player.stats);
     this.bladeManager.update(
       this.player,
       this.player.stats,
       delta,
       time,
-      livingEnemies,
+      nearEnemyQuery,
       this.enemyManager
     );
-    this.chainManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
-    this.novaManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
+    this.chainManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
+    this.novaManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
     this.boomerangManager.update(
       this.player,
       this.player.stats,
       delta,
       time,
-      livingEnemies,
+      nearEnemyQuery,
       this.enemyManager
     );
-    this.meteorManager.update(this.player, this.player.stats, time, livingEnemies, this.enemyManager);
+    this.meteorManager.update(this.player, this.player.stats, time, nearEnemyQuery, this.enemyManager);
     this.pickupManager.update(this.player.sprite, this.player.stats.pickupRadius);
     this.refreshHud(livingEnemies.length);
   }

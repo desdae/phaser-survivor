@@ -231,9 +231,15 @@ describe('GameScene handlePickupCollected', () => {
 });
 
 describe('GameScene update', () => {
-  it('reuses the enemy snapshot returned by EnemyManager.update for combat systems', () => {
+  it('passes the near-only query to local combat systems while keeping the full living snapshot', () => {
     const returnedEnemies = [{ active: true, id: 'returned' }];
     const fallbackEnemies = [{ active: true, id: 'fallback' }];
+    const nearQuery = {
+      cellSize: 96,
+      cells: new Map(),
+      enemies: [{ active: true, id: 'near-1' }],
+      enemiesByTier: { near: [{ active: true, id: 'near-1' }], mid: [], far: [] }
+    };
     const sceneLike = {
       activePauseOverlay: null,
       background: {
@@ -259,6 +265,7 @@ describe('GameScene update', () => {
       elapsedMs: 0,
       enemyManager: {
         getLivingEnemies: vi.fn().mockReturnValue(fallbackEnemies),
+        getNearEnemyQuery: vi.fn().mockReturnValue(nearQuery),
         update: vi.fn().mockReturnValue(returnedEnemies)
       },
       handleStatsToggle: vi.fn(),
@@ -313,27 +320,27 @@ describe('GameScene update', () => {
 
     GameScene.prototype.update.call(sceneLike, 16, 16);
 
-    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, returnedEnemies, 16);
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, nearQuery, 16);
     expect(sceneLike.bladeManager.update).toHaveBeenCalledWith(
       sceneLike.player,
       sceneLike.player.stats,
       16,
       16,
-      returnedEnemies,
+      nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.chainManager.update).toHaveBeenCalledWith(
       sceneLike.player,
       sceneLike.player.stats,
       16,
-      returnedEnemies,
+      nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.novaManager.update).toHaveBeenCalledWith(
       sceneLike.player,
       sceneLike.player.stats,
       16,
-      returnedEnemies,
+      nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.boomerangManager.update).toHaveBeenCalledWith(
@@ -341,14 +348,14 @@ describe('GameScene update', () => {
       sceneLike.player.stats,
       16,
       16,
-      returnedEnemies,
+      nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.meteorManager.update).toHaveBeenCalledWith(
       sceneLike.player,
       sceneLike.player.stats,
       16,
-      returnedEnemies,
+      nearQuery,
       sceneLike.enemyManager
     );
     expect(sceneLike.enemyManager.getLivingEnemies).not.toHaveBeenCalled();
