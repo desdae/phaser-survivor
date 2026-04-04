@@ -26,7 +26,7 @@ describe('DamageStatsManager', () => {
 
     const rows = manager.getRows(10000);
 
-    expect(rows).toHaveLength(DAMAGE_STAT_DEFINITIONS.length);
+    expect(rows.map((row) => row.key)).toEqual(['projectile', 'meteor']);
     expect(rows.find((row) => row.key === 'projectile')).toMatchObject({
       dps: 3,
       label: 'Auto Shot',
@@ -60,5 +60,18 @@ describe('DamageStatsManager', () => {
       dps: 6,
       totalDamage: 60
     });
+  });
+
+  it('only returns rows for learned weapons', () => {
+    const manager = new DamageStatsManager();
+
+    manager.record('projectile', 30);
+    manager.record('meteor', 90);
+
+    expect(manager.getRows(10000).map((row) => row.key)).toEqual(['projectile']);
+
+    manager.unlock('meteor', 4000);
+
+    expect(manager.getRows(10000).map((row) => row.key)).toEqual(['projectile', 'meteor']);
   });
 });

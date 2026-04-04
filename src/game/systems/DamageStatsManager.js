@@ -70,10 +70,12 @@ export class DamageStatsManager {
   }
 
   getRows(elapsedMs) {
-    return DAMAGE_STAT_DEFINITIONS.map((definition) => ({
+    return DAMAGE_STAT_DEFINITIONS.filter(
+      (definition) => this.unlockedAtMs[definition.key] !== null
+    ).map((definition) => ({
       dps: getDamagePerSecond(
         this.totals[definition.key],
-        this.unlockedAtMs[definition.key] === null ? 0 : Math.max(0, elapsedMs - this.unlockedAtMs[definition.key])
+        Math.max(0, elapsedMs - this.unlockedAtMs[definition.key])
       ),
       key: definition.key,
       label: definition.label,
