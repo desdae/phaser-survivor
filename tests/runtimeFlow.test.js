@@ -89,6 +89,68 @@ describe('GameScene openLevelUp', () => {
   });
 });
 
+describe('GameScene openChestReward', () => {
+  it('pauses gameplay and shows rolled chest rewards', () => {
+    const sceneLike = {
+      isGameplayPaused: false,
+      physics: {
+        world: {
+          pause: vi.fn()
+        }
+      },
+      player: {
+        stats: { level: 2 },
+        stop: vi.fn()
+      },
+      enemyManager: {
+        stopAll: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn()
+      },
+      chestOverlay: {
+        show: vi.fn()
+      },
+      chestRewardSystem: {
+        getChoices: vi.fn().mockReturnValue([{ key: 'arsenalDraft' }])
+      }
+    };
+
+    GameScene.prototype.openChestReward.call(sceneLike);
+
+    expect(sceneLike.isGameplayPaused).toBe(true);
+    expect(sceneLike.physics.world.pause).toHaveBeenCalledOnce();
+    expect(sceneLike.player.stop).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.stopAll).not.toHaveBeenCalled();
+    expect(sceneLike.projectileManager.stopAll).not.toHaveBeenCalled();
+    expect(sceneLike.chestOverlay.show).toHaveBeenCalledWith([{ key: 'arsenalDraft' }]);
+  });
+});
+
+describe('GameScene handlePickupCollected', () => {
+  it('special-cases chest pickups and opens the chest reward overlay', () => {
+    const sceneLike = {
+      isGameOver: false,
+      openChestReward: vi.fn(),
+      player: {
+        heal: vi.fn(),
+        gainXp: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'chest',
+      rewardSeed: 'ogre'
+    });
+
+    expect(result).toBe(true);
+    expect(sceneLike.openChestReward).toHaveBeenCalledWith({ kind: 'chest', rewardSeed: 'ogre' });
+    expect(sceneLike.player.heal).not.toHaveBeenCalled();
+    expect(sceneLike.player.gainXp).not.toHaveBeenCalled();
+  });
+});
+
 describe('PickupManager update', () => {
   it('stops collecting more orbs after a level-up is triggered', () => {
     const scene = {
@@ -165,7 +227,7 @@ describe('PickupManager update', () => {
     expect(heart.destroy).toHaveBeenCalledOnce();
   });
 
-  it('does not auto-collect chest pickups yet', () => {
+  it('collects chest pickups once chest rewards are wired', () => {
     const scene = {
       physics: {
         add: {
@@ -181,6 +243,7 @@ describe('PickupManager update', () => {
       active: true,
       kind: 'chest',
       value: 0,
+      rewardSeed: 'bat',
       x: 12,
       y: 4,
       setVelocity: vi.fn(),
@@ -193,8 +256,7 @@ describe('PickupManager update', () => {
 
     manager.update({ x: 0, y: 0 }, 48);
 
-    expect(onCollect).not.toHaveBeenCalled();
-    expect(chest.destroy).not.toHaveBeenCalled();
-    expect(chest.setVelocity).toHaveBeenCalledWith(0, 0);
+    expect(onCollect).toHaveBeenCalledWith({ kind: 'chest', value: 0, rewardSeed: 'bat' });
+    expect(chest.destroy).toHaveBeenCalledOnce();
   });
 });

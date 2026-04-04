@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createGameOverOverlay, createLevelUpOverlay } from '../src/game/ui/overlayFactory.js';
+import {
+  createChestOverlay,
+  createGameOverOverlay,
+  createLevelUpOverlay
+} from '../src/game/ui/overlayFactory.js';
 
 function createFakeDisplayObject() {
   const handlers = new Map();
@@ -114,6 +118,27 @@ describe('createLevelUpOverlay', () => {
 
     expect(selected).toBe(false);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe('createChestOverlay', () => {
+  it('selects a reward when a pointer hits a visible card region', () => {
+    const scene = createFakeScene();
+    const onSelect = vi.fn();
+    const overlay = createChestOverlay(scene, onSelect);
+    const rewards = [
+      { key: 'arsenalDraft', label: 'Arsenal Draft', description: 'Unlock a missing weapon.' },
+      { key: 'relicDamage', label: 'Relic: Impact', description: '+14 projectile damage' },
+      { key: 'soulMagnet', label: 'Soul Magnet', description: 'Vacuum nearby pickups.' }
+    ];
+
+    overlay.show(rewards);
+    overlay.layout(1280, 720);
+
+    const selected = overlay.choosePointer(340, 410);
+
+    expect(selected).toBe(true);
+    expect(onSelect).toHaveBeenCalledWith(rewards[0]);
   });
 });
 

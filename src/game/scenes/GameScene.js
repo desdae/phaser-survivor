@@ -8,10 +8,12 @@ import { ChainManager } from '../systems/ChainManager.js';
 import { DamageStatsManager } from '../systems/DamageStatsManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
+import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
 import {
+  createChestOverlay,
   createDamageStatsOverlay,
   createGameOverOverlay,
   createHud,
@@ -31,6 +33,7 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs = 0;
     this.isGameplayPaused = false;
     this.isGameOver = false;
+    this.activePauseOverlay = null;
 
     this.background = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, 'grid');
     this.background.setOrigin(0);
@@ -56,6 +59,7 @@ export class GameScene extends Phaser.Scene {
     this.boomerangManager = new BoomerangManager(this);
     this.meteorManager = new MeteorManager(this);
     this.upgradeSystem = new UpgradeSystem();
+    this.chestRewardSystem = new ChestRewardSystem();
 
     this.keys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -78,6 +82,7 @@ export class GameScene extends Phaser.Scene {
     this.hud = createHud(this);
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
+    this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
     this.input.on('pointerdown', (pointer) => {
       if (this.isGameOver) {
@@ -86,6 +91,11 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (this.isGameplayPaused) {
+        if (this.activePauseOverlay === 'chest') {
+          this.chestOverlay.choosePointer(pointer.x, pointer.y);
+          return;
+        }
+
         this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
       }
     });
@@ -126,7 +136,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameplayPaused) {
-      this.handleUpgradeHotkeys();
+      this.handlePauseHotkeys();
       this.refreshHud();
       return;
     }
@@ -166,6 +176,11 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
 
+    if (pickup.kind === 'chest') {
+      this.openChestReward(pickup);
+      return true;
+    }
+
     if (pickup.kind === 'heart') {
       this.player.heal(pickup.value);
       this.refreshHud();
@@ -203,18 +218,33 @@ export class GameScene extends Phaser.Scene {
 
   openLevelUp() {
     this.isGameplayPaused = true;
+    this.activePauseOverlay = 'levelUp';
     this.physics.world.pause();
     this.player.stop();
     this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats));
   }
 
-  handleUpgradeHotkeys() {
+  openChestReward(pickup = null) {
+    this.isGameplayPaused = true;
+    this.activePauseOverlay = 'chest';
+    this.pendingChestPickup = pickup;
+    this.physics.world.pause();
+    this.player.stop();
+    this.chestOverlay.show(this.chestRewardSystem.getChoices(this.player.stats));
+  }
+
+  handlePauseHotkeys() {
     if (this.isGameOver) {
       return;
     }
 
     this.upgradeKeys.forEach((key, index) => {
       if (Phaser.Input.Keyboard.JustDown(key)) {
+        if (this.activePauseOverlay === 'chest') {
+          this.chestOverlay.chooseIndex(index);
+          return;
+        }
+
         this.levelUpOverlay.chooseIndex(index);
       }
     });
@@ -230,6 +260,22 @@ export class GameScene extends Phaser.Scene {
     this.upgradeSystem.apply(this.player, choice.key);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.levelUpOverlay.hide();
+    this.activePauseOverlay = null;
+
+    if (!this.isGameOver) {
+      this.physics.world.resume();
+      this.isGameplayPaused = false;
+    }
+
+    this.refreshHud();
+  }
+
+  handleChestRewardSelected(reward) {
+    this.chestRewardSystem.apply(this.player, reward, this.pickupManager);
+    this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
+    this.chestOverlay.hide();
+    this.activePauseOverlay = null;
+    this.pendingChestPickup = null;
 
     if (!this.isGameOver) {
       this.physics.world.resume();
@@ -242,11 +288,13 @@ export class GameScene extends Phaser.Scene {
   openGameOver() {
     this.isGameOver = true;
     this.isGameplayPaused = true;
+    this.activePauseOverlay = null;
     this.physics.world.pause();
     this.player.stop();
     this.enemyManager.stopAll();
     this.projectileManager.stopAll();
     this.levelUpOverlay.hide();
+    this.chestOverlay.hide();
     this.gameOverOverlay.show({
       timeMs: this.elapsedMs,
       level: this.player.stats.level
@@ -293,6 +341,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.levelUpOverlay) {
       this.levelUpOverlay.layout(width, height);
+    }
+
+    if (this.chestOverlay) {
+      this.chestOverlay.layout(width, height);
     }
 
     if (this.gameOverOverlay) {
