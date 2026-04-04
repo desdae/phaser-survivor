@@ -58,3 +58,14 @@ export function getAnimatedTextureKey(frames, now, frameDurationMs = 150) {
   const frameIndex = Math.floor(Math.max(now, 0) / frameDurationMs) % frames.length;
   return frames[frameIndex];
 }
+
+export function advanceVisualFrame(enemy) {
+  const frames = enemy.visualFrames ?? [];
+
+  if (frames.length <= 1) {
+    return frames[0] ?? enemy.texture?.key ?? null;
+  }
+
+  enemy.visualFrameIndex = ((enemy.visualFrameIndex ?? 0) + 1) % frames.length;
+  return frames[enemy.visualFrameIndex];
+}

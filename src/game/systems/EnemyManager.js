@@ -1,7 +1,13 @@
 import { createEnemyQuery } from '../logic/combat.js';
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
+import {
+  ANIMATION_STEP_MS,
+  classifyEnemyTier,
+  shouldAdvanceAnimation,
+  shouldRefreshEnemyLogic
+} from '../logic/enemyLod.js';
 import { getEliteModifiers } from '../logic/eliteWaves.js';
-import { getAnimatedTextureKey, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
+import { advanceVisualFrame, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
 const HEART_DROP_CHANCE = 0.03;
@@ -51,6 +57,9 @@ export class EnemyManager {
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.enemyQuery = createEnemyQuery([]);
+    this.nearEnemyQuery = createEnemyQuery([]);
+    this.frameIndex = 0;
+    this.nextAnimationStepAt = (scene.time?.now ?? 0) + ANIMATION_STEP_MS;
     this.spawnAccumulatorMs = 0;
     this.spawnCounts = {
       basic: 0,
@@ -59,7 +68,32 @@ export class EnemyManager {
     };
   }
 
+  getReusableEnemyProjectile() {
+    for (const projectile of this.enemyProjectileGroup.getChildren?.() ?? []) {
+      if (!projectile?.active) {
+        if (projectile.body) {
+          projectile.body.enable = true;
+        }
+        projectile.setActive?.(true);
+        projectile.setVisible?.(true);
+        return projectile;
+      }
+    }
+
+    return this.enemyProjectileGroup.create(0, 0, 'projectile');
+  }
+
+  deactivateEnemyProjectile(projectile) {
+    projectile?.setVelocity?.(0, 0);
+    if (projectile?.body) {
+      projectile.body.enable = false;
+    }
+    projectile?.setActive?.(false);
+    projectile?.setVisible?.(false);
+  }
+
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
+    this.frameIndex += 1;
     this.spawnAccumulatorMs += deltaMs;
     const profile = getSpawnProfile(elapsedSeconds);
     const playerSprite = this.player.sprite ?? this.player;
@@ -75,40 +109,61 @@ export class EnemyManager {
       }
 
       if (projectile.expiresAt <= now) {
-        projectile.destroy();
+        this.deactivateEnemyProjectile(projectile);
       }
     });
 
     const livingEnemies = this.getLivingEnemies();
-    this.enemyQuery = createEnemyQuery(livingEnemies);
+    const animationStepDue = shouldAdvanceAnimation(now, this.nextAnimationStepAt);
+
+    if (animationStepDue) {
+      this.nextAnimationStepAt = now + ANIMATION_STEP_MS;
+    }
 
     livingEnemies.forEach((enemy) => {
       if (!enemy?.active) {
         return;
       }
 
-      const baseIntent = getEnemyIntent(enemy, enemy, playerSprite);
-      const intent = applySwarmSpacing(baseIntent, enemy, livingEnemies);
+      enemy.lodTier = classifyEnemyTier(enemy, playerSprite);
       const dx = playerSprite.x - enemy.x;
       const dy = playerSprite.y - enemy.y;
       const distance = Math.hypot(dx, dy) || 1;
-      const animatedTextureKey = getAnimatedTextureKey(
-        enemy.visualFrames,
-        now,
-        enemy.visualFrameDurationMs
-      );
+      const hasCachedIntent =
+        enemy.cachedMoveX !== undefined &&
+        enemy.cachedMoveY !== undefined &&
+        enemy.cachedWantsToShoot !== undefined;
 
-      if (animatedTextureKey && enemy.texture?.key !== animatedTextureKey) {
-        enemy.setTexture(animatedTextureKey);
+      if (animationStepDue && (enemy.lodTier === 'near' || this.frameIndex % 2 === 0)) {
+        const nextFrame = advanceVisualFrame(enemy);
+
+        if (nextFrame && enemy.texture?.key !== nextFrame) {
+          enemy.setTexture(nextFrame);
+        }
       }
 
-      enemy.setVelocity(intent.moveX * enemy.speed, intent.moveY * enemy.speed);
+      if (!hasCachedIntent || shouldRefreshEnemyLogic(enemy.lodTier, this.frameIndex)) {
+        const baseIntent = getEnemyIntent(enemy, enemy, playerSprite);
+        const intent =
+          enemy.lodTier === 'near'
+            ? applySwarmSpacing(baseIntent, enemy, livingEnemies)
+            : baseIntent;
 
-      if (intent.wantsToShoot && shouldEnemyShoot(enemy, now, distance)) {
+        enemy.cachedMoveX = intent.moveX;
+        enemy.cachedMoveY = intent.moveY;
+        enemy.cachedWantsToShoot = intent.wantsToShoot;
+      }
+
+      enemy.setVelocity((enemy.cachedMoveX ?? 0) * enemy.speed, (enemy.cachedMoveY ?? 0) * enemy.speed);
+
+      if (enemy.cachedWantsToShoot && shouldEnemyShoot(enemy, now, distance)) {
         this.fireEnemyProjectile(enemy, dx / distance, dy / distance, now);
         enemy.nextShotAt = now + enemy.attackCooldownMs;
       }
     });
+
+    this.enemyQuery = createEnemyQuery(livingEnemies);
+    this.nearEnemyQuery = createEnemyQuery(livingEnemies.filter((enemy) => enemy.lodTier === 'near'));
 
     return livingEnemies;
   }
@@ -189,9 +244,10 @@ export class EnemyManager {
   }
 
   fireEnemyProjectile(enemy, directionX, directionY, now) {
-    const projectile = this.enemyProjectileGroup.create(enemy.x, enemy.y, 'projectile');
+    const projectile = this.getReusableEnemyProjectile();
     const speed = enemy.projectileSpeed ?? 0;
 
+    projectile.setPosition?.(enemy.x, enemy.y);
     projectile.damage = enemy.projectileDamage ?? 0;
     projectile.expiresAt = now + 3000;
     projectile.setDepth(3);
@@ -261,6 +317,10 @@ export class EnemyManager {
 
   getEnemyQuery() {
     return this.enemyQuery;
+  }
+
+  getNearEnemyQuery() {
+    return this.nearEnemyQuery;
   }
 
   stopAll() {

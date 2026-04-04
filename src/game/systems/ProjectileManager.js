@@ -13,6 +13,30 @@ export class ProjectileManager {
     this.nextShotAt = 0;
   }
 
+  getReusableProjectile() {
+    for (const projectile of this.group.getChildren?.() ?? []) {
+      if (!projectile?.active) {
+        if (projectile.body) {
+          projectile.body.enable = true;
+        }
+        projectile.setActive?.(true);
+        projectile.setVisible?.(true);
+        return projectile;
+      }
+    }
+
+    return this.group.create(0, 0, 'projectile');
+  }
+
+  deactivateProjectile(projectile) {
+    projectile?.setVelocity?.(0, 0);
+    if (projectile?.body) {
+      projectile.body.enable = false;
+    }
+    projectile?.setActive?.(false);
+    projectile?.setVisible?.(false);
+  }
+
   update(now) {
     this.group.children.iterate((projectile) => {
       if (!projectile?.active) {
@@ -20,7 +44,7 @@ export class ProjectileManager {
       }
 
       if (projectile.expiresAt <= now) {
-        projectile.destroy();
+        this.deactivateProjectile(projectile);
       }
     });
   }
@@ -53,9 +77,10 @@ export class ProjectileManager {
   }
 
   fireProjectile(origin, direction, stats, now) {
-    const projectile = this.group.create(origin.x, origin.y, 'projectile');
+    const projectile = this.getReusableProjectile();
     const speed = stats.projectileSpeed ?? 0;
 
+    projectile.setPosition?.(origin.x, origin.y);
     projectile.damage = stats.projectileDamage ?? 0;
     projectile.remainingPierce = stats.projectilePierce ?? 0;
     projectile.remainingRicochet = stats.projectileRicochet ?? 0;
@@ -87,7 +112,7 @@ export class ProjectileManager {
     if (projectile.remainingRicochet > 0) {
       const nextEnemy = getRicochetTarget(
         enemy,
-        enemyManager.getEnemyQuery?.() ?? enemyManager.getLivingEnemies(),
+        enemyManager.getNearEnemyQuery?.() ?? enemyManager.getEnemyQuery?.() ?? enemyManager.getLivingEnemies(),
         170,
         projectile.hitEnemyKeys
       );
@@ -101,7 +126,7 @@ export class ProjectileManager {
       }
     }
 
-    projectile.destroy();
+    this.deactivateProjectile(projectile);
   }
 
   stopAll() {

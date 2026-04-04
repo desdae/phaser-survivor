@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createEnemyQuery,
   getNearbyEnemies,
+  getQueryEnemiesByTier,
   getNearestEnemy,
   getProjectileVelocity,
   getRicochetTarget,
@@ -40,6 +41,55 @@ describe('createEnemyQuery', () => {
       'near-a',
       'near-b'
     ]);
+  });
+});
+
+describe('getQueryEnemiesByTier', () => {
+  it('returns only enemies in the requested tier bucket', () => {
+    const query = createEnemyQuery(
+      [
+        { active: true, id: 'near', x: 50, y: 0, lodTier: 'near' },
+        { active: true, id: 'mid', x: 500, y: 0, lodTier: 'mid' },
+        { active: true, id: 'far', x: 1200, y: 0, lodTier: 'far' }
+      ],
+      96
+    );
+
+    expect(getQueryEnemiesByTier(query, 'near').map((enemy) => enemy.id)).toEqual(['near']);
+    expect(getQueryEnemiesByTier(query, 'mid').map((enemy) => enemy.id)).toEqual(['mid']);
+  });
+});
+
+describe('getNearbyEnemies', () => {
+  it('prefers tier-filtered local buckets when a query is provided', () => {
+    const query = createEnemyQuery(
+      [
+        { active: true, id: 'near-a', x: 10, y: 10, lodTier: 'near' },
+        { active: true, id: 'near-b', x: 40, y: 0, lodTier: 'near' },
+        { active: true, id: 'mid-a', x: 60, y: 0, lodTier: 'mid' }
+      ],
+      96
+    );
+
+    expect(
+      getNearbyEnemies({ x: 0, y: 0 }, query, 80, Number.POSITIVE_INFINITY, null, ['near']).map(
+        (enemy) => enemy.id
+      )
+    ).toEqual(['near-a', 'near-b']);
+  });
+
+  it('filters a plain enemy array by allowed tiers', () => {
+    const enemies = [
+      { active: true, id: 'near-a', x: 10, y: 10, lodTier: 'near' },
+      { active: true, id: 'mid-a', x: 30, y: 0, lodTier: 'mid' },
+      { active: true, id: 'far-a', x: 50, y: 0, lodTier: 'far' }
+    ];
+
+    expect(
+      getNearbyEnemies({ x: 0, y: 0 }, enemies, 80, Number.POSITIVE_INFINITY, null, ['mid']).map(
+        (enemy) => enemy.id
+      )
+    ).toEqual(['mid-a']);
   });
 });
 
@@ -115,17 +165,33 @@ describe('ProjectileManager', () => {
           projectiles.forEach(callback);
         }
       },
+      getChildren: () => projectiles,
       create: (x, y, key) => {
         const projectile = {
           active: true,
-          body: { velocity: { x: 0, y: 0 } },
+          body: { enable: true, velocity: { x: 0, y: 0 } },
           expiresAt: 0,
           key,
+          setActive(value) {
+            this.active = value;
+            return this;
+          },
           setCircle: () => {},
           setDepth: () => {},
+          setPosition(xPos, yPos) {
+            this.x = xPos;
+            this.y = yPos;
+            return this;
+          },
           setVelocity(xVel, yVel) {
             this.body.velocity = { x: xVel, y: yVel };
+            return this;
           },
+          setVisible(value) {
+            this.visible = value;
+            return this;
+          },
+          visible: true,
           x,
           y
         };
@@ -209,5 +275,58 @@ describe('ProjectileManager', () => {
     expect(enemyManager.damageEnemyCalls[1].enemy).toBe(enemy2);
     expect(projectile.body.velocity.x).toBeCloseTo(170 / Math.hypot(170, 30) * 120, 3);
     expect(projectile.body.velocity.y).toBeCloseTo(30 / Math.hypot(170, 30) * 120, 3);
+  });
+
+  it('reuses an inactive projectile instead of creating a new one', () => {
+    const { group, manager, projectiles } = createManager();
+    const recycled = group.create(4, 6, 'projectile');
+    recycled.setActive(false);
+    recycled.setVisible(false);
+    group.create = () => {
+      throw new Error('should not create a fresh projectile');
+    };
+
+    const projectile = manager.fireProjectile(
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      {
+        projectileDamage: 8,
+        projectilePierce: 0,
+        projectileRicochet: 0,
+        projectileSpeed: 120
+      },
+      1000
+    );
+
+    expect(projectile).toBe(recycled);
+    expect(projectiles).toHaveLength(1);
+    expect(recycled.active).toBe(true);
+    expect(recycled.body.enable).toBe(true);
+    expect(recycled.visible).toBe(true);
+    expect(recycled.x).toBe(0);
+    expect(recycled.y).toBe(0);
+  });
+
+  it('deactivates expired projectiles so pooled bodies stop participating in physics checks', () => {
+    const { manager, projectiles } = createManager();
+    manager.fireProjectile(
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      {
+        projectileDamage: 8,
+        projectilePierce: 0,
+        projectileRicochet: 0,
+        projectileSpeed: 120
+      },
+      0
+    );
+    const projectile = projectiles[0];
+    projectile.expiresAt = 10;
+
+    manager.update(10);
+
+    expect(projectile.active).toBe(false);
+    expect(projectile.body.enable).toBe(false);
+    expect(projectile.visible).toBe(false);
   });
 });
