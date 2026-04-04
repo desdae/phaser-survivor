@@ -90,6 +90,10 @@ export class PickupManager {
           collectPayload.rewardSeed = pickup.rewardSeed;
         }
 
+        if (pickup.buffKey !== undefined) {
+          collectPayload.buffKey = pickup.buffKey;
+        }
+
         const shouldPause = this.onCollect(collectPayload);
         pickup.destroy();
         if (shouldPause) {

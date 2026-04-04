@@ -581,6 +581,52 @@ describe('EnemyManager', () => {
   });
 });
 
+describe('PickupManager update', () => {
+  it('forwards buffKey when a temporary powerup is collected', () => {
+    const onCollect = vi.fn().mockReturnValue(false);
+    const pickups = [];
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            create: vi.fn((x, y, texture) => {
+              const pickup = {
+              active: true,
+              buffKey: 'frenzy',
+              destroy: vi.fn(),
+              kind: 'powerup',
+              rewardSeed: undefined,
+              setDamping: vi.fn(),
+              setDepth: vi.fn(),
+              setDrag: vi.fn(),
+              setMaxVelocity: vi.fn(),
+              value: 0,
+              x,
+              y
+              };
+
+              pickups.push(pickup);
+              return pickup;
+            }),
+            getChildren: () => pickups
+          })
+        }
+      }
+    };
+    const manager = new PickupManager(scene, onCollect);
+    const pickup = manager.spawnPowerup(100, 100, 'frenzy');
+
+    manager.update({ x: 100, y: 100 }, 48);
+
+    expect(pickup.buffKey).toBe('frenzy');
+    expect(onCollect).toHaveBeenCalledWith({
+      kind: 'powerup',
+      value: 0,
+      buffKey: 'frenzy'
+    });
+  });
+});
+
 describe('EnemyManager update', () => {
   it('stores enemy tiers and builds a near-only query for local combat systems', () => {
     const manager = createEnemyManagerHarness();
