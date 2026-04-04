@@ -15,6 +15,11 @@ import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { TemporaryBuffSystem } from '../systems/TemporaryBuffSystem.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
+import {
+  GRASS_TILE_SIZE,
+  getGrassTextureKey,
+  getVisibleGrassTiles
+} from '../logic/backgroundTiles.js';
 import { getSpawnProfile } from '../logic/spawn.js';
 import {
   createChestOverlay,
@@ -29,6 +34,7 @@ import {
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('game');
+    this.backgroundTiles = [];
   }
 
   create() {
@@ -41,11 +47,6 @@ export class GameScene extends Phaser.Scene {
     this.isGameplayPaused = false;
     this.isGameOver = false;
     this.activePauseOverlay = null;
-
-    this.background = this.add.tileSprite(0, 0, this.scale.width, this.scale.height, 'grid');
-    this.background.setOrigin(0);
-    this.background.setScrollFactor(0);
-    this.background.setDepth(0);
 
     this.player = new Player(this, 0, 0);
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
@@ -90,6 +91,7 @@ export class GameScene extends Phaser.Scene {
 
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
     this.cameras.main.roundPixels = true;
+    this.syncBackgroundTiles?.();
 
     this.hud = createHud(this);
     this.fpsCounter = createFpsCounter(this);
@@ -147,8 +149,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    this.background.tilePositionX = this.cameras.main.scrollX;
-    this.background.tilePositionY = this.cameras.main.scrollY;
+    this.syncBackgroundTiles?.();
     this.handleStatsToggle();
     this.updateFpsCounter?.(time);
 
@@ -406,9 +407,7 @@ export class GameScene extends Phaser.Scene {
     const width = gameSize.width;
     const height = gameSize.height;
 
-    if (this.background) {
-      this.background.setSize(width, height);
-    }
+    this.syncBackgroundTiles?.();
 
     if (this.hud) {
       this.hud.layout(width, height);
@@ -697,16 +696,97 @@ export class GameScene extends Phaser.Scene {
     graphics.fillCircle(16, 11, 2.5);
     graphics.generateTexture('powerup-volley', 22, 22);
 
-    graphics.clear();
-    graphics.fillStyle(0x0b1721, 1);
-    graphics.fillRect(0, 0, 128, 128);
-    graphics.lineStyle(1, 0x15354b, 0.95);
-    for (let offset = 0; offset <= 128; offset += 32) {
-      graphics.lineBetween(offset, 0, offset, 128);
-      graphics.lineBetween(0, offset, 128, offset);
+    const createSeededRng = (seed) => {
+      let value = (seed + 1) >>> 0;
+      return () => {
+        value = (value * 1664525 + 1013904223) >>> 0;
+        return value / 4294967296;
+      };
+    };
+    const grassPalette = [0x5c8f45, 0x68994c, 0x74a756, 0x7db05d, 0x557c3f, 0x486d34];
+    const drawGrassPatch = (rng) => {
+      const width = 24 + Math.floor(rng() * 30);
+      const height = 18 + Math.floor(rng() * 24);
+      const x = 16 + Math.floor(rng() * (GRASS_TILE_SIZE - width - 32));
+      const y = 16 + Math.floor(rng() * (GRASS_TILE_SIZE - height - 32));
+      const color = grassPalette[Math.floor(rng() * grassPalette.length)];
+      const alpha = 0.12 + rng() * 0.14;
+
+      graphics.fillStyle(color, alpha);
+      graphics.fillEllipse(x + width / 2, y + height / 2, width, height);
+    };
+    const drawGrassBlade = (rng) => {
+      const baseX = 12 + Math.floor(rng() * (GRASS_TILE_SIZE - 24));
+      const baseY = 18 + Math.floor(rng() * (GRASS_TILE_SIZE - 30));
+      const height = 5 + Math.floor(rng() * 10);
+      const lean = -3 + Math.floor(rng() * 7);
+      const color = grassPalette[Math.floor(rng() * (grassPalette.length - 1))];
+      const alpha = 0.28 + rng() * 0.28;
+
+      graphics.lineStyle(1, color, alpha);
+      graphics.lineBetween(baseX, baseY + height, baseX + lean, baseY);
+    };
+
+    for (let variant = 0; variant < 16; variant += 1) {
+      const rng = createSeededRng(variant * 97);
+
+      graphics.clear();
+      graphics.fillStyle(0x6b9f51, 1);
+      graphics.fillRect(0, 0, GRASS_TILE_SIZE, GRASS_TILE_SIZE);
+
+      for (let patch = 0; patch < 8; patch += 1) {
+        drawGrassPatch(rng);
+      }
+
+      for (let blade = 0; blade < 72; blade += 1) {
+        drawGrassBlade(rng);
+      }
+
+      graphics.fillStyle(0x89bc68, 0.05);
+      graphics.fillCircle(22 + Math.floor(rng() * 84), 22 + Math.floor(rng() * 84), 10 + Math.floor(rng() * 14));
+      graphics.generateTexture(`grass-${variant}`, GRASS_TILE_SIZE, GRASS_TILE_SIZE);
     }
-    graphics.generateTexture('grid', 128, 128);
 
     graphics.destroy();
+  }
+
+  ensureBackgroundTilePool(count) {
+    while (this.backgroundTiles.length < count) {
+      const tile = this.add.image(0, 0, 'grass-0');
+      tile.setOrigin(0);
+      tile.setDepth(-1);
+      this.backgroundTiles.push(tile);
+    }
+
+    for (let index = count; index < this.backgroundTiles.length; index += 1) {
+      this.backgroundTiles[index].setVisible(false);
+    }
+  }
+
+  syncBackgroundTiles() {
+    if (!this.cameras?.main || !this.scale?.width || !this.scale?.height) {
+      return;
+    }
+
+    const tiles = getVisibleGrassTiles(
+      this.cameras.main.scrollX,
+      this.cameras.main.scrollY,
+      this.scale.width,
+      this.scale.height
+    );
+
+    this.ensureBackgroundTilePool(tiles.length);
+
+    tiles.forEach((tileData, index) => {
+      const tile = this.backgroundTiles[index];
+      const textureKey = getGrassTextureKey(tileData.tileX, tileData.tileY);
+
+      if (tile.texture?.key !== textureKey) {
+        tile.setTexture(textureKey);
+      }
+
+      tile.setPosition(tileData.worldX, tileData.worldY);
+      tile.setVisible(true);
+    });
   }
 }
