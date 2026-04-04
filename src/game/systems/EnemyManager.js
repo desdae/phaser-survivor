@@ -59,7 +59,7 @@ export class EnemyManager {
     this.enemyQuery = createEnemyQuery([]);
     this.nearEnemyQuery = createEnemyQuery([]);
     this.frameIndex = 0;
-    this.nextAnimationStepAt = 0;
+    this.nextAnimationStepAt = (scene.time?.now ?? 0) + ANIMATION_STEP_MS;
     this.spawnAccumulatorMs = 0;
     this.spawnCounts = {
       basic: 0,
@@ -71,6 +71,9 @@ export class EnemyManager {
   getReusableEnemyProjectile() {
     for (const projectile of this.enemyProjectileGroup.getChildren?.() ?? []) {
       if (!projectile?.active) {
+        if (projectile.body) {
+          projectile.body.enable = true;
+        }
         projectile.setActive?.(true);
         projectile.setVisible?.(true);
         return projectile;
@@ -82,6 +85,9 @@ export class EnemyManager {
 
   deactivateEnemyProjectile(projectile) {
     projectile?.setVelocity?.(0, 0);
+    if (projectile?.body) {
+      projectile.body.enable = false;
+    }
     projectile?.setActive?.(false);
     projectile?.setVisible?.(false);
   }

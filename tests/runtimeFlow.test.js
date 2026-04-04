@@ -490,6 +490,100 @@ describe('GameScene update', () => {
     expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('basic', { elite: true });
     expect(sceneLike.eliteWaveSystem.consumeSpawn).toHaveBeenCalledOnce();
   });
+
+  it('still refreshes the hud using the full living enemy count while local systems use the near query', () => {
+    const nearQuery = {
+      cellSize: 96,
+      cells: new Map(),
+      enemies: [{ active: true, id: 'near-1' }],
+      enemiesByTier: { near: [{ active: true, id: 'near-1' }], mid: [], far: [] }
+    };
+    const livingEnemies = Array.from({ length: 3000 }, (_, index) => ({
+      active: true,
+      id: `enemy-${index}`
+    }));
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: 0,
+      enemyManager: {
+        getNearEnemyQuery: vi.fn().mockReturnValue(nearQuery),
+        update: vi.fn().mockReturnValue(livingEnemies)
+      },
+      handleStatsToggle: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          bladeCount: 0,
+          pickupRadius: 48
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      statsKey: {},
+      updateEliteWave: vi.fn(),
+      audioManager: {},
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      input: {
+        keyboard: {
+          addCapture: vi.fn()
+        }
+      },
+      time: {
+        now: 16
+      },
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, nearQuery, 16);
+    expect(sceneLike.refreshHud).toHaveBeenCalledWith(3000);
+  });
 });
 
 describe('GameScene openGameOver', () => {

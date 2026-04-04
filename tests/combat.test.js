@@ -169,7 +169,7 @@ describe('ProjectileManager', () => {
       create: (x, y, key) => {
         const projectile = {
           active: true,
-          body: { velocity: { x: 0, y: 0 } },
+          body: { enable: true, velocity: { x: 0, y: 0 } },
           expiresAt: 0,
           key,
           setActive(value) {
@@ -301,8 +301,32 @@ describe('ProjectileManager', () => {
     expect(projectile).toBe(recycled);
     expect(projectiles).toHaveLength(1);
     expect(recycled.active).toBe(true);
+    expect(recycled.body.enable).toBe(true);
     expect(recycled.visible).toBe(true);
     expect(recycled.x).toBe(0);
     expect(recycled.y).toBe(0);
+  });
+
+  it('deactivates expired projectiles so pooled bodies stop participating in physics checks', () => {
+    const { manager, projectiles } = createManager();
+    manager.fireProjectile(
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      {
+        projectileDamage: 8,
+        projectilePierce: 0,
+        projectileRicochet: 0,
+        projectileSpeed: 120
+      },
+      0
+    );
+    const projectile = projectiles[0];
+    projectile.expiresAt = 10;
+
+    manager.update(10);
+
+    expect(projectile.active).toBe(false);
+    expect(projectile.body.enable).toBe(false);
+    expect(projectile.visible).toBe(false);
   });
 });

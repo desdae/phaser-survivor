@@ -16,6 +16,9 @@ export class ProjectileManager {
   getReusableProjectile() {
     for (const projectile of this.group.getChildren?.() ?? []) {
       if (!projectile?.active) {
+        if (projectile.body) {
+          projectile.body.enable = true;
+        }
         projectile.setActive?.(true);
         projectile.setVisible?.(true);
         return projectile;
@@ -27,6 +30,9 @@ export class ProjectileManager {
 
   deactivateProjectile(projectile) {
     projectile?.setVelocity?.(0, 0);
+    if (projectile?.body) {
+      projectile.body.enable = false;
+    }
     projectile?.setActive?.(false);
     projectile?.setVisible?.(false);
   }

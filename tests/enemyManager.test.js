@@ -413,7 +413,7 @@ describe('EnemyManager', () => {
     const manager = createEnemyManagerHarness();
     const recycled = {
       active: false,
-      body: { velocity: { x: 0, y: 0 } },
+      body: { enable: false, velocity: { x: 0, y: 0 } },
       setActive: vi.fn(function setActive(value) {
         this.active = value;
         return this;
@@ -463,6 +463,7 @@ describe('EnemyManager', () => {
 
     expect(projectile).toBe(recycled);
     expect(recycled.active).toBe(true);
+    expect(recycled.body.enable).toBe(true);
     expect(recycled.visible).toBe(true);
     expect(recycled.x).toBe(12);
     expect(recycled.y).toBe(16);
@@ -481,6 +482,36 @@ describe('EnemyManager update', () => {
     expect(nearEnemy.lodTier).toBe('near');
     expect(farEnemy.lodTier).toBe('far');
     expect(manager.getNearEnemyQuery().enemies.every((enemy) => enemy.lodTier === 'near')).toBe(true);
+  });
+
+  it('deactivates expired enemy projectiles so pooled bodies stop overlapping the player', () => {
+    const manager = createEnemyManagerHarness();
+    const projectile = {
+      active: true,
+      body: { enable: true, velocity: { x: 50, y: -10 } },
+      expiresAt: 10,
+      setActive: vi.fn(function setActive(value) {
+        this.active = value;
+        return this;
+      }),
+      setVelocity: vi.fn(function setVelocity(x, y) {
+        this.body.velocity = { x, y };
+        return this;
+      }),
+      setVisible: vi.fn(function setVisible(value) {
+        this.visible = value;
+        return this;
+      }),
+      visible: true
+    };
+    manager.enemyProjectileGroup.children.iterate.mockImplementation((callback) => callback(projectile));
+    manager.getLivingEnemies = vi.fn().mockReturnValue([]);
+
+    manager.update(16, 60, 10);
+
+    expect(projectile.active).toBe(false);
+    expect(projectile.body.enable).toBe(false);
+    expect(projectile.visible).toBe(false);
   });
 
   it('computes initial intent immediately for newly seen distant enemies', () => {
@@ -522,5 +553,18 @@ describe('EnemyManager update', () => {
     manager.update(16, 60, 1000);
 
     expect(enemy.setTexture).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the initial spawn frame visible until the first shared animation step elapses', () => {
+    const manager = createEnemyManagerHarness();
+    const enemy = makeEnemy({ x: 80, y: 0, visualFrames: ['a', 'b', 'c'] });
+    manager.getLivingEnemies = vi.fn().mockReturnValue([enemy]);
+
+    manager.update(16, 60, 0);
+    manager.update(16, 60, 119);
+    manager.update(16, 60, 120);
+
+    expect(enemy.setTexture).toHaveBeenCalledTimes(1);
+    expect(enemy.setTexture).toHaveBeenCalledWith('b');
   });
 });
