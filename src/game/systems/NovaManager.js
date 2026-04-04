@@ -14,6 +14,8 @@ export class NovaManager {
       return false;
     }
 
+    const enemyQuery = enemyManager.getEnemyQuery?.() ?? enemies;
+
     if (now >= this.nextCastAt && this.pendingBursts.length === 0) {
       this.pendingBursts = queueNovaBursts(now, stats.novaEchoCount, NOVA_ECHO_DELAY_MS).map((burstAt) => ({
         burstAt,
@@ -29,7 +31,7 @@ export class NovaManager {
 
     while (this.pendingBursts[0] && this.pendingBursts[0].burstAt <= now) {
       const burst = this.pendingBursts.shift();
-      const targets = getNovaTargets(burst, enemies, burst.radius);
+      const targets = getNovaTargets(burst, enemyQuery, burst.radius);
 
       targets.forEach((enemy) => enemyManager.damageEnemy(enemy, burst.damage, 'nova'));
       this.renderBurst(burst);

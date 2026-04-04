@@ -1,15 +1,7 @@
+import { getNearbyEnemies } from './combat.js';
+
 export function getNovaTargets(origin, enemies, radius) {
-  const radiusSq = radius * radius;
-
-  return enemies.filter((enemy) => {
-    if (!enemy?.active) {
-      return false;
-    }
-
-    const dx = enemy.x - origin.x;
-    const dy = enemy.y - origin.y;
-    return dx * dx + dy * dy <= radiusSq;
-  });
+  return getNearbyEnemies(origin, enemies, radius);
 }
 
 export function queueNovaBursts(startAt, burstCount, intervalMs) {

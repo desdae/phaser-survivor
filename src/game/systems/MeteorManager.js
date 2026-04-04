@@ -14,6 +14,8 @@ export class MeteorManager {
       return false;
     }
 
+    const enemyQuery = enemyManager.getEnemyQuery?.() ?? enemies;
+
     if (now >= this.nextCastAt) {
       const targets = getMeteorTargets(player.sprite, enemies, stats.meteorCount);
 
@@ -28,7 +30,7 @@ export class MeteorManager {
     while (this.pendingStrikes[0] && this.pendingStrikes[0].impactAt <= now) {
       const strike = this.pendingStrikes.shift();
       strike.marker.destroy?.();
-      resolveMeteorStrike(strike, enemies, enemyManager);
+      resolveMeteorStrike(strike, enemyQuery, enemyManager);
       this.renderImpact(strike);
       resolvedStrike = true;
     }

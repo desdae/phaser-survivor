@@ -54,6 +54,7 @@ export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42, maxN
   let offsetX = 0;
   let offsetY = 0;
   const spacingNeighbors = getSpacingNeighbors(enemy, neighbors, spacingRadius, maxNeighbors);
+  const overlapRadius = 18;
 
   for (const neighbor of spacingNeighbors) {
     const dx = enemy.x - neighbor.x;
@@ -65,7 +66,8 @@ export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42, maxN
     }
 
     const distance = Math.sqrt(distanceSq);
-    const pushWeight = (spacingRadius - distance) / spacingRadius;
+    const overlapBoost = distance < overlapRadius ? 1 + (overlapRadius - distance) / overlapRadius : 1;
+    const pushWeight = ((spacingRadius - distance) / spacingRadius) * overlapBoost;
     offsetX += (dx / distance) * pushWeight;
     offsetY += (dy / distance) * pushWeight;
   }
@@ -78,7 +80,7 @@ export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42, maxN
   };
 }
 
-export function applySwarmSpacing(baseIntent, enemy, neighbors, spacingWeight = 0.35) {
+export function applySwarmSpacing(baseIntent, enemy, neighbors, spacingWeight = 0.5) {
   const spacing = getSwarmSpacingOffset(enemy, neighbors);
   const moveX = baseIntent.moveX + spacing.x * spacingWeight;
   const moveY = baseIntent.moveY + spacing.y * spacingWeight;

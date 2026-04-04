@@ -1,8 +1,137 @@
-export function getNearestEnemy(origin, enemies) {
+function getEnemyKey(enemy) {
+  return enemy?.id ?? enemy;
+}
+
+function isEnemyQuery(enemySource) {
+  return Boolean(enemySource?.cellSize && enemySource?.cells && Array.isArray(enemySource?.enemies));
+}
+
+function getEnemyList(enemySource) {
+  if (isEnemyQuery(enemySource)) {
+    return enemySource.enemies;
+  }
+
+  return enemySource ?? [];
+}
+
+function getCellKey(cellX, cellY) {
+  return `${cellX}:${cellY}`;
+}
+
+export function createEnemyQuery(enemies, cellSize = 96) {
+  const cells = new Map();
+  const activeEnemies = [];
+
+  for (const enemy of enemies ?? []) {
+    if (!enemy?.active) {
+      continue;
+    }
+
+    activeEnemies.push(enemy);
+    const cellX = Math.floor(enemy.x / cellSize);
+    const cellY = Math.floor(enemy.y / cellSize);
+    const key = getCellKey(cellX, cellY);
+
+    if (!cells.has(key)) {
+      cells.set(key, []);
+    }
+
+    cells.get(key).push(enemy);
+  }
+
+  return {
+    cellSize,
+    cells,
+    enemies: activeEnemies
+  };
+}
+
+export function getNearbyEnemies(origin, enemySource, maxDistance, limit = Number.POSITIVE_INFINITY, excludedEnemyKeys = null) {
+  if (!origin || maxDistance <= 0) {
+    return [];
+  }
+
+  const maxDistanceSq = maxDistance * maxDistance;
+
+  if (!isEnemyQuery(enemySource)) {
+    const results = [];
+
+    for (const enemy of getEnemyList(enemySource)) {
+      if (!enemy?.active) {
+        continue;
+      }
+
+      const enemyKey = getEnemyKey(enemy);
+
+      if (excludedEnemyKeys?.has?.(enemyKey)) {
+        continue;
+      }
+
+      const dx = enemy.x - origin.x;
+      const dy = enemy.y - origin.y;
+      const distanceSq = dx * dx + dy * dy;
+
+      if (distanceSq > maxDistanceSq) {
+        continue;
+      }
+
+      results.push(enemy);
+
+      if (results.length >= limit) {
+        break;
+      }
+    }
+
+    return results;
+  }
+
+  const { cellSize, cells } = enemySource;
+  const minCellX = Math.floor((origin.x - maxDistance) / cellSize);
+  const maxCellX = Math.floor((origin.x + maxDistance) / cellSize);
+  const minCellY = Math.floor((origin.y - maxDistance) / cellSize);
+  const maxCellY = Math.floor((origin.y + maxDistance) / cellSize);
+  const results = [];
+
+  for (let cellY = minCellY; cellY <= maxCellY; cellY += 1) {
+    for (let cellX = minCellX; cellX <= maxCellX; cellX += 1) {
+      const bucket = cells.get(getCellKey(cellX, cellY));
+
+      if (!bucket) {
+        continue;
+      }
+
+      for (const enemy of bucket) {
+        const enemyKey = getEnemyKey(enemy);
+
+        if (excludedEnemyKeys?.has?.(enemyKey)) {
+          continue;
+        }
+
+        const dx = enemy.x - origin.x;
+        const dy = enemy.y - origin.y;
+        const distanceSq = dx * dx + dy * dy;
+
+        if (distanceSq > maxDistanceSq) {
+          continue;
+        }
+
+        results.push(enemy);
+
+        if (results.length >= limit) {
+          return results;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+export function getNearestEnemy(origin, enemySource) {
   let nearestEnemy = null;
   let nearestDistanceSq = Number.POSITIVE_INFINITY;
 
-  for (const enemy of enemies) {
+  for (const enemy of getEnemyList(enemySource)) {
     if (!enemy?.active) {
       continue;
     }
@@ -29,10 +158,6 @@ export function getProjectileVelocity(origin, target, speed) {
     x: (dx / length) * speed,
     y: (dy / length) * speed
   };
-}
-
-function getEnemyKey(enemy) {
-  return enemy?.id ?? enemy;
 }
 
 export function registerProjectileHit(projectile, enemy) {
@@ -74,14 +199,8 @@ export function getRicochetTarget(hitEnemy, enemies, maxDistance, excludedEnemyK
   let best = null;
   let bestDistanceSq = maxDistance * maxDistance;
 
-  for (const enemy of enemies) {
-    if (!enemy?.active || enemy === hitEnemy) {
-      continue;
-    }
-
-    const enemyKey = getEnemyKey(enemy);
-
-    if (excludedEnemyKeys?.has?.(enemyKey)) {
+  for (const enemy of getNearbyEnemies(hitEnemy, enemies, maxDistance, Number.POSITIVE_INFINITY, excludedEnemyKeys)) {
+    if (enemy === hitEnemy) {
       continue;
     }
 
