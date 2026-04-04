@@ -320,7 +320,11 @@ describe('GameScene update', () => {
 
     GameScene.prototype.update.call(sceneLike, 16, 16);
 
-    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, nearQuery, 16);
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(
+      sceneLike.player,
+      returnedEnemies,
+      16
+    );
     expect(sceneLike.bladeManager.update).toHaveBeenCalledWith(
       sceneLike.player,
       sceneLike.player.stats,
@@ -581,7 +585,11 @@ describe('GameScene update', () => {
 
     GameScene.prototype.update.call(sceneLike, 16, 16);
 
-    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(sceneLike.player, nearQuery, 16);
+    expect(sceneLike.projectileManager.tryFire).toHaveBeenCalledWith(
+      sceneLike.player,
+      livingEnemies,
+      16
+    );
     expect(sceneLike.refreshHud).toHaveBeenCalledWith(3000);
   });
 });

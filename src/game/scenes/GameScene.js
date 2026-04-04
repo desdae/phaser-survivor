@@ -166,7 +166,7 @@ export class GameScene extends Phaser.Scene {
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
     this.projectileManager.update(time);
-    this.projectileManager.tryFire(this.player, nearEnemyQuery, time);
+    this.projectileManager.tryFire(this.player, livingEnemies, time);
     this.bladeManager.syncToPlayer(this.player.stats);
     this.bladeManager.update(
       this.player,
