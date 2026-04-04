@@ -1,4 +1,4 @@
-import { getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
+import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
 const ENEMY_TYPES = {
@@ -64,12 +64,15 @@ export class EnemyManager {
       }
     });
 
-    this.group.children.iterate((enemy) => {
+    const livingEnemies = this.getLivingEnemies();
+
+    livingEnemies.forEach((enemy) => {
       if (!enemy?.active) {
         return;
       }
 
-      const intent = getEnemyIntent(enemy, enemy, playerSprite);
+      const baseIntent = getEnemyIntent(enemy, enemy, playerSprite);
+      const intent = applySwarmSpacing(baseIntent, enemy, livingEnemies);
       const dx = playerSprite.x - enemy.x;
       const dy = playerSprite.y - enemy.y;
       const distance = Math.hypot(dx, dy) || 1;

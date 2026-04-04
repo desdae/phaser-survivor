@@ -23,6 +23,53 @@ export function getEnemyIntent(enemy, enemyPosition, playerPosition) {
   return { moveX: 0, moveY: 0, wantsToShoot: true };
 }
 
+export function getSwarmSpacingOffset(enemy, neighbors, spacingRadius = 42) {
+  let offsetX = 0;
+  let offsetY = 0;
+
+  for (const neighbor of neighbors) {
+    if (!neighbor?.active || neighbor === enemy) {
+      continue;
+    }
+
+    const dx = enemy.x - neighbor.x;
+    const dy = enemy.y - neighbor.y;
+    const distance = Math.hypot(dx, dy);
+
+    if (distance === 0 || distance >= spacingRadius) {
+      continue;
+    }
+
+    const pushWeight = (spacingRadius - distance) / spacingRadius;
+    offsetX += (dx / distance) * pushWeight;
+    offsetY += (dy / distance) * pushWeight;
+  }
+
+  const length = Math.hypot(offsetX, offsetY) || 1;
+
+  return {
+    x: offsetX / length,
+    y: offsetY / length
+  };
+}
+
+export function applySwarmSpacing(baseIntent, enemy, neighbors, spacingWeight = 0.35) {
+  const spacing = getSwarmSpacingOffset(enemy, neighbors);
+  const moveX = baseIntent.moveX + spacing.x * spacingWeight;
+  const moveY = baseIntent.moveY + spacing.y * spacingWeight;
+  const length = Math.hypot(moveX, moveY);
+
+  if (length === 0) {
+    return baseIntent;
+  }
+
+  return {
+    moveX: moveX / length,
+    moveY: moveY / length,
+    wantsToShoot: baseIntent.wantsToShoot
+  };
+}
+
 export function shouldEnemyShoot(enemy, now, distanceToPlayer) {
   return enemy.type === 'spitter' && distanceToPlayer <= (enemy.attackRange ?? 320) && now >= enemy.nextShotAt;
 }
