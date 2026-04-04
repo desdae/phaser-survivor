@@ -61,7 +61,12 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
     this.input.on('pointerdown', (pointer) => {
-      if (this.isGameplayPaused && !this.isGameOver) {
+      if (this.isGameOver) {
+        this.gameOverOverlay.choosePointer(pointer.x, pointer.y);
+        return;
+      }
+
+      if (this.isGameplayPaused) {
         this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
       }
     });

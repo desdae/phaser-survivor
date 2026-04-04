@@ -227,8 +227,7 @@ export function createGameOverOverlay(scene, onRestart) {
   });
   const restartButton = scene.add
     .rectangle(0, 0, 220, 54, 0x9d402e, 1)
-    .setStrokeStyle(2, 0xffb4a2, 0.8)
-    .setInteractive({ useHandCursor: true });
+    .setStrokeStyle(2, 0xffb4a2, 0.8);
   const restartText = scene.add.text(0, 0, 'Restart (R)', {
     fontFamily: 'Trebuchet MS',
     fontSize: '22px',
@@ -242,10 +241,6 @@ export function createGameOverOverlay(scene, onRestart) {
   container.setDepth(70);
   container.setScrollFactor(0);
   container.setVisible(false);
-
-  restartButton.on('pointerover', () => restartButton.setFillStyle(0xbf4f39, 1));
-  restartButton.on('pointerout', () => restartButton.setFillStyle(0x9d402e, 1));
-  restartButton.on('pointerdown', onRestart);
 
   return {
     hide() {
@@ -262,6 +257,23 @@ export function createGameOverOverlay(scene, onRestart) {
     show({ timeMs, level }) {
       summary.setText(`You held out for ${formatTime(timeMs)}\nReached level ${level}`);
       container.setVisible(true);
+    },
+    choosePointer(pointerX, pointerY) {
+      const width = 220;
+      const height = 54;
+      const withinX =
+        pointerX >= restartButton.x - width / 2 && pointerX <= restartButton.x + width / 2;
+      const withinY =
+        pointerY >= restartButton.y - height / 2 && pointerY <= restartButton.y + height / 2;
+
+      if (!container.visible || !withinX || !withinY) {
+        restartButton.setFillStyle(0x9d402e, 1);
+        return false;
+      }
+
+      restartButton.setFillStyle(0xbf4f39, 1);
+      onRestart();
+      return true;
     }
   };
 }

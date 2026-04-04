@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createLevelUpOverlay } from '../src/game/ui/overlayFactory.js';
+import { createGameOverOverlay, createLevelUpOverlay } from '../src/game/ui/overlayFactory.js';
 
 function createFakeDisplayObject() {
   const handlers = new Map();
@@ -114,5 +114,35 @@ describe('createLevelUpOverlay', () => {
 
     expect(selected).toBe(false);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe('createGameOverOverlay', () => {
+  it('restarts when a pointer hits the restart button region', () => {
+    const scene = createFakeScene();
+    const onRestart = vi.fn();
+    const overlay = createGameOverOverlay(scene, onRestart);
+
+    overlay.show({ timeMs: 64000, level: 7 });
+    overlay.layout(1280, 720);
+
+    const selected = overlay.choosePointer(640, 452);
+
+    expect(selected).toBe(true);
+    expect(onRestart).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores pointer clicks outside of the restart button region', () => {
+    const scene = createFakeScene();
+    const onRestart = vi.fn();
+    const overlay = createGameOverOverlay(scene, onRestart);
+
+    overlay.show({ timeMs: 64000, level: 7 });
+    overlay.layout(1280, 720);
+
+    const selected = overlay.choosePointer(40, 40);
+
+    expect(selected).toBe(false);
+    expect(onRestart).not.toHaveBeenCalled();
   });
 });
