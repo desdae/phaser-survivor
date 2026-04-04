@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   createHud,
+  createPowerupHud,
   createChestOverlay,
   createFpsCounter,
   createGameOverOverlay,
@@ -117,6 +118,31 @@ describe('createFpsCounter', () => {
     expect(scene.texts.at(-1)?.x).toBe(1262);
     expect(scene.texts.at(-1)?.y).toBe(18);
     expect(scene.texts.at(-1)?.text).toBe('FPS 58');
+  });
+});
+
+describe('createPowerupHud', () => {
+  it('shows formatted active buff rows and hides empty rows', () => {
+    const scene = createFakeScene();
+    const powerupHud = createPowerupHud(scene);
+
+    powerupHud.update([
+      { buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 18 },
+      { buffKey: 'volley', label: 'Volley', stacks: 1, secondsLeft: 9 }
+    ]);
+
+    expect(scene.containers.at(-1)?.visible).toBe(true);
+    expect(scene.texts.some((text) => text.text === 'Frenzy x2 18s')).toBe(true);
+    expect(scene.texts.some((text) => text.text === 'Volley x1 9s')).toBe(true);
+  });
+
+  it('hides the panel when there are no active buffs', () => {
+    const scene = createFakeScene();
+    const powerupHud = createPowerupHud(scene);
+
+    powerupHud.update([]);
+
+    expect(scene.containers.at(-1)?.visible).toBe(false);
   });
 });
 

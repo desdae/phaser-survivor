@@ -22,7 +22,8 @@ import {
   createFpsCounter,
   createGameOverOverlay,
   createHud,
-  createLevelUpOverlay
+  createLevelUpOverlay,
+  createPowerupHud
 } from '../ui/overlayFactory.js';
 
 export class GameScene extends Phaser.Scene {
@@ -92,6 +93,7 @@ export class GameScene extends Phaser.Scene {
 
     this.hud = createHud(this);
     this.fpsCounter = createFpsCounter(this);
+    this.powerupHud = createPowerupHud(this);
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
@@ -386,6 +388,7 @@ export class GameScene extends Phaser.Scene {
         Number(this.player.stats.meteorUnlocked),
       eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
+    this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.time.now) ?? []);
     this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }
 
@@ -412,6 +415,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.fpsCounter) {
       this.fpsCounter.layout(width, height);
+    }
+
+    if (this.powerupHud) {
+      this.powerupHud.layout(width, height);
     }
 
     if (this.damageStatsOverlay) {
@@ -660,6 +667,34 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(1, 0xf6d28e, 0.9);
     graphics.lineBetween(14, 6, 14, 19);
     graphics.generateTexture('reward-chest', 28, 22);
+
+    graphics.clear();
+    graphics.fillStyle(0x22384d, 1);
+    graphics.fillCircle(11, 11, 10);
+    graphics.lineStyle(2, 0x9deaff, 1);
+    graphics.lineBetween(11, 3, 11, 19);
+    graphics.lineBetween(5, 9, 11, 3);
+    graphics.lineBetween(17, 9, 11, 19);
+    graphics.generateTexture('powerup-frenzy', 22, 22);
+
+    graphics.clear();
+    graphics.fillStyle(0x3b2026, 1);
+    graphics.fillCircle(11, 11, 10);
+    graphics.fillStyle(0xff875f, 1);
+    graphics.fillTriangle(10, 3, 17, 10, 12, 10);
+    graphics.fillTriangle(8, 10, 14, 10, 6, 19);
+    graphics.fillTriangle(10, 12, 16, 12, 9, 19);
+    graphics.generateTexture('powerup-overcharge', 22, 22);
+
+    graphics.clear();
+    graphics.fillStyle(0x21311f, 1);
+    graphics.fillCircle(11, 11, 10);
+    graphics.fillStyle(0xd8ff9b, 1);
+    graphics.fillCircle(6, 11, 2.5);
+    graphics.fillCircle(11, 7, 2.5);
+    graphics.fillCircle(11, 15, 2.5);
+    graphics.fillCircle(16, 11, 2.5);
+    graphics.generateTexture('powerup-volley', 22, 22);
 
     graphics.clear();
     graphics.fillStyle(0x0b1721, 1);

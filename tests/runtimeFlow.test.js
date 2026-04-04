@@ -21,7 +21,7 @@ import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
-  it('generates the reward chest texture', () => {
+  it('generates the reward chest and temporary powerup textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -50,6 +50,9 @@ describe('GameScene createTextures', () => {
     GameScene.prototype.createTextures.call(sceneLike);
 
     expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
+    expect(generateTexture).toHaveBeenCalledWith('powerup-frenzy', 22, 22);
+    expect(generateTexture).toHaveBeenCalledWith('powerup-overcharge', 22, 22);
+    expect(generateTexture).toHaveBeenCalledWith('powerup-volley', 22, 22);
   });
 });
 
@@ -645,6 +648,60 @@ describe('GameScene update', () => {
       16
     );
     expect(sceneLike.refreshHud).toHaveBeenCalledWith(3000);
+  });
+});
+
+describe('GameScene refreshHud', () => {
+  it('updates the temporary powerup HUD from active buff summary rows', () => {
+    const powerupRows = [{ buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 18 }];
+    const sceneLike = {
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      enemyManager: {
+        getLivingEnemies: vi.fn().mockReturnValue([])
+      },
+      eliteWaveSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false)
+      },
+      elapsedMs: 12000,
+      hud: {
+        update: vi.fn()
+      },
+      player: {
+        stats: {
+          health: 100,
+          maxHealth: 100,
+          level: 4,
+          xp: 3,
+          xpToNext: 12,
+          projectileCount: 2,
+          bladeCount: 1,
+          bladeUnlocked: true,
+          chainUnlocked: false,
+          novaUnlocked: false,
+          boomerangUnlocked: false,
+          meteorUnlocked: false
+        }
+      },
+      powerupHud: {
+        update: vi.fn()
+      },
+      temporaryBuffSystem: {
+        getSummaryRows: vi.fn().mockReturnValue(powerupRows)
+      },
+      time: {
+        now: 16000
+      }
+    };
+
+    GameScene.prototype.refreshHud.call(sceneLike, 27);
+
+    expect(sceneLike.temporaryBuffSystem.getSummaryRows).toHaveBeenCalledWith(16000);
+    expect(sceneLike.powerupHud.update).toHaveBeenCalledWith(powerupRows);
   });
 });
 

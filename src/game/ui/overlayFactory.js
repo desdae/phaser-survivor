@@ -180,6 +180,51 @@ export function createFpsCounter(scene) {
   };
 }
 
+export function createPowerupHud(scene) {
+  const panel = scene.add.rectangle(0, 0, 224, 112, 0x08121c, 0.82).setOrigin(0);
+  panel.setStrokeStyle(2, 0xffd17a, 0.28);
+  const title = scene.add.text(14, 10, 'Powerups', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#ffe9b8',
+    fontStyle: 'bold'
+  });
+  const rows = Array.from({ length: 3 }, (_, index) =>
+    scene.add.text(14, 34 + index * 24, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '15px',
+      color: '#f4f8ff'
+    })
+  );
+  const container = scene.add.container(0, 0, [panel, title, ...rows]);
+
+  container.setDepth(41);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  return {
+    layout(width) {
+      container.setPosition(width - 242, 72);
+    },
+    update(summaryRows = []) {
+      const activeRows = summaryRows.slice(0, rows.length);
+
+      rows.forEach((rowText, index) => {
+        const row = activeRows[index];
+
+        if (!row) {
+          rowText.setText('');
+          return;
+        }
+
+        rowText.setText(`${row.label} x${row.stacks} ${row.secondsLeft}s`);
+      });
+
+      container.setVisible(activeRows.length > 0);
+    }
+  };
+}
+
 function formatDamageNumber(value) {
   return Math.round(value).toString();
 }
