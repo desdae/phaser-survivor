@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createEnemyQuery,
+  getNearbyEnemies,
   getNearestEnemy,
   getProjectileVelocity,
   getRicochetTarget,
@@ -22,6 +24,22 @@ describe('getNearestEnemy', () => {
 
   it('returns null when no active enemies exist', () => {
     expect(getNearestEnemy({ x: 0, y: 0 }, [{ active: false, x: 5, y: 5 }])).toBeNull();
+  });
+});
+
+describe('createEnemyQuery', () => {
+  it('returns only nearby active enemies from relevant local cells', () => {
+    const query = createEnemyQuery([
+      { active: true, id: 'near-a', x: 12, y: 8 },
+      { active: true, id: 'near-b', x: 86, y: 22 },
+      { active: false, id: 'inactive', x: 20, y: 12 },
+      { active: true, id: 'far', x: 280, y: 10 }
+    ], 96);
+
+    expect(getNearbyEnemies({ x: 0, y: 0 }, query, 120).map((enemy) => enemy.id)).toEqual([
+      'near-a',
+      'near-b'
+    ]);
   });
 });
 
@@ -56,10 +74,10 @@ describe('getRicochetTarget', () => {
     const currentEnemy = { x: 100, y: 100, active: true, id: 'first' };
     const closerEnemy = { x: 110, y: 102, active: true, id: 'closer' };
     const nextEnemy = { x: 130, y: 110, active: true, id: 'second' };
+    const distantEnemy = { x: 500, y: 500, active: true, id: 'distant' };
+    const query = createEnemyQuery([currentEnemy, nextEnemy, closerEnemy, distantEnemy], 96);
 
-    expect(getRicochetTarget(currentEnemy, [currentEnemy, nextEnemy, closerEnemy], 80)?.id).toBe(
-      'closer'
-    );
+    expect(getRicochetTarget(currentEnemy, query, 80)?.id).toBe('closer');
   });
 
   it('rejects targets beyond the ricochet range', () => {

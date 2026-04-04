@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getNearbyEnemies } from '../logic/combat.js';
 import {
   BLADE_CONTACT_RADIUS,
   BLADE_DAMAGE_COOLDOWN_MS,
@@ -48,12 +49,11 @@ export class BladeManager {
       blade.setRotation(this.rotationRad + index);
     });
 
-    for (const enemy of enemies) {
-      for (const blade of this.group.getChildren()) {
-        if (!enemy.active) {
-          continue;
-        }
+    const enemyQuery = enemyManager.getEnemyQuery?.() ?? enemies;
+    const blades = this.group.getChildren();
 
+    for (const blade of blades) {
+      for (const enemy of getNearbyEnemies(blade, enemyQuery, BLADE_CONTACT_RADIUS + 10)) {
         const distance = Phaser.Math.Distance.Between(blade.x, blade.y, enemy.x, enemy.y);
 
         if (distance <= BLADE_CONTACT_RADIUS && shouldBladeDamageEnemy(now, enemy.nextBladeDamageAt ?? 0)) {

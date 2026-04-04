@@ -87,7 +87,7 @@ export class ProjectileManager {
     if (projectile.remainingRicochet > 0) {
       const nextEnemy = getRicochetTarget(
         enemy,
-        enemyManager.getLivingEnemies(),
+        enemyManager.getEnemyQuery?.() ?? enemyManager.getLivingEnemies(),
         170,
         projectile.hitEnemyKeys
       );

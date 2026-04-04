@@ -26,7 +26,7 @@ vi.mock('../src/game/logic/enemyVisuals.js', () => ({
 }));
 
 describe('EnemyManager', () => {
-  it('registers a self-collider so mobs separate instead of stacking', () => {
+  it('skips the full enemy self-collider so dense swarms do not pay pairwise physics costs', () => {
     const enemyGroup = { id: 'enemies' };
     const enemyProjectileGroup = { id: 'enemy-projectiles' };
     const groupFactory = vi
@@ -46,7 +46,7 @@ describe('EnemyManager', () => {
     const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
 
     expect(manager.group).toBe(enemyGroup);
-    expect(collider).toHaveBeenCalledWith(enemyGroup, enemyGroup);
+    expect(collider).not.toHaveBeenCalled();
   });
 
   it('triggers a small blood splash on non-lethal hits', () => {

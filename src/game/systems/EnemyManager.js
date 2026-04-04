@@ -1,3 +1,4 @@
+import { createEnemyQuery } from '../logic/combat.js';
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import { getEliteModifiers } from '../logic/eliteWaves.js';
 import { getAnimatedTextureKey, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
@@ -49,7 +50,7 @@ export class EnemyManager {
     this.audioManager = audioManager;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
-    this.scene.physics.add.collider(this.group, this.group);
+    this.enemyQuery = createEnemyQuery([]);
     this.spawnAccumulatorMs = 0;
     this.spawnCounts = {
       basic: 0,
@@ -79,6 +80,7 @@ export class EnemyManager {
     });
 
     const livingEnemies = this.getLivingEnemies();
+    this.enemyQuery = createEnemyQuery(livingEnemies);
 
     livingEnemies.forEach((enemy) => {
       if (!enemy?.active) {
@@ -255,6 +257,10 @@ export class EnemyManager {
 
   getLivingEnemies() {
     return this.group.getChildren().filter((enemy) => enemy.active);
+  }
+
+  getEnemyQuery() {
+    return this.enemyQuery;
   }
 
   stopAll() {
