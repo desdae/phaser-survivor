@@ -750,7 +750,21 @@ describe('GameScene update', () => {
     };
 
     GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.temporaryBuffSystem.getEffectiveStats).toHaveBeenNthCalledWith(
+      1,
+      baseStats,
+      16
+    );
+    expect(sceneLike.player.stats).toBe(baseStats);
+
     GameScene.prototype.update.call(sceneLike, 30016, 16);
+
+    expect(sceneLike.temporaryBuffSystem.getEffectiveStats).toHaveBeenNthCalledWith(
+      2,
+      baseStats,
+      30016
+    );
 
     expect(sceneLike.projectileManager.tryFire).toHaveBeenNthCalledWith(
       1,
@@ -768,7 +782,7 @@ describe('GameScene update', () => {
     );
     expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(1, sceneLike.player.sprite, 96);
     expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(2, sceneLike.player.sprite, 48);
-    expect(sceneLike.player.stats).toEqual(baseStats);
+    expect(sceneLike.player.stats).toBe(baseStats);
   });
 });
 
