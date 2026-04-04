@@ -6,15 +6,24 @@ export class PickupManager {
   }
 
   spawnOrb(x, y, value) {
-    const orb = this.group.create(x, y, 'xp-orb');
+    return this.spawnPickup(x, y, 'xp-orb', 'xp', value);
+  }
 
-    orb.value = value;
-    orb.setDepth(2);
-    orb.setDamping(true);
-    orb.setDrag(0.96);
-    orb.setMaxVelocity(180, 180);
+  spawnHeart(x, y, value = 10) {
+    return this.spawnPickup(x, y, 'heart-pickup', 'heart', value);
+  }
 
-    return orb;
+  spawnPickup(x, y, texture, kind, value) {
+    const pickup = this.group.create(x, y, texture);
+
+    pickup.kind = kind;
+    pickup.value = value;
+    pickup.setDepth(kind === 'heart' ? 2.1 : 2);
+    pickup.setDamping(true);
+    pickup.setDrag(0.96);
+    pickup.setMaxVelocity(180, 180);
+
+    return pickup;
   }
 
   update(playerSprite, pickupRadius) {
@@ -22,18 +31,18 @@ export class PickupManager {
     const attractRadiusSq = pickupRadiusSq * 4;
     const orbs = this.group.getChildren();
 
-    for (const orb of orbs) {
-      if (!orb?.active) {
+    for (const pickup of orbs) {
+      if (!pickup?.active) {
         continue;
       }
 
-      const dx = playerSprite.x - orb.x;
-      const dy = playerSprite.y - orb.y;
+      const dx = playerSprite.x - pickup.x;
+      const dy = playerSprite.y - pickup.y;
       const distanceSq = dx * dx + dy * dy;
 
       if (distanceSq <= pickupRadiusSq) {
-        const shouldPause = this.onCollect(orb.value);
-        orb.destroy();
+        const shouldPause = this.onCollect({ kind: pickup.kind ?? 'xp', value: pickup.value });
+        pickup.destroy();
         if (shouldPause) {
           break;
         }
@@ -42,9 +51,9 @@ export class PickupManager {
 
       if (distanceSq <= attractRadiusSq) {
         const distance = Math.hypot(dx, dy) || 1;
-        orb.setVelocity((dx / distance) * 150, (dy / distance) * 150);
+        pickup.setVelocity((dx / distance) * 150, (dy / distance) * 150);
       } else {
-        orb.setVelocity(0, 0);
+        pickup.setVelocity(0, 0);
       }
     }
   }

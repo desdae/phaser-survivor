@@ -1,6 +1,9 @@
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
+const HEART_DROP_CHANCE = 0.03;
+const HEART_HEAL_AMOUNT = 10;
+
 const ENEMY_TYPES = {
   basic: {
     texture: 'enemy-basic',
@@ -34,11 +37,12 @@ const ENEMY_TYPES = {
 };
 
 export class EnemyManager {
-  constructor(scene, player, pickupManager, effects = null) {
+  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random) {
     this.scene = scene;
     this.player = player;
     this.pickupManager = pickupManager;
     this.effects = effects;
+    this.dropRoll = dropRoll;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.scene.physics.add.collider(this.group, this.group);
@@ -181,6 +185,11 @@ export class EnemyManager {
     this.effects?.spawnDeathSplash?.(enemy);
     this.effects?.spawnPuddle?.(enemy);
     this.pickupManager.spawnOrb(enemy.x, enemy.y, enemy.xpValue);
+
+    if (this.dropRoll() < HEART_DROP_CHANCE) {
+      this.pickupManager.spawnHeart?.(enemy.x, enemy.y, HEART_HEAL_AMOUNT);
+    }
+
     enemy.destroy();
     return true;
   }

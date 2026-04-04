@@ -99,4 +99,36 @@ describe('PickupManager update', () => {
     expect(firstOrb.destroy).toHaveBeenCalledOnce();
     expect(secondOrb.destroy).not.toHaveBeenCalled();
   });
+
+  it('passes heart pickups through without triggering a pause', () => {
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            getChildren: () => []
+          })
+        }
+      }
+    };
+    const onCollect = vi.fn().mockReturnValue(false);
+    const manager = new PickupManager(scene, onCollect);
+    const heart = {
+      active: true,
+      kind: 'heart',
+      value: 10,
+      x: 12,
+      y: 4,
+      setVelocity: vi.fn(),
+      destroy: vi.fn()
+    };
+
+    manager.group = {
+      getChildren: () => [heart]
+    };
+
+    manager.update({ x: 0, y: 0 }, 48);
+
+    expect(onCollect).toHaveBeenCalledWith({ kind: 'heart', value: 10 });
+    expect(heart.destroy).toHaveBeenCalledOnce();
+  });
 });

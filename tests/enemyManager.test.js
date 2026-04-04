@@ -108,4 +108,44 @@ describe('EnemyManager', () => {
     expect(effects.spawnHitSplash).not.toHaveBeenCalled();
     expect(enemy.destroy).toHaveBeenCalledOnce();
   });
+
+  it('has a very small chance to spawn a heart pickup on death', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const spawnHeart = vi.fn();
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn()
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnHeart, spawnOrb: vi.fn() },
+      null,
+      () => 0
+    );
+    const enemy = {
+      active: true,
+      destroy: vi.fn(),
+      health: 1,
+      setTintFill: vi.fn(),
+      x: 64,
+      y: 96,
+      xpValue: 5
+    };
+
+    manager.damageEnemy(enemy, 5);
+
+    expect(spawnHeart).toHaveBeenCalledWith(64, 96, 10);
+  });
 });

@@ -86,6 +86,11 @@ export class Player {
     return this.stats.health === 0;
   }
 
+  heal(amount) {
+    this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + amount);
+    return this.stats.health;
+  }
+
   stop() {
     this.sprite.setVelocity(0, 0);
   }

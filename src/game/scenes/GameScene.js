@@ -32,7 +32,7 @@ export class GameScene extends Phaser.Scene {
     this.background.setDepth(0);
 
     this.player = new Player(this, 0, 0);
-    this.pickupManager = new PickupManager(this, (value) => this.handlePickupCollected(value));
+    this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
     this.bloodEffectsManager = new BloodEffectsManager(this);
     this.enemyManager = new EnemyManager(this, this.player, this.pickupManager, this.bloodEffectsManager);
     this.projectileManager = new ProjectileManager(this);
@@ -142,12 +142,18 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
-  handlePickupCollected(value) {
+  handlePickupCollected(pickup) {
     if (this.isGameOver) {
       return false;
     }
 
-    const result = this.player.gainXp(value);
+    if (pickup.kind === 'heart') {
+      this.player.heal(pickup.value);
+      this.refreshHud();
+      return false;
+    }
+
+    const result = this.player.gainXp(pickup.value);
 
     if (result.leveledUp) {
       this.openLevelUp();
@@ -343,6 +349,15 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(2, 0xdfffe9, 1);
     graphics.strokeCircle(8, 8, 7);
     graphics.generateTexture('xp-orb', 16, 16);
+
+    graphics.clear();
+    graphics.fillStyle(0xe85f73, 1);
+    graphics.fillCircle(8, 9, 4);
+    graphics.fillCircle(13, 9, 4);
+    graphics.fillTriangle(4, 11, 17, 11, 10.5, 18);
+    graphics.lineStyle(1, 0xffd6dc, 0.85);
+    graphics.strokeTriangle(4, 11, 17, 11, 10.5, 18);
+    graphics.generateTexture('heart-pickup', 21, 20);
 
     graphics.clear();
     graphics.fillStyle(0x0b1721, 1);
