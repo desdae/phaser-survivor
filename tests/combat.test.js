@@ -77,6 +77,20 @@ describe('getNearbyEnemies', () => {
       )
     ).toEqual(['near-a', 'near-b']);
   });
+
+  it('filters a plain enemy array by allowed tiers', () => {
+    const enemies = [
+      { active: true, id: 'near-a', x: 10, y: 10, lodTier: 'near' },
+      { active: true, id: 'mid-a', x: 30, y: 0, lodTier: 'mid' },
+      { active: true, id: 'far-a', x: 50, y: 0, lodTier: 'far' }
+    ];
+
+    expect(
+      getNearbyEnemies({ x: 0, y: 0 }, enemies, 80, Number.POSITIVE_INFINITY, null, ['mid']).map(
+        (enemy) => enemy.id
+      )
+    ).toEqual(['mid-a']);
+  });
 });
 
 describe('getProjectileVelocity', () => {

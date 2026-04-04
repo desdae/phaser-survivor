@@ -3,7 +3,7 @@ function getEnemyKey(enemy) {
 }
 
 function getEnemyTier(enemy) {
-  return enemy?.lodTier === 'mid' || enemy?.lodTier === 'far' ? enemy.lodTier : 'near';
+  return enemy?.lodTier ?? 'near';
 }
 
 function isEnemyQuery(enemySource) {
@@ -37,7 +37,8 @@ export function createEnemyQuery(enemies, cellSize = 96) {
     }
 
     activeEnemies.push(enemy);
-    enemiesByTier[getEnemyTier(enemy)].push(enemy);
+    const enemyTier = getEnemyTier(enemy);
+    (enemiesByTier[enemyTier] ?? enemiesByTier.near).push(enemy);
     const cellX = Math.floor(enemy.x / cellSize);
     const cellY = Math.floor(enemy.y / cellSize);
     const key = getCellKey(cellX, cellY);
