@@ -84,7 +84,7 @@ export function formatTime(elapsedMs) {
 }
 
 export function createHud(scene) {
-  const panel = scene.add.rectangle(0, 0, 340, 138, 0x08121c, 0.75).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 340, 164, 0x08121c, 0.75).setOrigin(0);
   panel.setStrokeStyle(2, 0x4da2ff, 0.35);
   const hpText = scene.add.text(18, 16, '', {
     fontFamily: 'Trebuchet MS',
@@ -106,7 +106,20 @@ export function createHud(scene) {
     fontSize: '18px',
     color: '#ffd17a'
   });
-  const container = scene.add.container(18, 18, [panel, hpText, levelText, xpText, timeText]);
+  const eliteWarningText = scene.add.text(18, 130, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#f4bf63',
+    fontStyle: 'bold'
+  });
+  const container = scene.add.container(18, 18, [
+    panel,
+    hpText,
+    levelText,
+    xpText,
+    timeText,
+    eliteWarningText
+  ]);
 
   container.setDepth(40);
   container.setScrollFactor(0);
@@ -125,12 +138,14 @@ export function createHud(scene) {
       enemyCount,
       projectileCount,
       bladeCount,
-      activeWeapons
+      activeWeapons,
+      eliteWarning
     }) {
       hpText.setText(`HP ${Math.ceil(health)} / ${maxHealth}`);
       levelText.setText(`Level ${level}   Threats ${enemyCount}`);
       xpText.setText(`XP ${xp} / ${xpToNext}   Shots ${projectileCount}   Blades ${bladeCount}`);
       timeText.setText(`Time ${formatTime(timeMs)}   Arsenal ${activeWeapons}`);
+      eliteWarningText.setText(eliteWarning ?? '');
     }
   };
 }

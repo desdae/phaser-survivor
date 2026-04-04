@@ -18,6 +18,7 @@ vi.mock('phaser', () => ({
 
 import { GameScene } from '../src/game/scenes/GameScene.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
+import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
   it('generates the reward chest texture', () => {
@@ -128,6 +129,32 @@ describe('GameScene openChestReward', () => {
 });
 
 describe('GameScene handlePickupCollected', () => {
+  it('does not open the chest reward overlay while another pause overlay is active', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      audioManager: {
+        playChestOpen: vi.fn()
+      },
+      isGameOver: false,
+      isGameplayPaused: true,
+      openChestReward: vi.fn(),
+      player: {
+        heal: vi.fn(),
+        gainXp: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'chest',
+      rewardSeed: 'ogre'
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playChestOpen).not.toHaveBeenCalled();
+    expect(sceneLike.openChestReward).not.toHaveBeenCalled();
+  });
+
   it('special-cases chest pickups and opens the chest reward overlay', () => {
     const sceneLike = {
       audioManager: {
@@ -200,6 +227,138 @@ describe('GameScene handlePickupCollected', () => {
     expect(result).toBe(false);
     expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
     expect(sceneLike.player.heal).toHaveBeenCalledWith(10);
+  });
+});
+
+describe('GameScene update', () => {
+  it('plays warning audio first, then spawns the elite after the warning window ends', () => {
+    const eliteState = {
+      pendingElite: false,
+      warningUntilMs: 0,
+      nextEliteAtMs: ELITE_WAVE_INTERVAL_MS
+    };
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      audioManager: {
+        playEliteWarning: vi.fn()
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: ELITE_WAVE_INTERVAL_MS,
+      enemyManager: {
+        getLivingEnemies: vi.fn().mockReturnValue([]),
+        pickEnemyType: vi.fn().mockReturnValue('basic'),
+        spawnEnemy: vi.fn(),
+        update: vi.fn()
+      },
+      handleStatsToggle: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          bladeCount: 0,
+          bladeUnlocked: false,
+          boomerangUnlocked: false,
+          chainUnlocked: false,
+          level: 1,
+          meteorUnlocked: false,
+          novaUnlocked: false,
+          pickupRadius: 48,
+          projectileCount: 1,
+          health: 100,
+          maxHealth: 100,
+          xp: 0,
+          xpToNext: 10
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn(),
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      updateEliteWave: GameScene.prototype.updateEliteWave,
+      statsKey: {},
+      input: {
+        keyboard: {
+          addCapture: vi.fn()
+        }
+      },
+      time: {
+        now: ELITE_WAVE_INTERVAL_MS
+      },
+      upgradeKeys: [],
+      eliteWaveSystem: {
+        state: eliteState,
+        update: vi.fn().mockImplementation((elapsedMs) => {
+          if (!eliteState.pendingElite) {
+            eliteState.pendingElite = true;
+            eliteState.warningUntilMs = elapsedMs + 3000;
+            eliteState.nextEliteAtMs = ELITE_WAVE_INTERVAL_MS * 2;
+          }
+          return eliteState;
+        }),
+        isWarningActive: vi.fn().mockImplementation((nowMs) => nowMs <= eliteState.warningUntilMs),
+        consumeSpawn: vi.fn(),
+      }
+    };
+
+    GameScene.prototype.update.call(sceneLike, ELITE_WAVE_INTERVAL_MS, 16);
+
+    expect(sceneLike.audioManager.playEliteWarning).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.spawnEnemy).not.toHaveBeenCalled();
+    expect(sceneLike.eliteWaveSystem.consumeSpawn).not.toHaveBeenCalled();
+
+    sceneLike.enemyManager.spawnEnemy.mockClear();
+    sceneLike.audioManager.playEliteWarning.mockClear();
+    sceneLike.eliteWaveSystem.consumeSpawn.mockClear();
+
+    GameScene.prototype.update.call(sceneLike, ELITE_WAVE_INTERVAL_MS + 4000, 4000);
+
+    expect(sceneLike.audioManager.playEliteWarning).not.toHaveBeenCalled();
+    expect(sceneLike.enemyManager.pickEnemyType).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('basic', { elite: true });
+    expect(sceneLike.eliteWaveSystem.consumeSpawn).toHaveBeenCalledOnce();
   });
 });
 

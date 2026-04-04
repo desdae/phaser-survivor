@@ -8,11 +8,13 @@ import { ChainManager } from '../systems/ChainManager.js';
 import { DamageStatsManager } from '../systems/DamageStatsManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
+import { EliteWaveSystem } from '../systems/EliteWaveSystem.js';
 import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
+import { getSpawnProfile } from '../logic/spawn.js';
 import {
   createChestOverlay,
   createDamageStatsOverlay,
@@ -63,6 +65,8 @@ export class GameScene extends Phaser.Scene {
     this.meteorManager = new MeteorManager(this);
     this.upgradeSystem = new UpgradeSystem();
     this.chestRewardSystem = new ChestRewardSystem();
+    this.eliteWaveSystem = new EliteWaveSystem();
+    this.eliteWarningPlayed = false;
 
     this.keys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -153,6 +157,7 @@ export class GameScene extends Phaser.Scene {
 
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
+    this.updateEliteWave();
     this.enemyManager.update(delta, this.elapsedMs / 1000, time);
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, this.enemyManager.getLivingEnemies(), time);
@@ -181,8 +186,33 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  updateEliteWave() {
+    const eliteState = this.eliteWaveSystem.update(this.elapsedMs);
+
+    if (!eliteState?.pendingElite) {
+      this.eliteWarningPlayed = false;
+      return;
+    }
+
+    if (this.eliteWaveSystem.isWarningActive(this.elapsedMs)) {
+      if (!this.eliteWarningPlayed) {
+        this.audioManager?.playEliteWarning?.();
+        this.eliteWarningPlayed = true;
+      }
+
+      return;
+    }
+
+    const profile = getSpawnProfile(this.elapsedMs / 1000);
+    const typeKey = this.enemyManager.pickEnemyType(profile.weights);
+
+    this.enemyManager.spawnEnemy(typeKey, { elite: true });
+    this.eliteWaveSystem.consumeSpawn();
+    this.eliteWarningPlayed = false;
+  }
+
   handlePickupCollected(pickup) {
-    if (this.isGameOver) {
+    if (this.isGameOver || this.isGameplayPaused || this.activePauseOverlay) {
       return false;
     }
 
@@ -239,6 +269,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   openChestReward(pickup = null) {
+    if (this.isGameOver || this.isGameplayPaused || this.activePauseOverlay) {
+      return false;
+    }
+
     this.isGameplayPaused = true;
     this.activePauseOverlay = 'chest';
     this.pendingChestPickup = pickup;
@@ -333,7 +367,8 @@ export class GameScene extends Phaser.Scene {
         Number(this.player.stats.chainUnlocked) +
         Number(this.player.stats.novaUnlocked) +
         Number(this.player.stats.boomerangUnlocked) +
-        Number(this.player.stats.meteorUnlocked)
+        Number(this.player.stats.meteorUnlocked),
+      eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
     this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createHud,
   createChestOverlay,
   createGameOverOverlay,
   createLevelUpOverlay
@@ -80,6 +81,29 @@ function createFakeScene() {
     }
   };
 }
+
+describe('createHud', () => {
+  it('shows elite warning text when eliteWarning is provided', () => {
+    const scene = createFakeScene();
+    const hud = createHud(scene);
+
+    hud.update({
+      health: 88,
+      maxHealth: 100,
+      level: 5,
+      xp: 12,
+      xpToNext: 20,
+      timeMs: 61000,
+      enemyCount: 14,
+      projectileCount: 2,
+      bladeCount: 1,
+      activeWeapons: 3,
+      eliteWarning: 'Elite wave incoming'
+    });
+
+    expect(scene.texts.some((text) => text.text.includes('Elite wave incoming'))).toBe(true);
+  });
+});
 
 describe('createLevelUpOverlay', () => {
   it('selects a choice when a pointer hits a visible card region', () => {
