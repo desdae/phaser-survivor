@@ -39,13 +39,14 @@ const ENEMY_TYPES = {
 };
 
 export class EnemyManager {
-  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random, damageStats = null) {
+  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random, damageStats = null, audioManager = null) {
     this.scene = scene;
     this.player = player;
     this.pickupManager = pickupManager;
     this.effects = effects;
     this.dropRoll = dropRoll;
     this.damageStats = damageStats;
+    this.audioManager = audioManager;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.scene.physics.add.collider(this.group, this.group);
@@ -208,6 +209,7 @@ export class EnemyManager {
 
     if (enemy.health > 0) {
       this.effects?.spawnHitSplash?.(enemy, false);
+      this.audioManager?.playEnemyHit?.();
       enemy.setTintFill(0xfff0f0);
       this.scene.time.delayedCall(50, () => {
         if (enemy.active) {
@@ -226,7 +228,10 @@ export class EnemyManager {
     this.pickupManager.spawnOrb(enemy.x, enemy.y, enemy.xpValue);
 
     if (enemy.isElite) {
+      this.audioManager?.playEliteDeath?.();
       this.pickupManager.spawnChest(enemy.x, enemy.y, enemy.type);
+    } else {
+      this.audioManager?.playEnemyDeath?.();
     }
 
     if (this.dropRoll() < HEART_DROP_CHANCE) {

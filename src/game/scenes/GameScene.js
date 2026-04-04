@@ -9,6 +9,7 @@ import { DamageStatsManager } from '../systems/DamageStatsManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
 import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
+import { AudioManager } from '../systems/AudioManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
 import { ProjectileManager } from '../systems/ProjectileManager.js';
 import { UpgradeSystem } from '../systems/UpgradeSystem.js';
@@ -44,13 +45,15 @@ export class GameScene extends Phaser.Scene {
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
     this.damageStatsManager = new DamageStatsManager();
     this.bloodEffectsManager = new BloodEffectsManager(this);
+    this.audioManager = new AudioManager();
     this.enemyManager = new EnemyManager(
       this,
       this.player,
       this.pickupManager,
       this.bloodEffectsManager,
       Math.random,
-      this.damageStatsManager
+      this.damageStatsManager,
+      this.audioManager
     );
     this.projectileManager = new ProjectileManager(this);
     this.bladeManager = new BladeManager(this);
@@ -84,6 +87,12 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
+    this.input.once('pointerdown', () => {
+      this.audioManager?.unlock?.();
+    });
+    this.input.keyboard.once('keydown', () => {
+      this.audioManager?.unlock?.();
+    });
     this.input.on('pointerdown', (pointer) => {
       if (this.isGameOver) {
         this.gameOverOverlay.choosePointer(pointer.x, pointer.y);
@@ -113,6 +122,7 @@ export class GameScene extends Phaser.Scene {
 
       projectile.destroy();
       const died = this.player.takeDamage(projectile.damage);
+      this.audioManager?.playPlayerHurt?.();
 
       if (died) {
         this.openGameOver();
@@ -177,11 +187,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (pickup.kind === 'chest') {
+      this.audioManager?.playChestOpen?.();
       this.openChestReward(pickup);
       return true;
     }
 
     if (pickup.kind === 'heart') {
+      this.audioManager?.playPickup?.();
       this.player.heal(pickup.value);
       this.refreshHud();
       return false;
@@ -190,6 +202,7 @@ export class GameScene extends Phaser.Scene {
     const result = this.player.gainXp(pickup.value);
 
     if (result.leveledUp) {
+      this.audioManager?.playLevelUp?.();
       this.openLevelUp();
     }
 
@@ -208,6 +221,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const died = this.player.takeDamage(enemy.contactDamage);
+    this.audioManager?.playPlayerHurt?.();
     this.cameras.main.shake(90, 0.0026);
     this.refreshHud();
 
@@ -289,6 +303,7 @@ export class GameScene extends Phaser.Scene {
     this.isGameOver = true;
     this.isGameplayPaused = true;
     this.activePauseOverlay = null;
+    this.audioManager?.playGameOver?.();
     this.physics.world.pause();
     this.player.stop();
     this.enemyManager.stopAll();

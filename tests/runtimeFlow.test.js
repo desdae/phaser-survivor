@@ -130,6 +130,9 @@ describe('GameScene openChestReward', () => {
 describe('GameScene handlePickupCollected', () => {
   it('special-cases chest pickups and opens the chest reward overlay', () => {
     const sceneLike = {
+      audioManager: {
+        playChestOpen: vi.fn()
+      },
       isGameOver: false,
       openChestReward: vi.fn(),
       player: {
@@ -145,9 +148,101 @@ describe('GameScene handlePickupCollected', () => {
     });
 
     expect(result).toBe(true);
+    expect(sceneLike.audioManager.playChestOpen).toHaveBeenCalledOnce();
     expect(sceneLike.openChestReward).toHaveBeenCalledWith({ kind: 'chest', rewardSeed: 'ogre' });
     expect(sceneLike.player.heal).not.toHaveBeenCalled();
     expect(sceneLike.player.gainXp).not.toHaveBeenCalled();
+  });
+
+  it('plays level-up audio when xp gain levels the player', () => {
+    const sceneLike = {
+      audioManager: {
+        playLevelUp: vi.fn()
+      },
+      isGameOver: false,
+      openLevelUp: vi.fn(),
+      player: {
+        gainXp: vi.fn().mockReturnValue({ leveledUp: true }),
+        heal: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'xp',
+      value: 7
+    });
+
+    expect(result).toBe(true);
+    expect(sceneLike.audioManager.playLevelUp).toHaveBeenCalledOnce();
+    expect(sceneLike.openLevelUp).toHaveBeenCalledOnce();
+  });
+
+  it('plays pickup audio for heart pickups', () => {
+    const sceneLike = {
+      audioManager: {
+        playPickup: vi.fn()
+      },
+      isGameOver: false,
+      openChestReward: vi.fn(),
+      player: {
+        gainXp: vi.fn(),
+        heal: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'heart',
+      value: 10
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
+    expect(sceneLike.player.heal).toHaveBeenCalledWith(10);
+  });
+});
+
+describe('GameScene openGameOver', () => {
+  it('plays game over audio when the run ends', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      audioManager: {
+        playGameOver: vi.fn()
+      },
+      chestOverlay: {
+        hide: vi.fn()
+      },
+      elapsedMs: 12000,
+      enemyManager: {
+        stopAll: vi.fn()
+      },
+      gameOverOverlay: {
+        show: vi.fn()
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      levelUpOverlay: {
+        hide: vi.fn()
+      },
+      physics: {
+        world: {
+          pause: vi.fn()
+        }
+      },
+      player: {
+        stats: { level: 4 },
+        stop: vi.fn()
+      },
+      projectileManager: {
+        stopAll: vi.fn()
+      }
+    };
+
+    GameScene.prototype.openGameOver.call(sceneLike);
+
+    expect(sceneLike.audioManager.playGameOver).toHaveBeenCalledOnce();
+    expect(sceneLike.gameOverOverlay.show).toHaveBeenCalledWith({ level: 4, timeMs: 12000 });
   });
 });
 
