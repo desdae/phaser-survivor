@@ -1,4 +1,5 @@
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
+import { getAnimatedTextureKey, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
 const HEART_DROP_CHANCE = 0.03;
@@ -48,6 +49,11 @@ export class EnemyManager {
     this.enemyProjectileGroup = scene.physics.add.group();
     this.scene.physics.add.collider(this.group, this.group);
     this.spawnAccumulatorMs = 0;
+    this.spawnCounts = {
+      basic: 0,
+      tough: 0,
+      spitter: 0
+    };
   }
 
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
@@ -82,6 +88,15 @@ export class EnemyManager {
       const dx = playerSprite.x - enemy.x;
       const dy = playerSprite.y - enemy.y;
       const distance = Math.hypot(dx, dy) || 1;
+      const animatedTextureKey = getAnimatedTextureKey(
+        enemy.visualFrames,
+        now,
+        enemy.visualFrameDurationMs
+      );
+
+      if (animatedTextureKey && enemy.texture?.key !== animatedTextureKey) {
+        enemy.setTexture(animatedTextureKey);
+      }
 
       enemy.setVelocity(intent.moveX * enemy.speed, intent.moveY * enemy.speed);
 
@@ -131,7 +146,9 @@ export class EnemyManager {
       bottom: camera.scrollY + camera.height
     };
     const position = getSpawnPosition(view, 100);
-    const enemy = this.group.create(position.x, position.y, type.texture);
+    const visual = getEnemyVisualConfig(typeKey, this.spawnCounts[typeKey] ?? 0);
+    this.spawnCounts[typeKey] = (this.spawnCounts[typeKey] ?? 0) + 1;
+    const enemy = this.group.create(position.x, position.y, visual.frames[0] ?? type.texture);
 
     enemy.type = typeKey;
     enemy.speed = type.speed;
@@ -145,8 +162,12 @@ export class EnemyManager {
     enemy.projectileSpeed = type.projectileSpeed ?? 0;
     enemy.projectileDamage = type.projectileDamage ?? 0;
     enemy.nextShotAt = 0;
+    enemy.visualKey = visual.key;
+    enemy.visualFrames = visual.frames;
+    enemy.visualFrameDurationMs = visual.frameDurationMs;
     enemy.setDepth(4);
     enemy.setCircle(type.hitRadius);
+    enemy.setScale(visual.scale ?? 1);
 
     return enemy;
   }
