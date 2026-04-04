@@ -22,6 +22,21 @@ function getCellKey(cellX, cellY) {
   return `${cellX}:${cellY}`;
 }
 
+export function getAimDirection(origin, target) {
+  const dx = (target?.x ?? origin.x + 1) - origin.x;
+  const dy = (target?.y ?? origin.y) - origin.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (!distance || distance < 0.0001) {
+    return { x: 1, y: 0 };
+  }
+
+  return {
+    x: Number((dx / distance).toFixed(4)),
+    y: Number((dy / distance).toFixed(4))
+  };
+}
+
 export function createEnemyQuery(enemies, cellSize = 96) {
   const cells = new Map();
   const enemiesByTier = {

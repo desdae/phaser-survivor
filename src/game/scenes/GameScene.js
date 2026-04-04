@@ -43,6 +43,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBounds(-1000000, -1000000, 2000000, 2000000);
 
     this.elapsedMs = 0;
+    this.mouseWorld = { x: 0, y: 0 };
     this.nextFpsUpdateAt = 0;
     this.isGameplayPaused = false;
     this.isGameOver = false;
@@ -152,6 +153,14 @@ export class GameScene extends Phaser.Scene {
     this.syncBackgroundTiles?.();
     this.handleStatsToggle();
     this.updateFpsCounter?.(time);
+
+    const pointer = this.input?.activePointer;
+    if (pointer) {
+      this.mouseWorld = {
+        x: pointer.worldX,
+        y: pointer.worldY
+      };
+    }
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
       this.scene.restart();

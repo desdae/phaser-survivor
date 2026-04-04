@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createEnemyQuery,
+  getAimDirection,
   getNearbyEnemies,
   getQueryEnemiesByTier,
   getNearestEnemy,
@@ -25,6 +26,19 @@ describe('getNearestEnemy', () => {
 
   it('returns null when no active enemies exist', () => {
     expect(getNearestEnemy({ x: 0, y: 0 }, [{ active: false, x: 5, y: 5 }])).toBeNull();
+  });
+});
+
+describe('getAimDirection', () => {
+  it('returns a normalized mouse-aim direction toward the live cursor world point', () => {
+    expect(getAimDirection({ x: 10, y: 20 }, { x: 13, y: 24 })).toEqual({
+      x: 0.6,
+      y: 0.8
+    });
+  });
+
+  it('falls back safely when cursor is essentially on top of the player', () => {
+    expect(getAimDirection({ x: 50, y: 50 }, { x: 50, y: 50 })).toEqual({ x: 1, y: 0 });
   });
 });
 

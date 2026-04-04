@@ -266,6 +266,90 @@ describe('GameScene handlePickupCollected', () => {
 });
 
 describe('GameScene update', () => {
+  it('updates mouseWorld from the active pointer each frame before aimed weapons run', () => {
+    const pointer = { worldX: 320, worldY: 180 };
+    const sceneLike = {
+      activePauseOverlay: null,
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      enemyManager: {
+        getNearEnemyQuery: vi.fn().mockReturnValue([]),
+        update: vi.fn().mockReturnValue([])
+      },
+      handleStatsToggle: vi.fn(),
+      input: {
+        activePointer: pointer
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          pickupRadius: 48
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      statsKey: {},
+      updateEliteWave: vi.fn(),
+      audioManager: {},
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        update: vi.fn()
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      meteorManager: {
+        update: vi.fn()
+      },
+      time: {
+        now: 16
+      },
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.mouseWorld).toEqual({ x: 320, y: 180 });
+  });
+
   it('passes effective stats to combat systems while keeping broad and near enemy sources split', () => {
     const returnedEnemies = [{ active: true, id: 'returned' }];
     const fallbackEnemies = [{ active: true, id: 'fallback' }];
