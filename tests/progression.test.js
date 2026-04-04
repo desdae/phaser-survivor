@@ -139,6 +139,29 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'boomerangCount')).toBe(true);
     expect(pool.some((entry) => entry.key === 'meteorCount')).toBe(true);
   });
+
+  it('stops offering unlocks when the total ability cap is reached', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: true,
+      chainUnlocked: true,
+      novaUnlocked: true,
+      boomerangUnlocked: true,
+      meteorUnlocked: true,
+      burstRifleUnlocked: true,
+      flamethrowerUnlocked: true,
+      runeTrapUnlocked: false,
+      lanceUnlocked: false,
+      arcMineUnlocked: false,
+      spearBarrageUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockRuneTrap')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'unlockLance')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'chainDamage')).toBe(true);
+  });
 });
 
 describe('applyUpgrade', () => {

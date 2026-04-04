@@ -1,3 +1,5 @@
+import { canLearnAbility } from './abilityRoster.js';
+
 export const UPGRADE_DEFINITIONS = [
   {
     key: 'damage',
@@ -44,7 +46,7 @@ export const UPGRADE_DEFINITIONS = [
     key: 'unlockBlade',
     label: 'Orbiting Blade',
     description: 'Unlock a blade that circles you and cuts nearby enemies.',
-    isAvailable: (player) => !player.bladeUnlocked,
+    isAvailable: (player) => canLearnAbility(player, 'bladeUnlocked'),
     apply(player) {
       player.bladeUnlocked = true;
       player.bladeCount = Math.max(player.bladeCount, 1);
@@ -57,7 +59,7 @@ export const UPGRADE_DEFINITIONS = [
     key: 'unlockChain',
     label: 'Storm Lash',
     description: 'Unlock chain lightning that jumps across nearby enemies.',
-    isAvailable: (player) => !player.chainUnlocked,
+    isAvailable: (player) => canLearnAbility(player, 'chainUnlocked'),
     apply(player) {
       player.chainUnlocked = true;
       player.chainDamage = Math.max(player.chainDamage, 16);
@@ -106,7 +108,7 @@ export const UPGRADE_DEFINITIONS = [
     key: 'unlockNova',
     label: 'Pulse Engine',
     description: 'Unlock a close-range nova that erupts in repeating bursts.',
-    isAvailable: (player) => !player.novaUnlocked,
+    isAvailable: (player) => canLearnAbility(player, 'novaUnlocked'),
     apply(player) {
       player.novaUnlocked = true;
       player.novaDamage = Math.max(player.novaDamage, 12);
@@ -155,7 +157,7 @@ export const UPGRADE_DEFINITIONS = [
     key: 'unlockBoomerang',
     label: 'Razor Boomerang',
     description: 'Unlock a thrown blade that sweeps out and returns to you.',
-    isAvailable: (player) => !player.boomerangUnlocked,
+    isAvailable: (player) => canLearnAbility(player, 'boomerangUnlocked'),
     apply(player) {
       player.boomerangUnlocked = true;
       player.boomerangCount = Math.max(player.boomerangCount, 1);
@@ -204,7 +206,7 @@ export const UPGRADE_DEFINITIONS = [
     key: 'unlockMeteor',
     label: 'Starcall',
     description: 'Unlock delayed meteor strikes that punish packed enemies.',
-    isAvailable: (player) => !player.meteorUnlocked,
+    isAvailable: (player) => canLearnAbility(player, 'meteorUnlocked'),
     apply(player) {
       player.meteorUnlocked = true;
       player.meteorCount = Math.max(player.meteorCount, 1);
