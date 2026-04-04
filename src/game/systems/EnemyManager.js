@@ -40,6 +40,7 @@ export class EnemyManager {
     this.pickupManager = pickupManager;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
+    this.scene.physics.add.collider(this.group, this.group);
     this.spawnAccumulatorMs = 0;
   }
 
