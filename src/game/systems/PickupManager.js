@@ -13,12 +13,18 @@ export class PickupManager {
     return this.spawnPickup(x, y, 'heart-pickup', 'heart', value);
   }
 
+  spawnChest(x, y, rewardSeed = null) {
+    const pickup = this.spawnPickup(x, y, 'reward-chest', 'chest', 0);
+    pickup.rewardSeed = rewardSeed;
+    return pickup;
+  }
+
   spawnPickup(x, y, texture, kind, value) {
     const pickup = this.group.create(x, y, texture);
 
     pickup.kind = kind;
     pickup.value = value;
-    pickup.setDepth(kind === 'heart' ? 2.1 : 2);
+    pickup.setDepth(kind === 'heart' ? 2.1 : kind === 'chest' ? 2.4 : 2);
     pickup.setDamping(true);
     pickup.setDrag(0.96);
     pickup.setMaxVelocity(180, 180);

@@ -1,4 +1,5 @@
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
+import { getEliteModifiers } from '../logic/eliteWaves.js';
 import { getAnimatedTextureKey, getEnemyVisualConfig } from '../logic/enemyVisuals.js';
 import { getSpawnPosition, getSpawnProfile } from '../logic/spawn.js';
 
@@ -136,7 +137,7 @@ export class EnemyManager {
     return entries[entries.length - 1][0];
   }
 
-  spawnEnemy(typeKey) {
+  spawnEnemy(typeKey, options = {}) {
     const type = ENEMY_TYPES[typeKey];
     const camera = this.scene.cameras.main;
     const view = {
@@ -147,6 +148,7 @@ export class EnemyManager {
     };
     const position = getSpawnPosition(view, 100);
     const visual = getEnemyVisualConfig(typeKey, this.spawnCounts[typeKey] ?? 0);
+    const eliteModifiers = options.elite ? getEliteModifiers() : null;
     this.spawnCounts[typeKey] = (this.spawnCounts[typeKey] ?? 0) + 1;
     const enemy = this.group.create(position.x, position.y, visual.frames[0] ?? type.texture);
 
@@ -167,7 +169,15 @@ export class EnemyManager {
     enemy.visualFrameDurationMs = visual.frameDurationMs;
     enemy.setDepth(4);
     enemy.setCircle(type.hitRadius);
-    enemy.setScale(visual.scale ?? 1);
+    enemy.setScale((visual.scale ?? 1) * (eliteModifiers?.scaleMultiplier ?? 1));
+
+    if (eliteModifiers) {
+      enemy.isElite = true;
+      enemy.health = Math.round(enemy.health * eliteModifiers.healthMultiplier);
+      enemy.xpValue = Math.round(enemy.xpValue * eliteModifiers.xpMultiplier);
+      enemy.contactDamage = Math.round(enemy.contactDamage * eliteModifiers.contactDamageMultiplier);
+      enemy.setTintFill(eliteModifiers.tint);
+    }
 
     return enemy;
   }
@@ -209,6 +219,10 @@ export class EnemyManager {
     this.effects?.spawnDeathSplash?.(enemy);
     this.effects?.spawnPuddle?.(enemy);
     this.pickupManager.spawnOrb(enemy.x, enemy.y, enemy.xpValue);
+
+    if (enemy.isElite) {
+      this.pickupManager.spawnChest(enemy.x, enemy.y, enemy.type);
+    }
 
     if (this.dropRoll() < HEART_DROP_CHANCE) {
       this.pickupManager.spawnHeart?.(enemy.x, enemy.y, HEART_HEAL_AMOUNT);

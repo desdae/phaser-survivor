@@ -1,5 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
+import { getEliteModifiers } from '../src/game/logic/eliteWaves.js';
 import { EnemyManager } from '../src/game/systems/EnemyManager.js';
+
+vi.mock('../src/game/logic/spawn.js', () => ({
+  getSpawnPosition: () => ({ x: 120, y: 80 }),
+  getSpawnProfile: () => ({
+    cooldownMs: 999,
+    batchSize: 1,
+    weights: {
+      basic: 1,
+      tough: 0,
+      spitter: 0
+    }
+  })
+}));
+
+vi.mock('../src/game/logic/enemyVisuals.js', () => ({
+  getAnimatedTextureKey: () => null,
+  getEnemyVisualConfig: () => ({
+    key: 'zombie',
+    frames: ['mob-zombie-0'],
+    frameDurationMs: 170,
+    scale: 1
+  })
+}));
 
 describe('EnemyManager', () => {
   it('registers a self-collider so mobs separate instead of stacking', () => {
@@ -190,5 +214,95 @@ describe('EnemyManager', () => {
     manager.damageEnemy(enemy, 20, 'meteor');
 
     expect(damageStats.record).toHaveBeenCalledWith('meteor', 6);
+  });
+
+  it('applies elite markers and stronger stats when spawning an elite enemy', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdEnemy = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const scene = {
+      cameras: {
+        main: {
+          height: 600,
+          scrollX: 0,
+          scrollY: 0,
+          width: 800
+        }
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      }
+    };
+    enemyGroup.create = vi.fn(() => createdEnemy);
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+    const modifiers = getEliteModifiers();
+
+    const enemy = manager.spawnEnemy('basic', { elite: true });
+
+    expect(enemy).toBe(createdEnemy);
+    expect(enemy.isElite).toBe(true);
+    expect(enemy.health).toBe(Math.round(34 * modifiers.healthMultiplier));
+    expect(enemy.xpValue).toBe(Math.round(4 * modifiers.xpMultiplier));
+    expect(enemy.contactDamage).toBe(Math.round(8 * modifiers.contactDamageMultiplier));
+    expect(enemy.setScale).toHaveBeenCalledWith(modifiers.scaleMultiplier);
+    expect(enemy.setTintFill).toHaveBeenCalledWith(modifiers.tint);
+  });
+
+  it('drops a chest when an elite enemy dies', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const spawnOrb = vi.fn();
+    const spawnChest = vi.fn();
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn()
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnChest, spawnOrb },
+      null,
+      () => 1
+    );
+    const enemy = {
+      active: true,
+      destroy: vi.fn(),
+      health: 10,
+      isElite: true,
+      setTintFill: vi.fn(),
+      type: 'spitter',
+      x: 64,
+      xpValue: 5,
+      y: 96
+    };
+
+    const died = manager.damageEnemy(enemy, 12);
+
+    expect(died).toBe(true);
+    expect(spawnOrb).toHaveBeenCalledWith(64, 96, 5);
+    expect(spawnChest).toHaveBeenCalledWith(64, 96, 'spitter');
+    expect(enemy.destroy).toHaveBeenCalledOnce();
   });
 });
