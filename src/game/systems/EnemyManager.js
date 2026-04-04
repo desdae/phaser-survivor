@@ -34,10 +34,11 @@ const ENEMY_TYPES = {
 };
 
 export class EnemyManager {
-  constructor(scene, player, pickupManager) {
+  constructor(scene, player, pickupManager, effects = null) {
     this.scene = scene;
     this.player = player;
     this.pickupManager = pickupManager;
+    this.effects = effects;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.scene.physics.add.collider(this.group, this.group);
@@ -167,6 +168,7 @@ export class EnemyManager {
     enemy.health -= damage;
 
     if (enemy.health > 0) {
+      this.effects?.spawnHitSplash?.(enemy, false);
       enemy.setTintFill(0xfff0f0);
       this.scene.time.delayedCall(50, () => {
         if (enemy.active) {
@@ -176,6 +178,8 @@ export class EnemyManager {
       return false;
     }
 
+    this.effects?.spawnDeathSplash?.(enemy);
+    this.effects?.spawnPuddle?.(enemy);
     this.pickupManager.spawnOrb(enemy.x, enemy.y, enemy.xpValue);
     enemy.destroy();
     return true;

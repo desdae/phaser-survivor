@@ -3,6 +3,7 @@ import { Player } from '../entities/Player.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
 import { BladeManager } from '../systems/BladeManager.js';
 import { BoomerangManager } from '../systems/BoomerangManager.js';
+import { BloodEffectsManager } from '../systems/BloodEffectsManager.js';
 import { ChainManager } from '../systems/ChainManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
@@ -32,7 +33,8 @@ export class GameScene extends Phaser.Scene {
 
     this.player = new Player(this, 0, 0);
     this.pickupManager = new PickupManager(this, (value) => this.handlePickupCollected(value));
-    this.enemyManager = new EnemyManager(this, this.player, this.pickupManager);
+    this.bloodEffectsManager = new BloodEffectsManager(this);
+    this.enemyManager = new EnemyManager(this, this.player, this.pickupManager, this.bloodEffectsManager);
     this.projectileManager = new ProjectileManager(this);
     this.bladeManager = new BladeManager(this);
     this.chainManager = new ChainManager(this);
@@ -322,6 +324,18 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(2, 0xff7d5f, 1);
     graphics.strokeCircle(16, 16, 14);
     graphics.generateTexture('meteor-marker', 32, 32);
+
+    graphics.clear();
+    graphics.fillStyle(0xa11724, 1);
+    graphics.fillCircle(5, 5, 5);
+    graphics.generateTexture('blood-drop', 10, 10);
+
+    graphics.clear();
+    graphics.fillStyle(0x5f0c16, 1);
+    graphics.fillEllipse(28, 18, 52, 24);
+    graphics.fillEllipse(16, 16, 18, 10);
+    graphics.fillEllipse(40, 20, 18, 10);
+    graphics.generateTexture('blood-puddle', 56, 36);
 
     graphics.clear();
     graphics.fillStyle(0x7df0ac, 1);
