@@ -166,8 +166,9 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
     this.updateEliteWave();
-    this.temporaryBuffSystem?.update?.(time);
-    const effectiveStats = this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, time) ?? this.player.stats;
+    this.temporaryBuffSystem?.update?.(this.elapsedMs);
+    const effectiveStats =
+      this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, this.elapsedMs) ?? this.player.stats;
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
@@ -235,7 +236,7 @@ export class GameScene extends Phaser.Scene {
 
     if (pickup.kind === 'powerup') {
       this.audioManager?.playPickup?.();
-      this.temporaryBuffSystem.addStack(pickup.buffKey, this.time.now);
+      this.temporaryBuffSystem.addStack(pickup.buffKey, this.elapsedMs);
       this.refreshHud();
       return false;
     }
@@ -388,7 +389,7 @@ export class GameScene extends Phaser.Scene {
         Number(this.player.stats.meteorUnlocked),
       eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
-    this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.time.now) ?? []);
+    this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.elapsedMs) ?? []);
     this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
   }
 

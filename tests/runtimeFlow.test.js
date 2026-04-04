@@ -237,6 +237,7 @@ describe('GameScene handlePickupCollected', () => {
       audioManager: {
         playPickup: vi.fn()
       },
+      elapsedMs: 9000,
       isGameOver: false,
       refreshHud: vi.fn(),
       temporaryBuffSystem: {
@@ -255,7 +256,7 @@ describe('GameScene handlePickupCollected', () => {
 
     expect(result).toBe(false);
     expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
-    expect(sceneLike.temporaryBuffSystem.addStack).toHaveBeenCalledWith('frenzy', 1234);
+    expect(sceneLike.temporaryBuffSystem.addStack).toHaveBeenCalledWith('frenzy', 9000);
     expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
   });
 });
@@ -756,6 +757,7 @@ describe('GameScene update', () => {
       baseStats,
       16
     );
+    expect(sceneLike.temporaryBuffSystem.update).toHaveBeenNthCalledWith(1, 16);
     expect(sceneLike.temporaryBuffSystem.getEffectiveStats.mock.calls[0][0]).toBe(baseStats);
     expect(sceneLike.player.stats).toBe(baseStats);
     expect(sceneLike.player.stats).not.toBe(buffedStats);
@@ -765,8 +767,9 @@ describe('GameScene update', () => {
     expect(sceneLike.temporaryBuffSystem.getEffectiveStats).toHaveBeenNthCalledWith(
       2,
       baseStats,
-      30016
+      32
     );
+    expect(sceneLike.temporaryBuffSystem.update).toHaveBeenNthCalledWith(2, 32);
     expect(sceneLike.temporaryBuffSystem.getEffectiveStats.mock.calls[1][0]).toBe(baseStats);
 
     expect(sceneLike.projectileManager.tryFire).toHaveBeenNthCalledWith(
@@ -787,6 +790,75 @@ describe('GameScene update', () => {
     expect(sceneLike.pickupManager.update).toHaveBeenNthCalledWith(2, sceneLike.player.sprite, 48);
     expect(sceneLike.player.stats).toBe(baseStats);
     expect(sceneLike.player.stats).not.toBe(buffedStats);
+  });
+
+  it('keeps temporary powerup timing frozen while gameplay is paused', () => {
+    const sceneLike = {
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      cameras: {
+        main: {
+          scrollX: 24,
+          scrollY: 48
+        }
+      },
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      elapsedMs: 12000,
+      eliteWaveSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false)
+      },
+      enemyManager: {
+        getLivingEnemies: vi.fn().mockReturnValue([])
+      },
+      fpsCounter: null,
+      handlePauseHotkeys: vi.fn(),
+      handleStatsToggle: vi.fn(),
+      hud: {
+        update: vi.fn()
+      },
+      isGameOver: false,
+      isGameplayPaused: true,
+      player: {
+        stats: {
+          health: 100,
+          maxHealth: 100,
+          level: 3,
+          xp: 4,
+          xpToNext: 10,
+          projectileCount: 2,
+          bladeCount: 1,
+          bladeUnlocked: true,
+          chainUnlocked: false,
+          novaUnlocked: false,
+          boomerangUnlocked: false,
+          meteorUnlocked: false
+        }
+      },
+      powerupHud: {
+        update: vi.fn()
+      },
+      refreshHud: GameScene.prototype.refreshHud,
+      restartKey: {},
+      temporaryBuffSystem: {
+        getSummaryRows: vi.fn().mockReturnValue([]),
+        update: vi.fn()
+      },
+      updateFpsCounter: vi.fn()
+    };
+
+    GameScene.prototype.update.call(sceneLike, 999999, 16000);
+
+    expect(sceneLike.handlePauseHotkeys).toHaveBeenCalledOnce();
+    expect(sceneLike.temporaryBuffSystem.update).not.toHaveBeenCalled();
+    expect(sceneLike.temporaryBuffSystem.getSummaryRows).toHaveBeenCalledWith(12000);
+    expect(sceneLike.elapsedMs).toBe(12000);
   });
 });
 
@@ -839,7 +911,7 @@ describe('GameScene refreshHud', () => {
 
     GameScene.prototype.refreshHud.call(sceneLike, 27);
 
-    expect(sceneLike.temporaryBuffSystem.getSummaryRows).toHaveBeenCalledWith(16000);
+    expect(sceneLike.temporaryBuffSystem.getSummaryRows).toHaveBeenCalledWith(12000);
     expect(sceneLike.powerupHud.update).toHaveBeenCalledWith(powerupRows);
   });
 });
