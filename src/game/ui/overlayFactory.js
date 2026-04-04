@@ -86,6 +86,9 @@ export function formatTime(elapsedMs) {
 export function createHud(scene) {
   const panel = scene.add.rectangle(0, 0, 340, 164, 0x08121c, 0.75).setOrigin(0);
   panel.setStrokeStyle(2, 0x4da2ff, 0.35);
+  const xpBarFrame = scene.add.rectangle(0, 0, 0, 24, 0x08121c, 0.88).setOrigin(0);
+  xpBarFrame.setStrokeStyle(2, 0x4da2ff, 0.45);
+  const xpBarFill = scene.add.rectangle(0, 0, 0, 16, 0x6be39a, 0.95).setOrigin(0);
   const hpText = scene.add.text(18, 16, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '20px',
@@ -114,6 +117,8 @@ export function createHud(scene) {
   });
   const container = scene.add.container(18, 18, [
     panel,
+    xpBarFrame,
+    xpBarFill,
     hpText,
     levelText,
     xpText,
@@ -124,9 +129,26 @@ export function createHud(scene) {
   container.setDepth(40);
   container.setScrollFactor(0);
 
+  const MAX_XP_BAR_WIDTH = 960;
+  const MIN_XP_BAR_WIDTH = 360;
+  const XP_BAR_MARGIN = 42;
+  const XP_BAR_HEIGHT = 24;
+  const XP_BAR_INSET = 4;
+  let currentXpBarWidth = Math.max(0, MAX_XP_BAR_WIDTH - XP_BAR_INSET * 2);
+
   return {
-    layout() {
+    layout(width = 1280, height = 720) {
       container.setPosition(18, 18);
+
+      const barWidth = Math.max(MIN_XP_BAR_WIDTH, Math.min(MAX_XP_BAR_WIDTH, width * 0.75));
+      const barX = Math.round((width - barWidth) / 2) - 18;
+      const barY = height - XP_BAR_MARGIN - XP_BAR_HEIGHT - 18;
+      currentXpBarWidth = Math.max(0, barWidth - XP_BAR_INSET * 2);
+
+      xpBarFrame.setPosition(barX, barY);
+      xpBarFrame.setSize(barWidth, XP_BAR_HEIGHT);
+      xpBarFill.setPosition(barX + XP_BAR_INSET, barY + XP_BAR_INSET);
+      xpBarFill.setSize(currentXpBarWidth, XP_BAR_HEIGHT - XP_BAR_INSET * 2);
     },
     update({
       health,
@@ -141,11 +163,15 @@ export function createHud(scene) {
       activeWeapons,
       eliteWarning
     }) {
+      const xpRatio = xpToNext > 0 ? Math.min(1, Math.max(0, xp / xpToNext)) : 0;
+      const fillWidth = Math.round(currentXpBarWidth * xpRatio);
+
       hpText.setText(`HP ${Math.ceil(health)} / ${maxHealth}`);
       levelText.setText(`Level ${level}   Threats ${enemyCount}`);
       xpText.setText(`XP ${xp} / ${xpToNext}   Shots ${projectileCount}   Blades ${bladeCount}`);
       timeText.setText(`Time ${formatTime(timeMs)}   Arsenal ${activeWeapons}`);
       eliteWarningText.setText(eliteWarning ?? '');
+      xpBarFill.setSize(fillWidth, XP_BAR_HEIGHT - XP_BAR_INSET * 2);
     }
   };
 }

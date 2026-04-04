@@ -105,6 +105,34 @@ describe('createHud', () => {
 
     expect(scene.texts.some((text) => text.text.includes('Elite wave incoming'))).toBe(true);
   });
+
+  it('adds a centered bottom xp bar and updates its fill from xp progress', () => {
+    const scene = createFakeScene();
+    const hud = createHud(scene);
+
+    hud.layout(1280, 720);
+    hud.update({
+      health: 88,
+      maxHealth: 100,
+      level: 5,
+      xp: 12,
+      xpToNext: 20,
+      timeMs: 61000,
+      enemyCount: 14,
+      projectileCount: 2,
+      bladeCount: 1,
+      activeWeapons: 3,
+      eliteWarning: ''
+    });
+
+    expect(scene.rectangles).toHaveLength(3);
+    expect(scene.rectangles[1].x).toBe(142);
+    expect(scene.rectangles[1].y).toBe(636);
+    expect(scene.rectangles[2].x).toBe(146);
+    expect(scene.rectangles[2].y).toBe(640);
+    expect(scene.rectangles[1].setSize).toHaveBeenLastCalledWith(960, 24);
+    expect(scene.rectangles[2].setSize).toHaveBeenLastCalledWith(571, 16);
+  });
 });
 
 describe('createFpsCounter', () => {
