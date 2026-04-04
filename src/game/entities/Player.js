@@ -41,7 +41,18 @@ const PLAYER_STARTING_STATS = {
   meteorCount: 0,
   meteorDamage: 0,
   meteorRadius: 0,
-  meteorCooldownMs: 0
+  meteorCooldownMs: 0,
+  burstRifleUnlocked: false,
+  burstRifleDamage: 0,
+  burstRifleCooldownMs: 0,
+  burstRifleProjectileSpeed: 0,
+  burstRifleBurstCount: 0,
+  burstRifleSpreadDeg: 0,
+  lanceUnlocked: false,
+  lanceDamage: 0,
+  lanceCooldownMs: 0,
+  lanceLength: 0,
+  lanceWidth: 0
 };
 
 export class Player {

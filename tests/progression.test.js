@@ -162,6 +162,46 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'unlockLance')).toBe(false);
     expect(pool.some((entry) => entry.key === 'chainDamage')).toBe(true);
   });
+
+  it('offers burst rifle and lance unlocks before they are acquired', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: false,
+      lanceUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockBurstRifle')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'unlockLance')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'burstRifleDamage')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'lanceDamage')).toBe(false);
+  });
+
+  it('offers burst rifle and lance upgrades after they are unlocked', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: true,
+      lanceUnlocked: true,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockBurstRifle')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'unlockLance')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'burstRifleDamage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'lanceDamage')).toBe(true);
+  });
 });
 
 describe('applyUpgrade', () => {

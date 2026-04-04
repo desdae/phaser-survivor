@@ -216,6 +216,88 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'unlockBurstRifle',
+    label: 'Burst Rifle',
+    description: 'Unlock a mouse-aimed rifle that spits rapid shots at your cursor.',
+    isAvailable: (player) => canLearnAbility(player, 'burstRifleUnlocked'),
+    apply(player) {
+      player.burstRifleUnlocked = true;
+      player.burstRifleDamage = Math.max(player.burstRifleDamage, 9);
+      player.burstRifleCooldownMs = Math.max(player.burstRifleCooldownMs, 0) || 180;
+      player.burstRifleProjectileSpeed = Math.max(player.burstRifleProjectileSpeed, 640);
+      player.burstRifleBurstCount = Math.max(player.burstRifleBurstCount, 1);
+      player.burstRifleSpreadDeg = Math.max(player.burstRifleSpreadDeg, 0);
+    }
+  },
+  {
+    key: 'burstRifleDamage',
+    label: 'Hot Magazine',
+    description: '+4 burst rifle damage',
+    isAvailable: (player) => player.burstRifleUnlocked,
+    apply(player) {
+      player.burstRifleDamage += 4;
+    }
+  },
+  {
+    key: 'burstRifleRate',
+    label: 'Hair Trigger',
+    description: '-20ms burst rifle cooldown',
+    isAvailable: (player) => player.burstRifleUnlocked,
+    apply(player) {
+      player.burstRifleCooldownMs = Math.max(80, player.burstRifleCooldownMs - 20);
+    }
+  },
+  {
+    key: 'burstRifleBurst',
+    label: 'Twin Burst',
+    description: '+1 burst rifle projectile',
+    isAvailable: (player) => player.burstRifleUnlocked,
+    apply(player) {
+      player.burstRifleBurstCount += 1;
+      player.burstRifleSpreadDeg = Math.max(0, player.burstRifleSpreadDeg - 1);
+    }
+  },
+  {
+    key: 'unlockLance',
+    label: 'Piercing Lance',
+    description: 'Unlock a mouse-aimed lance that tears through enemies in a line.',
+    isAvailable: (player) => canLearnAbility(player, 'lanceUnlocked'),
+    apply(player) {
+      player.lanceUnlocked = true;
+      player.lanceDamage = Math.max(player.lanceDamage, 20);
+      player.lanceCooldownMs = Math.max(player.lanceCooldownMs, 0) || 900;
+      player.lanceLength = Math.max(player.lanceLength, 220);
+      player.lanceWidth = Math.max(player.lanceWidth, 18);
+    }
+  },
+  {
+    key: 'lanceDamage',
+    label: 'Moonsteel Tip',
+    description: '+8 lance damage',
+    isAvailable: (player) => player.lanceUnlocked,
+    apply(player) {
+      player.lanceDamage += 8;
+    }
+  },
+  {
+    key: 'lanceLength',
+    label: 'Extended Reach',
+    description: '+35 lance length',
+    isAvailable: (player) => player.lanceUnlocked,
+    apply(player) {
+      player.lanceLength += 35;
+    }
+  },
+  {
+    key: 'lanceRate',
+    label: 'Quick Draw Lance',
+    description: '-120ms lance cooldown',
+    isAvailable: (player) => player.lanceUnlocked,
+    apply(player) {
+      player.lanceCooldownMs = Math.max(420, player.lanceCooldownMs - 120);
+    }
+  },
+  {
     key: 'meteorDamage',
     label: 'Falling Wrath',
     description: '+10 meteor damage',
