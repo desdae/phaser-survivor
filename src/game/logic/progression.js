@@ -314,8 +314,16 @@ export const UPGRADE_DEFINITIONS = [
   }
 ];
 
+const EARLY_LEVEL_XP = [10, 15, 21];
+const XP_GROWTH_START = EARLY_LEVEL_XP.at(-1);
+const XP_GROWTH_RATE = 1.16;
+
 export function getXpToNextLevel(level) {
-  return 10 + (level - 1) * 6;
+  if (level <= EARLY_LEVEL_XP.length) {
+    return EARLY_LEVEL_XP[level - 1];
+  }
+
+  return Math.round(XP_GROWTH_START * XP_GROWTH_RATE ** (level - EARLY_LEVEL_XP.length));
 }
 
 export function awardXp(state, amount) {

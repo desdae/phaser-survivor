@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { awardXp } from '../logic/progression.js';
+import { getPlayerHealthBarState } from '../logic/playerHealthBar.js';
 
 const PLAYER_STARTING_STATS = {
   speed: 220,
@@ -49,7 +50,13 @@ export class Player {
     this.sprite = scene.physics.add.image(x, y, 'player');
     this.sprite.setCircle(14);
     this.sprite.setDepth(5);
+    this.healthBarFrame = scene.add.rectangle(0, 0, 0, 0, 0x08121c, 0.92).setOrigin(0);
+    this.healthBarFrame.setStrokeStyle(1, 0x1a2933, 0.95);
+    this.healthBarFrame.setDepth(5.1);
+    this.healthBarFill = scene.add.rectangle(0, 0, 0, 0, 0xe45858, 0.98).setOrigin(0);
+    this.healthBarFill.setDepth(5.2);
     this.stats = { ...PLAYER_STARTING_STATS };
+    this.refreshHealthBar();
   }
 
   updateMovement(keys) {
@@ -58,11 +65,13 @@ export class Player {
 
     if (horizontal === 0 && vertical === 0) {
       this.sprite.setVelocity(0, 0);
+      this.refreshHealthBar();
       return;
     }
 
     const vector = new Phaser.Math.Vector2(horizontal, vertical).normalize();
     this.sprite.setVelocity(vector.x * this.stats.speed, vector.y * this.stats.speed);
+    this.refreshHealthBar();
   }
 
   gainXp(amount) {
@@ -83,16 +92,28 @@ export class Player {
 
   takeDamage(amount) {
     this.stats.health = Math.max(0, this.stats.health - amount);
+    this.refreshHealthBar();
     return this.stats.health === 0;
   }
 
   heal(amount) {
     this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + amount);
+    this.refreshHealthBar();
     return this.stats.health;
   }
 
   stop() {
     this.sprite.setVelocity(0, 0);
+    this.refreshHealthBar();
+  }
+
+  refreshHealthBar() {
+    const state = getPlayerHealthBarState(this.sprite.x, this.sprite.y, this.stats.health, this.stats.maxHealth);
+
+    this.healthBarFrame.setPosition(state.frameX, state.frameY);
+    this.healthBarFrame.setSize(state.frameWidth, state.frameHeight);
+    this.healthBarFill.setPosition(state.fillX, state.fillY);
+    this.healthBarFill.setSize(state.fillWidth, state.fillHeight);
   }
 
   get x() {

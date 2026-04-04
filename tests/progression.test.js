@@ -9,10 +9,12 @@ import {
 } from '../src/game/logic/progression.js';
 
 describe('getXpToNextLevel', () => {
-  it('scales modestly each level', () => {
+  it('uses a smoothed early ramp before exponential growth kicks in', () => {
     expect(getXpToNextLevel(1)).toBe(10);
-    expect(getXpToNextLevel(2)).toBe(16);
-    expect(getXpToNextLevel(3)).toBe(22);
+    expect(getXpToNextLevel(2)).toBe(15);
+    expect(getXpToNextLevel(3)).toBe(21);
+    expect(getXpToNextLevel(10)).toBe(59);
+    expect(getXpToNextLevel(20)).toBe(262);
   });
 });
 
@@ -23,7 +25,16 @@ describe('awardXp', () => {
     expect(state.level).toBe(2);
     expect(state.xp).toBe(2);
     expect(state.leveledUp).toBe(true);
-    expect(state.xpToNext).toBe(16);
+    expect(state.xpToNext).toBe(15);
+  });
+
+  it('handles large xp gains across several exponential level thresholds', () => {
+    const state = awardXp({ level: 1, xp: 0 }, 50);
+
+    expect(state.level).toBe(4);
+    expect(state.xp).toBe(4);
+    expect(state.leveledUp).toBe(true);
+    expect(state.xpToNext).toBe(24);
   });
 });
 
