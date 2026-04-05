@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player.js';
-import { countLearnedAbilities } from '../logic/abilityRoster.js';
+import { countLearnedAbilities, getOwnedAbilityKeys } from '../logic/abilityRoster.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
 import { ArcMineManager } from '../systems/ArcMineManager.js';
 import { BladeManager } from '../systems/BladeManager.js';
@@ -28,6 +28,14 @@ import {
   getVisibleGrassTiles
 } from '../logic/backgroundTiles.js';
 import { getAimDirection } from '../logic/combat.js';
+import {
+  buildJournalPayload
+} from '../logic/journalData.js';
+import {
+  createJournalDiscoveryState,
+  discoverAbility,
+  discoverEnemy
+} from '../logic/journalDiscovery.js';
 import { getMagicMissileTextureSpec } from '../logic/projectileVisuals.js';
 import { getSpawnProfile } from '../logic/spawn.js';
 import { buildWeaponTooltipMap } from '../logic/weaponTooltips.js';
@@ -37,6 +45,7 @@ import {
   createFpsCounter,
   createGameOverOverlay,
   createHud,
+  createJournalOverlay,
   createLevelUpOverlay,
   createPowerupHud
 } from '../ui/overlayFactory.js';
@@ -58,6 +67,15 @@ export class GameScene extends Phaser.Scene {
     this.isGameplayPaused = false;
     this.isGameOver = false;
     this.activePauseOverlay = null;
+    this.journalDiscovery = createJournalDiscoveryState();
+    this.journalViewState = {
+      activeTab: 'enemies',
+      selectedByTab: {
+        enemies: null,
+        abilities: null
+      }
+    };
+    this.journalPayload = null;
 
     this.player = new Player(this, 0, 0);
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
@@ -71,7 +89,8 @@ export class GameScene extends Phaser.Scene {
       this.bloodEffectsManager,
       Math.random,
       this.damageStatsManager,
-      this.audioManager
+      this.audioManager,
+      (typeKey) => this.recordEnemyDiscovery(typeKey)
     );
     this.projectileManager = new ProjectileManager(this);
     this.burstRifleManager = new BurstRifleManager(this.projectileManager);
@@ -98,6 +117,7 @@ export class GameScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    this.journalKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
     this.statsKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
     this.input.keyboard.addCapture?.(Phaser.Input.Keyboard.KeyCodes.TAB);
     this.upgradeKeys = [
@@ -114,6 +134,7 @@ export class GameScene extends Phaser.Scene {
     this.fpsCounter = createFpsCounter(this);
     this.powerupHud = createPowerupHud(this);
     this.damageStatsOverlay = createDamageStatsOverlay(this);
+    this.journalOverlay = createJournalOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
     this.gameOverOverlay = createGameOverOverlay(this, () => this.restartRun());
@@ -149,6 +170,7 @@ export class GameScene extends Phaser.Scene {
     this.scale.on('resize', this.handleResize, this);
     this.handleResize({ width: this.scale.width, height: this.scale.height });
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
+    this.syncAbilityDiscoveries();
     this.refreshHud();
   }
 
@@ -156,6 +178,7 @@ export class GameScene extends Phaser.Scene {
     this.syncBackgroundTiles?.();
     this.handleStatsToggle();
     this.updateFpsCounter?.(time);
+    this.handleJournalKey?.();
 
     const pointer = this.input?.activePointer;
     if (pointer) {
@@ -281,12 +304,96 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.activePauseOverlay === 'journal') {
+      this.handleJournalPointerResult(this.journalOverlay.handlePointer(pointer.x, pointer.y));
+      return;
+    }
+
     if (this.activePauseOverlay === 'chest') {
       this.chestOverlay.choosePointer(pointer.x, pointer.y);
       return;
     }
 
     this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
+  }
+
+  handleJournalKey() {
+    if (Phaser.Input.Keyboard.JustDown(this.journalKey)) {
+      this.handleJournalToggle();
+    }
+  }
+
+  handleJournalToggle() {
+    if (this.isGameOver) {
+      return;
+    }
+
+    if (this.activePauseOverlay === 'journal') {
+      this.journalOverlay?.hide?.();
+      this.activePauseOverlay = null;
+      this.physics?.world?.resume?.();
+      this.isGameplayPaused = false;
+      return;
+    }
+
+    if (this.activePauseOverlay) {
+      return;
+    }
+
+    this.refreshJournalOverlay();
+    this.isGameplayPaused = true;
+    this.activePauseOverlay = 'journal';
+    this.physics?.world?.pause?.();
+    this.player?.stop?.();
+    this.journalOverlay?.show?.(this.journalPayload);
+  }
+
+  handleJournalPointerResult(result) {
+    if (!result) {
+      return;
+    }
+
+    if (result.type === 'switch-tab') {
+      this.journalViewState.activeTab = result.tab;
+
+      if (!this.journalViewState.selectedByTab[result.tab]) {
+        const rows = result.tab === 'enemies' ? this.journalPayload?.enemies : this.journalPayload?.abilities;
+        this.journalViewState.selectedByTab[result.tab] = rows?.[0]?.key ?? null;
+      }
+
+      this.refreshJournalOverlay();
+      return;
+    }
+
+    if (result.type === 'select-entry') {
+      this.journalViewState.selectedByTab[result.tab] = result.key;
+      this.refreshJournalOverlay();
+    }
+  }
+
+  recordEnemyDiscovery(typeKey) {
+    discoverEnemy(this.journalDiscovery, typeKey);
+  }
+
+  recordAbilityDiscovery(abilityKey) {
+    discoverAbility(this.journalDiscovery, abilityKey);
+  }
+
+  syncAbilityDiscoveries() {
+    getOwnedAbilityKeys(this.player?.stats ?? {}).forEach((abilityKey) => {
+      this.recordAbilityDiscovery(abilityKey);
+    });
+  }
+
+  refreshJournalOverlay() {
+    this.journalPayload = buildJournalPayload({
+      activeTab: this.journalViewState.activeTab,
+      selectedByTab: this.journalViewState.selectedByTab,
+      discoveryState: this.journalDiscovery,
+      playerStats: this.player?.stats ?? {}
+    });
+
+    this.journalOverlay?.update?.(this.journalPayload);
   }
 
   updateEliteWave() {
@@ -396,6 +503,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.activePauseOverlay === 'journal') {
+      return;
+    }
+
     this.upgradeKeys.forEach((key, index) => {
       if (Phaser.Input.Keyboard.JustDown(key)) {
         if (this.activePauseOverlay === 'chest') {
@@ -417,6 +528,7 @@ export class GameScene extends Phaser.Scene {
   handleUpgradeSelected(choice) {
     this.upgradeSystem.apply(this.player, choice.key);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
+    this.syncAbilityDiscoveries();
     this.levelUpOverlay.hide();
     this.activePauseOverlay = null;
 
@@ -431,6 +543,7 @@ export class GameScene extends Phaser.Scene {
   handleChestRewardSelected(reward) {
     this.chestRewardSystem.apply(this.player, reward, this.pickupManager);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
+    this.syncAbilityDiscoveries();
     this.chestOverlay.hide();
     this.activePauseOverlay = null;
     this.pendingChestPickup = null;
@@ -454,6 +567,7 @@ export class GameScene extends Phaser.Scene {
     this.projectileManager.stopAll();
     this.levelUpOverlay.hide();
     this.chestOverlay.hide();
+    this.journalOverlay?.hide?.();
     this.gameOverOverlay.show({
       timeMs: this.elapsedMs,
       level: this.player.stats.level
@@ -464,6 +578,7 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOverlay?.hide?.();
     this.chestOverlay?.hide?.();
     this.gameOverOverlay?.hide?.();
+    this.journalOverlay?.hide?.();
     this.physics?.world?.resume?.();
     this.activePauseOverlay = null;
     this.isGameplayPaused = false;
@@ -496,6 +611,9 @@ export class GameScene extends Phaser.Scene {
     });
     this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.elapsedMs) ?? []);
     this.damageStatsOverlay.update(damageRows, tooltipMap);
+    if (this.journalOverlay?.isVisible?.()) {
+      this.refreshJournalOverlay();
+    }
   }
 
   updateFpsCounter(now) {
@@ -527,6 +645,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.damageStatsOverlay) {
       this.damageStatsOverlay.layout(width, height);
+    }
+
+    if (this.journalOverlay) {
+      this.journalOverlay.layout(width, height);
     }
 
     if (this.levelUpOverlay) {

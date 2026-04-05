@@ -5,7 +5,8 @@ import {
   buildAbilityJournalDetail,
   buildAbilityJournalList,
   buildEnemyJournalDetail,
-  buildEnemyJournalList
+  buildEnemyJournalList,
+  buildJournalPayload
 } from '../src/game/logic/journalData.js';
 import {
   createJournalDiscoveryState,
@@ -103,5 +104,26 @@ describe('buildAbilityJournalDetail', () => {
 
     expect(detail.title).toBe('???');
     expect(detail.upgradePaths).toEqual([]);
+  });
+});
+
+describe('buildJournalPayload', () => {
+  it('builds a journal payload with tab rows and the selected detail panel', () => {
+    const state = createJournalDiscoveryState();
+    discoverEnemy(state, 'basic');
+
+    const payload = buildJournalPayload({
+      activeTab: 'enemies',
+      selectedByTab: {
+        enemies: null,
+        abilities: null
+      },
+      discoveryState: state,
+      playerStats: {}
+    });
+
+    expect(payload.activeTab).toBe('enemies');
+    expect(payload.enemies[0].label).toBe('Grave Runner');
+    expect(payload.detail.title).toBe('Grave Runner');
   });
 });

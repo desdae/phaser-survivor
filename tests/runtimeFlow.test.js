@@ -18,6 +18,7 @@ vi.mock('phaser', () => ({
 
 import Phaser from 'phaser';
 import { GameScene } from '../src/game/scenes/GameScene.js';
+import { createJournalDiscoveryState } from '../src/game/logic/journalDiscovery.js';
 import { buildWeaponTooltipMap } from '../src/game/logic/weaponTooltips.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
@@ -1247,6 +1248,78 @@ describe('GameScene handleRestartKeyDown', () => {
   });
 });
 
+describe('GameScene handleJournalToggle', () => {
+  it('opens the journal during active gameplay and pauses the run', () => {
+    const sceneLike = {
+      activePauseOverlay: null,
+      isGameOver: false,
+      isGameplayPaused: false,
+      journalOverlay: {
+        show: vi.fn()
+      },
+      journalPayload: { activeTab: 'enemies' },
+      physics: {
+        world: {
+          pause: vi.fn(),
+          resume: vi.fn()
+        }
+      },
+      player: {
+        stop: vi.fn()
+      },
+      refreshJournalOverlay: vi.fn()
+    };
+
+    GameScene.prototype.handleJournalToggle.call(sceneLike);
+
+    expect(sceneLike.refreshJournalOverlay).toHaveBeenCalledOnce();
+    expect(sceneLike.physics.world.pause).toHaveBeenCalledOnce();
+    expect(sceneLike.player.stop).toHaveBeenCalledOnce();
+    expect(sceneLike.activePauseOverlay).toBe('journal');
+    expect(sceneLike.isGameplayPaused).toBe(true);
+    expect(sceneLike.journalOverlay.show).toHaveBeenCalledWith({ activeTab: 'enemies' });
+  });
+
+  it('closes the journal and resumes gameplay when already open', () => {
+    const sceneLike = {
+      activePauseOverlay: 'journal',
+      isGameOver: false,
+      isGameplayPaused: true,
+      journalOverlay: {
+        hide: vi.fn()
+      },
+      physics: {
+        world: {
+          resume: vi.fn()
+        }
+      }
+    };
+
+    GameScene.prototype.handleJournalToggle.call(sceneLike);
+
+    expect(sceneLike.journalOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.physics.world.resume).toHaveBeenCalledOnce();
+    expect(sceneLike.activePauseOverlay).toBe(null);
+    expect(sceneLike.isGameplayPaused).toBe(false);
+  });
+
+  it('does not open the journal while game over is active', () => {
+    const sceneLike = {
+      activePauseOverlay: null,
+      isGameOver: true,
+      journalOverlay: {
+        show: vi.fn()
+      },
+      refreshJournalOverlay: vi.fn()
+    };
+
+    GameScene.prototype.handleJournalToggle.call(sceneLike);
+
+    expect(sceneLike.refreshJournalOverlay).not.toHaveBeenCalled();
+    expect(sceneLike.journalOverlay.show).not.toHaveBeenCalled();
+  });
+});
+
 describe('GameScene handleScenePointerDown', () => {
   it('routes game-over clicks through the game over overlay', () => {
     const sceneLike = {
@@ -1277,6 +1350,38 @@ describe('GameScene handleScenePointerDown', () => {
 
     expect(sceneLike.gameOverOverlay.choosePointer).toHaveBeenCalledWith(640, 452);
     expect(sceneLike.levelUpOverlay.choosePointer).not.toHaveBeenCalled();
+  });
+
+  it('routes journal clicks through the journal overlay and applies the result', () => {
+    const result = { type: 'switch-tab', tab: 'abilities' };
+    const sceneLike = {
+      activePauseOverlay: 'journal',
+      handleJournalPointerResult: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: true,
+      journalOverlay: {
+        handlePointer: vi.fn().mockReturnValue(result)
+      }
+    };
+
+    GameScene.prototype.handleScenePointerDown.call(sceneLike, { x: 300, y: 200 });
+
+    expect(sceneLike.journalOverlay.handlePointer).toHaveBeenCalledWith(300, 200);
+    expect(sceneLike.handleJournalPointerResult).toHaveBeenCalledWith(result);
+  });
+});
+
+describe('GameScene journal discovery helpers', () => {
+  it('records discovered enemies and abilities', () => {
+    const sceneLike = {
+      journalDiscovery: createJournalDiscoveryState()
+    };
+
+    GameScene.prototype.recordEnemyDiscovery.call(sceneLike, 'spitter');
+    GameScene.prototype.recordAbilityDiscovery.call(sceneLike, 'meteor');
+
+    expect(sceneLike.journalDiscovery.enemies.has('spitter')).toBe(true);
+    expect(sceneLike.journalDiscovery.abilities.has('meteor')).toBe(true);
   });
 });
 

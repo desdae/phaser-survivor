@@ -285,3 +285,26 @@ export function buildAbilityJournalDetail(key, discoveryState, playerStats = {})
     description: entry.description
   };
 }
+
+export function buildJournalPayload({
+  activeTab = 'enemies',
+  selectedByTab = { enemies: null, abilities: null },
+  discoveryState,
+  playerStats = {}
+}) {
+  const enemies = buildEnemyJournalList(discoveryState);
+  const abilities = buildAbilityJournalList(discoveryState);
+  const activeEntries = activeTab === 'enemies' ? enemies : abilities;
+  const selectedKey = selectedByTab[activeTab] ?? activeEntries[0]?.key ?? null;
+  const detail =
+    activeTab === 'enemies'
+      ? buildEnemyJournalDetail(selectedKey, discoveryState)
+      : buildAbilityJournalDetail(selectedKey, discoveryState, playerStats);
+
+  return {
+    activeTab,
+    enemies,
+    abilities,
+    detail
+  };
+}

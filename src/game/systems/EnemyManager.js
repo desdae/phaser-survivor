@@ -47,7 +47,16 @@ export const ENEMY_TYPES = {
 };
 
 export class EnemyManager {
-  constructor(scene, player, pickupManager, effects = null, dropRoll = Math.random, damageStats = null, audioManager = null) {
+  constructor(
+    scene,
+    player,
+    pickupManager,
+    effects = null,
+    dropRoll = Math.random,
+    damageStats = null,
+    audioManager = null,
+    onSpawn = null
+  ) {
     this.scene = scene;
     this.player = player;
     this.pickupManager = pickupManager;
@@ -55,6 +64,7 @@ export class EnemyManager {
     this.dropRoll = dropRoll;
     this.damageStats = damageStats;
     this.audioManager = audioManager;
+    this.onSpawn = onSpawn;
     this.group = scene.physics.add.group();
     this.enemyProjectileGroup = scene.physics.add.group();
     this.powerupDropRoll = ({ isElite }) =>
@@ -248,6 +258,8 @@ export class EnemyManager {
       enemy.hitRadius *= eliteModifiers.scaleMultiplier ?? 1;
       enemy.setTintFill(eliteModifiers.tint);
     }
+
+    this.onSpawn?.(typeKey);
 
     return enemy;
   }
