@@ -32,6 +32,39 @@ function createPlayerStats(overrides = {}) {
     meteorDamage: 0,
     meteorRadius: 0,
     meteorCooldownMs: 0,
+    burstRifleUnlocked: false,
+    burstRifleDamage: 0,
+    burstRifleCooldownMs: 0,
+    burstRifleProjectileSpeed: 0,
+    burstRifleBurstCount: 0,
+    burstRifleSpreadDeg: 0,
+    flamethrowerUnlocked: false,
+    flamethrowerDamage: 0,
+    flamethrowerRange: 0,
+    flamethrowerCooldownMs: 0,
+    flamethrowerArcDeg: 0,
+    runeTrapUnlocked: false,
+    runeTrapDamage: 0,
+    runeTrapArmMs: 0,
+    runeTrapRadius: 0,
+    runeTrapCharges: 0,
+    runeTrapCooldownMs: 0,
+    lanceUnlocked: false,
+    lanceDamage: 0,
+    lanceCooldownMs: 0,
+    lanceLength: 0,
+    lanceWidth: 0,
+    arcMineUnlocked: false,
+    arcMineDamage: 0,
+    arcMineChains: 0,
+    arcMineTriggerRadius: 0,
+    arcMineChainRange: 0,
+    arcMineCooldownMs: 0,
+    spearBarrageUnlocked: false,
+    spearBarrageDamage: 0,
+    spearBarrageCount: 0,
+    spearBarrageRadius: 0,
+    spearBarrageCooldownMs: 0,
     ...overrides
   };
 }
@@ -50,7 +83,29 @@ describe('getChestRewardPool', () => {
         chainUnlocked: true,
         novaUnlocked: true,
         boomerangUnlocked: true,
-        meteorUnlocked: true
+        meteorUnlocked: true,
+        burstRifleUnlocked: true,
+        flamethrowerUnlocked: true,
+        runeTrapUnlocked: true,
+        lanceUnlocked: true,
+        arcMineUnlocked: true,
+        spearBarrageUnlocked: true
+      })
+    );
+
+    expect(pool.map((reward) => reward.key)).not.toContain('arsenalDraft');
+  });
+
+  it('does not offer arsenalDraft once the total ability cap is reached', () => {
+    const pool = getChestRewardPool(
+      createPlayerStats({
+        bladeUnlocked: true,
+        chainUnlocked: true,
+        novaUnlocked: true,
+        boomerangUnlocked: true,
+        meteorUnlocked: true,
+        burstRifleUnlocked: true,
+        flamethrowerUnlocked: true
       })
     );
 
@@ -86,6 +141,25 @@ describe('applyChestReward', () => {
     applyChestReward(player, { key: 'soulMagnet' }, pickupManager);
 
     expect(pickupManager.pullNearbyToPlayer).toHaveBeenCalledWith(player.sprite, 260, 440);
+  });
+
+  it('falls back to a legal non-unlock reward when arsenalDraft resolves at the cap', () => {
+    const player = createPlayerStats({
+      bladeUnlocked: true,
+      chainUnlocked: true,
+      novaUnlocked: true,
+      boomerangUnlocked: true,
+      meteorUnlocked: true,
+      burstRifleUnlocked: true,
+      flamethrowerUnlocked: true,
+      projectileDamage: 18,
+      runeTrapUnlocked: false
+    });
+
+    applyChestReward(player, { key: 'arsenalDraft' });
+
+    expect(player.runeTrapUnlocked).toBe(false);
+    expect(player.projectileDamage).toBe(32);
   });
 });
 

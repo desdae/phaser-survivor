@@ -1,11 +1,18 @@
 import { applyUpgrade } from './progression.js';
+import { ABILITY_CAP, countLearnedAbilities } from './abilityRoster.js';
 
 const WEAPON_UNLOCK_ORDER = [
   ['bladeUnlocked', 'unlockBlade'],
   ['chainUnlocked', 'unlockChain'],
   ['novaUnlocked', 'unlockNova'],
   ['boomerangUnlocked', 'unlockBoomerang'],
-  ['meteorUnlocked', 'unlockMeteor']
+  ['meteorUnlocked', 'unlockMeteor'],
+  ['burstRifleUnlocked', 'unlockBurstRifle'],
+  ['flamethrowerUnlocked', 'unlockFlamethrower'],
+  ['runeTrapUnlocked', 'unlockRuneTrap'],
+  ['lanceUnlocked', 'unlockLance'],
+  ['arcMineUnlocked', 'unlockArcMine'],
+  ['spearBarrageUnlocked', 'unlockSpearBarrage']
 ];
 
 function getPlayerStats(player) {
@@ -13,7 +20,7 @@ function getPlayerStats(player) {
 }
 
 function hasLockedWeapon(player) {
-  return WEAPON_UNLOCK_ORDER.some(([flag]) => !player[flag]);
+  return countLearnedAbilities(player) < ABILITY_CAP && WEAPON_UNLOCK_ORDER.some(([flag]) => !player[flag]);
 }
 
 function unlockFirstMissingWeapon(player) {
@@ -25,6 +32,14 @@ function unlockFirstMissingWeapon(player) {
   }
 
   applyUpgrade(player, nextUnlock[1]);
+}
+
+function resolveChestReward(stats, rewardKey) {
+  if (rewardKey === 'arsenalDraft' && countLearnedAbilities(stats) >= ABILITY_CAP) {
+    return 'relicDamage';
+  }
+
+  return rewardKey;
 }
 
 const CHEST_REWARD_DEFINITIONS = [
@@ -89,14 +104,15 @@ export function rollChestChoices(pool, rng = Math.random, count = 3) {
 }
 
 export function applyChestReward(player, reward, pickupManager) {
-  const key = typeof reward === 'string' ? reward : reward?.key;
-  const definition = CHEST_REWARD_DEFINITIONS.find((entry) => entry.key === key);
+  const rawKey = typeof reward === 'string' ? reward : reward?.key;
   const stats = getPlayerStats(player);
   const playerEntity = player;
+  const key = resolveChestReward(stats, rawKey);
+  const resolvedDefinition = CHEST_REWARD_DEFINITIONS.find((entry) => entry.key === key);
 
-  if (!definition) {
+  if (!resolvedDefinition) {
     throw new Error(`Unknown chest reward: ${key}`);
   }
 
-  definition.apply(stats, pickupManager, playerEntity);
+  resolvedDefinition.apply(stats, pickupManager, playerEntity);
 }
