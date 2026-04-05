@@ -32,21 +32,37 @@ describe('resolveMeteorStrike', () => {
 });
 
 describe('MeteorManager', () => {
-  it('queues meteor strikes and lands them after the warning delay', () => {
+  it('queues falling meteor strikes and lands them after the warning delay with a large explosion', () => {
+    const createdSprites = [];
     const sprite = {
       active: true,
       x: 0,
       y: 0,
+      texture: { key: '' },
+      setAlpha() { return this; },
       setDepth() { return this; },
       setPosition(x, y) { this.x = x; this.y = y; return this; },
+      setRotation(value) { this.rotation = value; return this; },
       setScale() { return this; },
       setTintFill() { return this; },
       clearTint() { return this; },
       destroy() { this.active = false; }
     };
+    const tweenCalls = [];
     const manager = new MeteorManager({
-      add: { image: () => ({ ...sprite }) },
-      tweens: { add: vi.fn() }
+      add: {
+        image: (x, y, key) => {
+          const created = { ...sprite, x, y, texture: { key } };
+          createdSprites.push(created);
+          return created;
+        }
+      },
+      tweens: {
+        add: vi.fn((config) => {
+          tweenCalls.push(config);
+          return config;
+        })
+      }
     });
     const damageEnemy = vi.fn();
     const player = { sprite: { x: 0, y: 0 } };
@@ -63,6 +79,10 @@ describe('MeteorManager', () => {
     manager.update(player, stats, 1500, [enemy], { damageEnemy });
     manager.update(player, stats, 1720, [enemy], { damageEnemy });
 
+    expect(createdSprites.some((entry) => entry.texture.key === 'meteor-fall')).toBe(true);
+    expect(createdSprites.some((entry) => entry.texture.key === 'meteor-explosion')).toBe(true);
+    expect(tweenCalls.some((config) => config.targets?.texture?.key === 'meteor-fall')).toBe(true);
+    expect(tweenCalls.some((config) => config.targets?.texture?.key === 'meteor-explosion')).toBe(true);
     expect(damageEnemy).toHaveBeenCalledTimes(1);
     expect(damageEnemy.mock.calls[0][0].id).toBe('target');
   });

@@ -732,6 +732,34 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('meteor-marker', 32, 32);
 
     graphics.clear();
+    graphics.fillStyle(0xff4f2b, 0.9);
+    graphics.fillEllipse(11, 66, 14, 18);
+    graphics.fillStyle(0xffc469, 0.95);
+    graphics.fillEllipse(12, 63, 10, 14);
+    graphics.fillStyle(0xfff5d8, 0.92);
+    graphics.fillEllipse(13, 60, 5, 8);
+    graphics.fillStyle(0xffc47f, 0.22);
+    graphics.fillTriangle(6, 56, 27, 6, 18, 57);
+    graphics.fillStyle(0xfff3cf, 0.2);
+    graphics.fillTriangle(10, 54, 31, 8, 20, 56);
+    graphics.fillStyle(0xff7f57, 0.16);
+    graphics.fillTriangle(2, 58, 20, 0, 12, 58);
+    graphics.generateTexture('meteor-fall', 40, 80);
+
+    graphics.clear();
+    graphics.fillStyle(0xff6e3b, 0.26);
+    graphics.fillCircle(48, 48, 40);
+    graphics.fillStyle(0xff9d4d, 0.42);
+    graphics.fillCircle(48, 48, 28);
+    graphics.fillStyle(0xffcf7b, 0.68);
+    graphics.fillCircle(48, 48, 18);
+    graphics.fillStyle(0xfff1c9, 0.9);
+    graphics.fillCircle(48, 48, 10);
+    graphics.fillStyle(0xffffff, 0.6);
+    graphics.fillCircle(48, 48, 5);
+    graphics.generateTexture('meteor-explosion', 96, 96);
+
+    graphics.clear();
     graphics.fillStyle(0x392157, 0.95);
     graphics.fillCircle(16, 16, 11);
     graphics.lineStyle(2, 0xc68bff, 0.9);

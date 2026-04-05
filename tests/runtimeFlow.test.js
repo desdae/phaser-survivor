@@ -22,7 +22,7 @@ import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
-  it('generates the projectile, burst rifle bullet, reward chest, temporary powerup, grass background, blood puddle, and flamethrower textures', () => {
+  it('generates the projectile, burst rifle bullet, meteor vfx, reward chest, temporary powerup, grass background, blood puddle, and flamethrower textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -52,6 +52,8 @@ describe('GameScene createTextures', () => {
 
     expect(generateTexture).toHaveBeenCalledWith('projectile', 10, 10);
     expect(generateTexture).toHaveBeenCalledWith('burst-rifle-projectile', 16, 10);
+    expect(generateTexture).toHaveBeenCalledWith('meteor-fall', 40, 80);
+    expect(generateTexture).toHaveBeenCalledWith('meteor-explosion', 96, 96);
     expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-frenzy', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-overcharge', 22, 22);

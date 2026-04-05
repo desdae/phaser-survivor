@@ -30,6 +30,7 @@ export class MeteorManager {
     while (this.pendingStrikes[0] && this.pendingStrikes[0].impactAt <= now) {
       const strike = this.pendingStrikes.shift();
       strike.marker.destroy?.();
+      strike.fallingMeteor?.destroy?.();
       resolveMeteorStrike(strike, enemies, enemyManager);
       this.renderImpact(strike);
       resolvedStrike = true;
@@ -40,6 +41,8 @@ export class MeteorManager {
 
   queueStrike(enemy, stats, now) {
     const marker = this.scene.add?.image?.(enemy.x, enemy.y, 'meteor-marker');
+    const [spawnX, spawnY] = this.getMeteorSpawnPosition(enemy.x, enemy.y);
+    const fallingMeteor = this.scene.add?.image?.(spawnX, spawnY, 'meteor-fall');
 
     marker?.setDepth?.(2);
     marker?.setScale?.(0.9);
@@ -51,9 +54,23 @@ export class MeteorManager {
       scaleY: 0.4,
       targets: marker
     });
+    fallingMeteor?.setDepth?.(3);
+    fallingMeteor?.setScale?.(0.95);
+    fallingMeteor?.setAlpha?.(0.96);
+    fallingMeteor?.setRotation?.(this.getMeteorRotation(spawnX, spawnY, enemy.x, enemy.y));
+    this.scene.tweens?.add?.({
+      alpha: 0.9,
+      duration: METEOR_WARNING_MS,
+      scaleX: 0.56,
+      scaleY: 0.56,
+      targets: fallingMeteor,
+      x: enemy.x,
+      y: enemy.y
+    });
 
     this.pendingStrikes.push({
       damage: stats.meteorDamage,
+      fallingMeteor,
       impactAt: now + METEOR_WARNING_MS,
       marker,
       radius: stats.meteorRadius,
@@ -63,22 +80,35 @@ export class MeteorManager {
   }
 
   renderImpact(strike) {
-    const impact = this.scene.add?.image?.(strike.x, strike.y, 'meteor-marker');
+    const impact = this.scene.add?.image?.(strike.x, strike.y, 'meteor-explosion');
 
     if (!impact) {
       return;
     }
 
-    impact.setDepth?.(3);
-    impact.setScale?.(0.25);
-    impact.setTintFill?.(0xff925e);
+    impact.setDepth?.(4);
+    impact.setScale?.(0.3);
+    impact.setAlpha?.(0.98);
+    impact.setTintFill?.(0xffb17a);
     this.scene.tweens?.add?.({
       alpha: 0,
-      duration: 220,
-      scaleX: strike.radius / 18,
-      scaleY: strike.radius / 18,
+      duration: 260,
+      scaleX: strike.radius / 12,
+      scaleY: strike.radius / 12,
       targets: impact,
       onComplete: () => impact.destroy?.()
     });
+  }
+
+  getMeteorSpawnPosition(targetX, targetY) {
+    const camera = this.scene.cameras?.main;
+    const startY = camera ? camera.scrollY - 120 : targetY - 280;
+    const startX = camera ? targetX - camera.width * 0.18 : targetX - 180;
+
+    return [startX, startY];
+  }
+
+  getMeteorRotation(startX, startY, targetX, targetY) {
+    return Math.atan2(targetY - startY, targetX - startX);
   }
 }
