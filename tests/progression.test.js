@@ -246,6 +246,54 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'flamethrowerDamage')).toBe(true);
     expect(pool.some((entry) => entry.key === 'runeTrapDamage')).toBe(true);
   });
+
+  it('offers arc mine and spear barrage unlocks before they are acquired', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: false,
+      flamethrowerUnlocked: false,
+      runeTrapUnlocked: false,
+      lanceUnlocked: false,
+      arcMineUnlocked: false,
+      spearBarrageUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockArcMine')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'unlockSpearBarrage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'arcMineDamage')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'spearBarrageDamage')).toBe(false);
+  });
+
+  it('offers arc mine and spear barrage upgrades after they are unlocked', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: false,
+      flamethrowerUnlocked: false,
+      runeTrapUnlocked: false,
+      lanceUnlocked: false,
+      arcMineUnlocked: true,
+      spearBarrageUnlocked: true,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockArcMine')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'unlockSpearBarrage')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'arcMineDamage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'spearBarrageDamage')).toBe(true);
+  });
 });
 
 describe('applyUpgrade', () => {

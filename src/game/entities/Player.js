@@ -63,7 +63,18 @@ const PLAYER_STARTING_STATS = {
   runeTrapArmMs: 0,
   runeTrapRadius: 0,
   runeTrapCharges: 0,
-  runeTrapCooldownMs: 0
+  runeTrapCooldownMs: 0,
+  arcMineUnlocked: false,
+  arcMineDamage: 0,
+  arcMineChains: 0,
+  arcMineTriggerRadius: 0,
+  arcMineChainRange: 0,
+  arcMineCooldownMs: 0,
+  spearBarrageUnlocked: false,
+  spearBarrageDamage: 0,
+  spearBarrageCount: 0,
+  spearBarrageRadius: 0,
+  spearBarrageCooldownMs: 0
 };
 
 export class Player {

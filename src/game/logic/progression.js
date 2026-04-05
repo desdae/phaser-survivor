@@ -325,6 +325,88 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'unlockArcMine',
+    label: 'Arc Mine',
+    description: 'Unlock a cursor-triggered mine that jumps lightning through nearby enemies.',
+    isAvailable: (player) => canLearnAbility(player, 'arcMineUnlocked'),
+    apply(player) {
+      player.arcMineUnlocked = true;
+      player.arcMineDamage = Math.max(player.arcMineDamage, 16);
+      player.arcMineChains = Math.max(player.arcMineChains, 2);
+      player.arcMineTriggerRadius = Math.max(player.arcMineTriggerRadius, 20);
+      player.arcMineChainRange = Math.max(player.arcMineChainRange, 32);
+      player.arcMineCooldownMs = Math.max(player.arcMineCooldownMs, 0) || 900;
+    }
+  },
+  {
+    key: 'arcMineDamage',
+    label: 'Storm Core',
+    description: '+6 arc mine damage',
+    isAvailable: (player) => player.arcMineUnlocked,
+    apply(player) {
+      player.arcMineDamage += 6;
+    }
+  },
+  {
+    key: 'arcMineChains',
+    label: 'Jump Circuit',
+    description: '+1 arc mine chain',
+    isAvailable: (player) => player.arcMineUnlocked,
+    apply(player) {
+      player.arcMineChains += 1;
+    }
+  },
+  {
+    key: 'arcMineRadius',
+    label: 'Seeking Charge',
+    description: '+8 arc mine trigger radius',
+    isAvailable: (player) => player.arcMineUnlocked,
+    apply(player) {
+      player.arcMineTriggerRadius += 8;
+      player.arcMineChainRange += 8;
+    }
+  },
+  {
+    key: 'unlockSpearBarrage',
+    label: 'Spear Barrage',
+    description: 'Unlock a falling cursor barrage that rains spears onto a target area.',
+    isAvailable: (player) => canLearnAbility(player, 'spearBarrageUnlocked'),
+    apply(player) {
+      player.spearBarrageUnlocked = true;
+      player.spearBarrageDamage = Math.max(player.spearBarrageDamage, 18);
+      player.spearBarrageCount = Math.max(player.spearBarrageCount, 2);
+      player.spearBarrageRadius = Math.max(player.spearBarrageRadius, 30);
+      player.spearBarrageCooldownMs = Math.max(player.spearBarrageCooldownMs, 0) || 1200;
+    }
+  },
+  {
+    key: 'spearBarrageDamage',
+    label: 'Skyfall Steel',
+    description: '+7 spear barrage damage',
+    isAvailable: (player) => player.spearBarrageUnlocked,
+    apply(player) {
+      player.spearBarrageDamage += 7;
+    }
+  },
+  {
+    key: 'spearBarrageCount',
+    label: 'Phalanx Rain',
+    description: '+1 falling spear',
+    isAvailable: (player) => player.spearBarrageUnlocked,
+    apply(player) {
+      player.spearBarrageCount += 1;
+    }
+  },
+  {
+    key: 'spearBarrageRadius',
+    label: 'Impaling Circle',
+    description: '+8 spear impact radius',
+    isAvailable: (player) => player.spearBarrageUnlocked,
+    apply(player) {
+      player.spearBarrageRadius += 8;
+    }
+  },
+  {
     key: 'runeTrapDamage',
     label: 'Sigil Ruin',
     description: '+8 rune trap damage',
