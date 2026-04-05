@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ABILITY_JOURNAL_ORDER,
   ENEMY_JOURNAL_ORDER,
+  buildAbilityJournalDetail,
   buildAbilityJournalList,
+  buildEnemyJournalDetail,
   buildEnemyJournalList
 } from '../src/game/logic/journalData.js';
 import {
@@ -50,5 +52,56 @@ describe('buildAbilityJournalList', () => {
     expect(rows.map((row) => row.key)).toEqual(ABILITY_JOURNAL_ORDER);
     expect(rows[0]).toMatchObject({ key: 'projectile', discovered: true, label: 'Auto Shot' });
     expect(rows[1]).toMatchObject({ discovered: false, label: '???' });
+  });
+});
+
+describe('buildEnemyJournalDetail', () => {
+  it('builds exact enemy details for discovered entries', () => {
+    const state = createJournalDiscoveryState();
+    discoverEnemy(state, 'spitter');
+
+    const detail = buildEnemyJournalDetail('spitter', state);
+
+    expect(detail.title).toBe('Grave Spitter');
+    expect(detail.rows).toContainEqual({ label: 'HP', value: '44' });
+    expect(detail.rows).toContainEqual({ label: 'Damage', value: '10 projectile' });
+    expect(detail.rows).toContainEqual({ label: 'Speed', value: '78' });
+    expect(detail.rows).toContainEqual({ label: 'Attack', value: 'Ranged spit' });
+  });
+
+  it('hides undiscovered enemy details behind placeholders', () => {
+    const detail = buildEnemyJournalDetail('tough', createJournalDiscoveryState());
+
+    expect(detail.title).toBe('???');
+    expect(detail.rows).toEqual([]);
+    expect(detail.description).toMatch(/unknown/i);
+  });
+});
+
+describe('buildAbilityJournalDetail', () => {
+  it('builds learned ability details with exact upgrade paths', () => {
+    const state = createJournalDiscoveryState();
+    discoverAbility(state, 'meteor');
+
+    const detail = buildAbilityJournalDetail('meteor', state, {
+      meteorUnlocked: true,
+      meteorDamage: 28,
+      meteorRadius: 52,
+      meteorCooldownMs: 2600,
+      meteorCount: 1
+    });
+
+    expect(detail.title).toBe('Starcall');
+    expect(detail.rows).toContainEqual({ label: 'Damage', value: '28' });
+    expect(detail.rows).toContainEqual({ label: 'Radius', value: '52' });
+    expect(detail.rows).toContainEqual({ label: 'Cooldown', value: '2600 ms' });
+    expect(detail.upgradePaths).toContainEqual({ label: 'Falling Wrath', value: '+10 meteor damage' });
+  });
+
+  it('hides upgrade paths for unlearned abilities', () => {
+    const detail = buildAbilityJournalDetail('chain', createJournalDiscoveryState(), {});
+
+    expect(detail.title).toBe('???');
+    expect(detail.upgradePaths).toEqual([]);
   });
 });

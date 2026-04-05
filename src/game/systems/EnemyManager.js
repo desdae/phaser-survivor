@@ -14,7 +14,7 @@ import { rollPowerupDrop } from '../logic/temporaryPowerups.js';
 const HEART_DROP_CHANCE = 0.03;
 const HEART_HEAL_AMOUNT = 10;
 
-const ENEMY_TYPES = {
+export const ENEMY_TYPES = {
   basic: {
     texture: 'enemy-basic',
     speed: 92,
