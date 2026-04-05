@@ -74,4 +74,15 @@ describe('DamageStatsManager', () => {
 
     expect(manager.getRows(10000).map((row) => row.key)).toEqual(['projectile', 'meteor']);
   });
+
+  it('adds newly learned abilities to the damage table only after unlock', () => {
+    const manager = new DamageStatsManager();
+
+    expect(manager.getRows(1000).map((row) => row.key)).toEqual(['projectile']);
+
+    manager.unlock('burstRifle', 1200);
+    manager.record('burstRifle', 40);
+
+    expect(manager.getRows(2200).map((row) => row.key)).toEqual(['projectile', 'burstRifle']);
+  });
 });

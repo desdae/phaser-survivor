@@ -4,7 +4,13 @@ export const DAMAGE_STAT_DEFINITIONS = [
   { key: 'chain', label: 'Storm Lash' },
   { key: 'nova', label: 'Pulse Engine' },
   { key: 'boomerang', label: 'Razor Boomerang' },
-  { key: 'meteor', label: 'Starcall' }
+  { key: 'meteor', label: 'Starcall' },
+  { key: 'burstRifle', label: 'Burst Rifle' },
+  { key: 'flamethrower', label: 'Flamethrower' },
+  { key: 'runeTrap', label: 'Rune Trap' },
+  { key: 'lance', label: 'Piercing Lance' },
+  { key: 'arcMine', label: 'Arc Mine' },
+  { key: 'spearBarrage', label: 'Spear Barrage' }
 ];
 
 export function getDamagePerSecond(totalDamage, elapsedMs) {
@@ -66,6 +72,30 @@ export class DamageStatsManager {
 
     if (playerStats.meteorUnlocked) {
       this.unlock('meteor', elapsedMs);
+    }
+
+    if (playerStats.burstRifleUnlocked) {
+      this.unlock('burstRifle', elapsedMs);
+    }
+
+    if (playerStats.flamethrowerUnlocked) {
+      this.unlock('flamethrower', elapsedMs);
+    }
+
+    if (playerStats.runeTrapUnlocked) {
+      this.unlock('runeTrap', elapsedMs);
+    }
+
+    if (playerStats.lanceUnlocked) {
+      this.unlock('lance', elapsedMs);
+    }
+
+    if (playerStats.arcMineUnlocked) {
+      this.unlock('arcMine', elapsedMs);
+    }
+
+    if (playerStats.spearBarrageUnlocked) {
+      this.unlock('spearBarrage', elapsedMs);
     }
   }
 

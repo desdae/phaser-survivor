@@ -948,6 +948,122 @@ describe('GameScene update', () => {
     expect(sceneLike.temporaryBuffSystem.getSummaryRows).toHaveBeenCalledWith(12000);
     expect(sceneLike.elapsedMs).toBe(12000);
   });
+
+  it('runs aimed and placed ability managers with the live mouse world position', () => {
+    const sceneLike = {
+      activePauseOverlay: null,
+      arcMineManager: { update: vi.fn() },
+      background: {
+        tilePositionX: 0,
+        tilePositionY: 0
+      },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      burstRifleManager: { update: vi.fn() },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      damageStatsOverlay: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      elapsedMs: 0,
+      enemyManager: {
+        getNearEnemyQuery: vi.fn().mockReturnValue([]),
+        update: vi.fn().mockReturnValue([])
+      },
+      flamethrowerManager: { update: vi.fn() },
+      handleStatsToggle: vi.fn(),
+      input: {
+        activePointer: { worldX: 280, worldY: 140 }
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      lanceManager: { update: vi.fn() },
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          pickupRadius: 48
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      runeTrapManager: { update: vi.fn() },
+      scale: {
+        width: 1280,
+        height: 720
+      },
+      spearBarrageManager: { update: vi.fn() },
+      statsKey: {},
+      updateEliteWave: vi.fn(),
+      audioManager: {},
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        update: vi.fn()
+      },
+      time: {
+        now: 16
+      },
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.burstRifleManager.update).toHaveBeenCalled();
+    expect(sceneLike.flamethrowerManager.update).toHaveBeenCalled();
+    expect(sceneLike.runeTrapManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      { x: 280, y: 140 },
+      16,
+      [],
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.lanceManager.update).toHaveBeenCalled();
+    expect(sceneLike.arcMineManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      { x: 280, y: 140 },
+      16,
+      [],
+      sceneLike.enemyManager
+    );
+    expect(sceneLike.spearBarrageManager.update).toHaveBeenCalledWith(
+      sceneLike.player,
+      sceneLike.player.stats,
+      { x: 280, y: 140 },
+      16,
+      [],
+      sceneLike.enemyManager
+    );
+  });
 });
 
 describe('GameScene refreshHud', () => {

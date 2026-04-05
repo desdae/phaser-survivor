@@ -1,13 +1,20 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player.js';
+import { countLearnedAbilities } from '../logic/abilityRoster.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
+import { ArcMineManager } from '../systems/ArcMineManager.js';
 import { BladeManager } from '../systems/BladeManager.js';
 import { BoomerangManager } from '../systems/BoomerangManager.js';
 import { BloodEffectsManager } from '../systems/BloodEffectsManager.js';
+import { BurstRifleManager } from '../systems/BurstRifleManager.js';
 import { ChainManager } from '../systems/ChainManager.js';
 import { DamageStatsManager } from '../systems/DamageStatsManager.js';
+import { FlamethrowerManager } from '../systems/FlamethrowerManager.js';
+import { LanceManager } from '../systems/LanceManager.js';
 import { MeteorManager } from '../systems/MeteorManager.js';
 import { NovaManager } from '../systems/NovaManager.js';
+import { RuneTrapManager } from '../systems/RuneTrapManager.js';
+import { SpearBarrageManager } from '../systems/SpearBarrageManager.js';
 import { EliteWaveSystem } from '../systems/EliteWaveSystem.js';
 import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
 import { AudioManager } from '../systems/AudioManager.js';
@@ -20,6 +27,7 @@ import {
   getGrassTextureKey,
   getVisibleGrassTiles
 } from '../logic/backgroundTiles.js';
+import { getAimDirection } from '../logic/combat.js';
 import { getSpawnProfile } from '../logic/spawn.js';
 import {
   createChestOverlay,
@@ -64,11 +72,17 @@ export class GameScene extends Phaser.Scene {
       this.audioManager
     );
     this.projectileManager = new ProjectileManager(this);
+    this.burstRifleManager = new BurstRifleManager(this.projectileManager);
     this.bladeManager = new BladeManager(this);
     this.chainManager = new ChainManager(this);
     this.novaManager = new NovaManager(this);
     this.boomerangManager = new BoomerangManager(this);
     this.meteorManager = new MeteorManager(this);
+    this.flamethrowerManager = new FlamethrowerManager(this);
+    this.runeTrapManager = new RuneTrapManager(this);
+    this.lanceManager = new LanceManager(this);
+    this.arcMineManager = new ArcMineManager(this);
+    this.spearBarrageManager = new SpearBarrageManager(this);
     this.upgradeSystem = new UpgradeSystem();
     this.temporaryBuffSystem = new TemporaryBuffSystem();
     this.chestRewardSystem = new ChestRewardSystem();
@@ -182,8 +196,10 @@ export class GameScene extends Phaser.Scene {
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
+    const aimDirection = getAimDirection(this.player.sprite, this.mouseWorld);
     this.projectileManager.update(time);
     this.projectileManager.tryFire(this.player, effectiveStats, livingEnemies, time);
+    this.burstRifleManager?.update?.(this.player, effectiveStats, aimDirection, time);
     this.bladeManager.syncToPlayer(effectiveStats);
     this.bladeManager.update(
       this.player,
@@ -195,6 +211,30 @@ export class GameScene extends Phaser.Scene {
     );
     this.chainManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
     this.novaManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
+    this.flamethrowerManager?.update?.(
+      this.player,
+      effectiveStats,
+      aimDirection,
+      time,
+      nearEnemyQuery,
+      this.enemyManager
+    );
+    this.runeTrapManager?.update?.(
+      this.player,
+      effectiveStats,
+      this.mouseWorld,
+      time,
+      nearEnemyQuery,
+      this.enemyManager
+    );
+    this.lanceManager?.update?.(
+      this.player,
+      effectiveStats,
+      aimDirection,
+      time,
+      nearEnemyQuery,
+      this.enemyManager
+    );
     this.boomerangManager.update(
       this.player,
       effectiveStats,
@@ -203,7 +243,23 @@ export class GameScene extends Phaser.Scene {
       nearEnemyQuery,
       this.enemyManager
     );
+    this.arcMineManager?.update?.(
+      this.player,
+      effectiveStats,
+      this.mouseWorld,
+      time,
+      nearEnemyQuery,
+      this.enemyManager
+    );
     this.meteorManager.update(this.player, effectiveStats, time, nearEnemyQuery, this.enemyManager);
+    this.spearBarrageManager?.update?.(
+      this.player,
+      effectiveStats,
+      this.mouseWorld,
+      time,
+      nearEnemyQuery,
+      this.enemyManager
+    );
     this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
     this.refreshHud(livingEnemies.length);
   }
@@ -390,13 +446,7 @@ export class GameScene extends Phaser.Scene {
       enemyCount,
       projectileCount: this.player.stats.projectileCount,
       bladeCount: this.player.stats.bladeCount,
-      activeWeapons:
-        1 +
-        Number(this.player.stats.bladeUnlocked) +
-        Number(this.player.stats.chainUnlocked) +
-        Number(this.player.stats.novaUnlocked) +
-        Number(this.player.stats.boomerangUnlocked) +
-        Number(this.player.stats.meteorUnlocked),
+      activeWeapons: countLearnedAbilities(this.player.stats),
       eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
     this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.elapsedMs) ?? []);
@@ -637,6 +687,18 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(2, 0xff7d5f, 1);
     graphics.strokeCircle(16, 16, 14);
     graphics.generateTexture('meteor-marker', 32, 32);
+
+    graphics.clear();
+    graphics.fillStyle(0x392157, 0.95);
+    graphics.fillCircle(16, 16, 11);
+    graphics.lineStyle(2, 0xc68bff, 0.9);
+    graphics.strokeCircle(16, 16, 13);
+    graphics.lineStyle(2, 0xf4ceff, 0.9);
+    graphics.lineBetween(16, 4, 16, 28);
+    graphics.lineBetween(4, 16, 28, 16);
+    graphics.lineBetween(8, 8, 24, 24);
+    graphics.lineBetween(24, 8, 8, 24);
+    graphics.generateTexture('rune-trap', 32, 32);
 
     graphics.clear();
     graphics.fillStyle(0xa11724, 1);

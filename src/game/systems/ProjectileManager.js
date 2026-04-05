@@ -101,7 +101,7 @@ export class ProjectileManager {
       return;
     }
 
-    enemyManager.damageEnemy(enemy, projectile.damage, 'projectile');
+    enemyManager.damageEnemy(enemy, projectile.damage, projectile.weaponKey ?? 'projectile');
 
     if (projectile.remainingPierce > 0) {
       projectile.remainingPierce -= 1;
