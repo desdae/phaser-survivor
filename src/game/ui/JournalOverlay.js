@@ -12,6 +12,9 @@ const JOURNAL_THEME = {
   closeSize: 50,
   portraitWidth: 244,
   portraitHeight: 304,
+  listRowStep: 46,
+  listVisibleRows: 9,
+  listScrollStep: 1,
   colors: {
     backdrop: 0x040507,
     vignette: 0x000000,
@@ -285,6 +288,8 @@ export function createJournalOverlay(scene) {
     scene.add.rectangle(0, 0, JOURNAL_THEME.leftPanelWidth - 40, 31, 0x2f241f, 0.12).setOrigin(0, 0)
   );
   const rowTexts = Array.from({ length: 12 }, () => scene.add.text(0, 0, '', JOURNAL_THEME.fonts.rowKnown));
+  const listScrollTrack = scene.add.rectangle(0, 0, 12, 0, 0x241916, 0.7).setOrigin(0, 0);
+  const listScrollThumb = scene.add.rectangle(0, 0, 10, 0, JOURNAL_THEME.colors.parchment, 0.9).setOrigin(0, 0);
 
   const container = scene.add.container(0, 0, [
     backdrop,
@@ -327,6 +332,8 @@ export function createJournalOverlay(scene) {
     ...upgradeRows,
     ...rowBackgrounds,
     ...rowTexts,
+    listScrollTrack,
+    listScrollThumb,
     closePlate,
     closePlateInner,
     closeGlyph,
@@ -350,6 +357,8 @@ export function createJournalOverlay(scene) {
   setRectStyle(leftPanelInner, 0x322722, 0.18, JOURNAL_THEME.colors.bronzeDim, 0.18, 1);
   setRectStyle(rightPanel, 0x181311, 0.92, JOURNAL_THEME.colors.bronzeDim, 0.38, 2);
   setRectStyle(rightPanelInner, 0x3a2c24, 0.16, JOURNAL_THEME.colors.bronze, 0.12, 1);
+  setRectStyle(listScrollTrack, 0x201612, 0.8, JOURNAL_THEME.colors.bronzeDim, 0.12, 1);
+  setRectStyle(listScrollThumb, JOURNAL_THEME.colors.parchment, 0.88, JOURNAL_THEME.colors.bronze, 0.2, 1);
   setRectStyle(portraitFrame, 0x16110d, 0.96, JOURNAL_THEME.colors.bronze, 0.42, 2);
   setRectStyle(portraitMat, 0x2c211c, 0.72, JOURNAL_THEME.colors.bronzeDim, 0.14, 1);
   setRectStyle(closePlate, 0x6c2419, 0.95, JOURNAL_THEME.colors.bone, 0.26, 2);
@@ -361,10 +370,13 @@ export function createJournalOverlay(scene) {
   driftAmbient(emberMotes, scene, 14, 1800, 40);
 
   let activeTab = 'enemies';
+  let currentPayload = null;
   let currentState = {
     activeTab: 'enemies',
     detailTitle: '',
     selectedRowKey: null,
+    listScrollOffset: 0,
+    listCanScroll: false,
     hasPortraitFrame: true,
     ambient: {
       candleCount: 2,
@@ -376,6 +388,55 @@ export function createJournalOverlay(scene) {
   let tabBounds = [];
   let closeBounds = null;
   let rowBounds = [];
+  let listBounds = null;
+  let listScrollBounds = null;
+  let listScrollLocalBounds = null;
+  const scrollOffsets = {
+    enemies: 0,
+    abilities: 0
+  };
+
+  function clampScrollOffset(entries) {
+    const maxOffset = Math.max(0, entries.length - JOURNAL_THEME.listVisibleRows);
+    const nextOffset = Math.min(maxOffset, Math.max(0, scrollOffsets[activeTab] ?? 0));
+    scrollOffsets[activeTab] = nextOffset;
+    currentState.listScrollOffset = nextOffset;
+    currentState.listCanScroll = maxOffset > 0;
+    return nextOffset;
+  }
+
+  function estimateWrappedLineCount(text, maxCharsPerLine = 42) {
+    if (!text) {
+      return 1;
+    }
+
+    return String(text)
+      .split('\n')
+      .reduce((lineCount, line) => lineCount + Math.max(1, Math.ceil(line.length / maxCharsPerLine)), 0);
+  }
+
+  function updateScrollVisual(entries) {
+    const trackHeight = JOURNAL_THEME.listVisibleRows * JOURNAL_THEME.listRowStep - 12;
+    const maxOffset = Math.max(0, entries.length - JOURNAL_THEME.listVisibleRows);
+    const canScroll = maxOffset > 0;
+
+    listScrollTrack.setVisible(canScroll);
+    listScrollThumb.setVisible(canScroll);
+
+    if (!canScroll || !listScrollBounds || !listScrollLocalBounds) {
+      return;
+    }
+
+    const thumbHeight = Math.max(42, Math.round(trackHeight * (JOURNAL_THEME.listVisibleRows / entries.length)));
+    const travel = Math.max(0, trackHeight - thumbHeight);
+    const ratio = maxOffset === 0 ? 0 : scrollOffsets[activeTab] / maxOffset;
+    const thumbY = listScrollLocalBounds.y + Math.round(travel * ratio);
+
+    listScrollTrack.setPosition(listScrollLocalBounds.x, listScrollLocalBounds.y);
+    listScrollTrack.setSize(listScrollLocalBounds.width, trackHeight);
+    listScrollThumb.setPosition(listScrollLocalBounds.x + 1, thumbY + 1);
+    listScrollThumb.setSize(listScrollLocalBounds.width - 2, thumbHeight - 2);
+  }
 
   function updateTabStyles() {
     const isEnemies = activeTab === 'enemies';
@@ -391,20 +452,24 @@ export function createJournalOverlay(scene) {
     const entries = activeTab === 'enemies' ? payload.enemies ?? [] : payload.abilities ?? [];
     const selectedKey = payload.selectedKey ?? payload.detail?.key ?? entries[0]?.key ?? null;
     const layout = currentState.layout;
+    const scrollOffset = clampScrollOffset(entries);
+    const visibleEntries = entries.slice(scrollOffset, scrollOffset + JOURNAL_THEME.listVisibleRows);
     currentState.selectedRowKey = selectedKey;
     rowBounds = [];
 
     rowTexts.forEach((rowText, index) => {
       const rowBackground = rowBackgrounds[index];
-      const entry = entries[index];
+      const entry = visibleEntries[index];
 
       if (!entry) {
         rowText.setText('');
         rowBackground.setVisible(false);
+        rowText.setVisible(false);
         return;
       }
 
       rowBackground.setVisible(true);
+      rowText.setVisible(true);
       rowText.setText(entry.label);
 
       const isSelected = entry.key === selectedKey;
@@ -427,15 +492,24 @@ export function createJournalOverlay(scene) {
         key: entry.key,
         tab: activeTab,
         x: layout.panelLeft + layout.leftPanelX + 16,
-        y: layout.panelTop + layout.leftPanelY + 34 + index * 46,
+        y: layout.panelTop + layout.leftPanelY + 34 + index * JOURNAL_THEME.listRowStep,
         width: layout.leftPanelWidth - 32,
         height: 34
       });
     });
+
+    rowBackgrounds
+      .slice(visibleEntries.length)
+      .forEach((rowBackground) => rowBackground.setVisible(false));
+
+    updateScrollVisual(entries);
   }
 
   function updateDetail(payload) {
     const detail = payload.detail ?? { title: '', rows: [], description: '', upgradePaths: [] };
+    const layout = currentState.layout;
+    const statRowsData = detail.rows ?? [];
+    const upgradePathData = detail.upgradePaths ?? [];
     currentState.detailTitle = detail.title ?? '';
     detailTitle.setText(detail.title ?? '');
     detailDescription.setText(detail.description ?? '');
@@ -449,20 +523,53 @@ export function createJournalOverlay(scene) {
     }
 
     detailRows.forEach((rowText, index) => {
-      const row = detail.rows?.[index];
-      rowText.setText(row ? `${row.label} ${row.value}` : '');
-    });
-
-    const hasUpgrades = (detail.upgradePaths?.length ?? 0) > 0;
-    upgradeHeader.setVisible(hasUpgrades);
-    upgradeRows.forEach((rowText, index) => {
-      const row = detail.upgradePaths?.[index];
+      const row = statRowsData[index];
       rowText.setText(row ? `${row.label} ${row.value}` : '');
       rowText.setVisible(Boolean(row));
+    });
+
+    const statsStartY = layout.rightPanelY + 156;
+    const statsEndY = statsStartY + statRowsData.length * 40;
+    const upgradeStartY = Math.max(layout.upgradeY, statsEndY + 12);
+
+    detailRows.forEach((rowText, index) => {
+      if (!statRowsData[index]) {
+        return;
+      }
+
+      rowText.setPosition(layout.detailStartX, statsStartY + index * 40);
+    });
+
+    const hasUpgrades = upgradePathData.length > 0;
+    upgradeHeader.setVisible(hasUpgrades);
+    upgradeHeader.setPosition(layout.detailStartX, upgradeStartY);
+    statDivider.setPosition(layout.detailStartX, upgradeStartY - 16);
+    statDivider.setSize(layout.rightPanelWidth - 322, 1);
+
+    let nextUpgradeY = upgradeStartY + 32;
+    upgradeRows.forEach((rowText, index) => {
+      const row = upgradePathData[index];
+
+      if (!row) {
+        rowText.setText('');
+        rowText.setVisible(false);
+        return;
+      }
+
+      const lineCount = estimateWrappedLineCount(`${row.label} ${row.value}`);
+      rowText.setPosition(layout.detailStartX, nextUpgradeY);
+      rowText.setStyle({
+        ...JOURNAL_THEME.fonts.bodyDim,
+        wordWrap: { width: Math.max(280, layout.rightPanelWidth - 330) }
+      });
+      rowText.setText(`${row.label} ${row.value}`);
+      rowText.setVisible(Boolean(row));
+      nextUpgradeY += 18 * lineCount + 8;
     });
   }
 
   function applyPayload(payload) {
+    currentPayload = payload;
     activeTab = payload.activeTab ?? activeTab;
     updateTabStyles();
     updateRows(payload);
@@ -539,22 +646,36 @@ export function createJournalOverlay(scene) {
       statDivider.setSize(layout.rightPanelWidth - 322, 1);
 
       detailRows.forEach((rowText, index) => {
-        rowText.setPosition(layout.detailStartX, layout.rightPanelY + 156 + index * 44);
-      });
-      upgradeHeader.setPosition(layout.detailStartX, layout.upgradeY);
-      upgradeRows.forEach((rowText, index) => {
-        rowText.setPosition(layout.detailStartX, layout.upgradeY + 32 + index * 22);
+        rowText.setPosition(layout.detailStartX, layout.rightPanelY + 156 + index * 40);
       });
 
       rowBounds = [];
       rowBackgrounds.forEach((rowBackground, index) => {
-        const rowY = layout.leftPanelY + 34 + index * 46;
+        const rowY = layout.leftPanelY + 34 + index * JOURNAL_THEME.listRowStep;
         rowBackground.setPosition(layout.leftPanelX + 16, rowY);
         rowBackground.setSize(layout.leftPanelWidth - 32, 34);
       });
       rowTexts.forEach((rowText, index) => {
-        rowText.setPosition(layout.leftPanelX + 28, layout.leftPanelY + 39 + index * 46);
+        rowText.setPosition(layout.leftPanelX + 28, layout.leftPanelY + 39 + index * JOURNAL_THEME.listRowStep);
       });
+      listBounds = {
+        x: layout.panelLeft + layout.leftPanelX + 16,
+        y: layout.panelTop + layout.leftPanelY + 34,
+        width: layout.leftPanelWidth - 32,
+        height: JOURNAL_THEME.listVisibleRows * JOURNAL_THEME.listRowStep
+      };
+      listScrollBounds = {
+        x: layout.panelLeft + layout.leftPanelX + layout.leftPanelWidth - 20,
+        y: layout.panelTop + layout.leftPanelY + 34,
+        width: 12,
+        height: JOURNAL_THEME.listVisibleRows * JOURNAL_THEME.listRowStep - 12
+      };
+      listScrollLocalBounds = {
+        x: layout.leftPanelX + layout.leftPanelWidth - 20,
+        y: layout.leftPanelY + 34,
+        width: 12,
+        height: JOURNAL_THEME.listVisibleRows * JOURNAL_THEME.listRowStep - 12
+      };
 
       closePlate.setPosition(layout.panelWidth - 42, 42);
       closePlateInner.setPosition(layout.panelWidth - 42, 42);
@@ -601,10 +722,50 @@ export function createJournalOverlay(scene) {
       rowBounds = rowBounds.map((bounds, index) => ({
         ...bounds,
         x: layout.panelLeft + layout.leftPanelX + 16,
-        y: layout.panelTop + layout.leftPanelY + 34 + index * 46,
+        y: layout.panelTop + layout.leftPanelY + 34 + index * JOURNAL_THEME.listRowStep,
         width: layout.leftPanelWidth - 32,
         height: 34
       }));
+
+      if (currentPayload) {
+        updateRows(currentPayload);
+        updateDetail(currentPayload);
+      }
+    },
+    handleWheel(pointerX, pointerY, deltaY) {
+      if (!container.visible || !listBounds || !listScrollBounds) {
+        return false;
+      }
+
+      const withinList =
+        pointerX >= listBounds.x &&
+        pointerX <= listBounds.x + listBounds.width &&
+        pointerY >= listBounds.y &&
+        pointerY <= listBounds.y + listBounds.height;
+      const withinScrollbar =
+        pointerX >= listScrollBounds.x &&
+        pointerX <= listScrollBounds.x + listScrollBounds.width &&
+        pointerY >= listScrollBounds.y &&
+        pointerY <= listScrollBounds.y + listScrollBounds.height;
+
+      if (!withinList && !withinScrollbar) {
+        return false;
+      }
+
+      const entries = activeTab === 'enemies' ? currentPayload?.enemies ?? [] : currentPayload?.abilities ?? [];
+      const maxOffset = Math.max(0, entries.length - JOURNAL_THEME.listVisibleRows);
+
+      if (maxOffset === 0) {
+        return false;
+      }
+
+      const direction = deltaY > 0 ? 1 : -1;
+      scrollOffsets[activeTab] = Math.min(
+        maxOffset,
+        Math.max(0, (scrollOffsets[activeTab] ?? 0) + direction * JOURNAL_THEME.listScrollStep)
+      );
+      updateRows(currentPayload);
+      return true;
     },
     handlePointer(pointerX, pointerY) {
       if (!container.visible) {
@@ -641,6 +802,23 @@ export function createJournalOverlay(scene) {
       );
       if (rowHit) {
         return { type: 'select-entry', tab: rowHit.tab, key: rowHit.key };
+      }
+
+      if (
+        listScrollBounds &&
+        pointerX >= listScrollBounds.x &&
+        pointerX <= listScrollBounds.x + listScrollBounds.width &&
+        pointerY >= listScrollBounds.y &&
+        pointerY <= listScrollBounds.y + listScrollBounds.height
+      ) {
+        const entries = activeTab === 'enemies' ? currentPayload?.enemies ?? [] : currentPayload?.abilities ?? [];
+        const maxOffset = Math.max(0, entries.length - JOURNAL_THEME.listVisibleRows);
+
+        if (maxOffset > 0) {
+          const ratio = Math.min(1, Math.max(0, (pointerY - listScrollBounds.y) / listScrollBounds.height));
+          scrollOffsets[activeTab] = Math.round(ratio * maxOffset);
+          updateRows(currentPayload);
+        }
       }
 
       return null;

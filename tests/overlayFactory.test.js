@@ -19,6 +19,8 @@ function createFakeDisplayObject() {
     text: '',
     style: null,
     texture: null,
+    width: 0,
+    height: 0,
     x: 0,
     y: 0,
     scaleX: 1,
@@ -41,7 +43,11 @@ function createFakeDisplayObject() {
       this.scaleY = y;
       return this;
     }),
-    setSize: vi.fn().mockReturnThis(),
+    setSize: vi.fn(function setSize(width, height) {
+      this.width = width;
+      this.height = height;
+      return this;
+    }),
     setDisplaySize: vi.fn().mockReturnThis(),
     setFillStyle: vi.fn().mockReturnThis(),
     setTexture: vi.fn(function setTexture(value) {
@@ -79,8 +85,12 @@ function createFakeScene() {
       height: 720
     },
     add: {
-      rectangle: vi.fn(() => {
+      rectangle: vi.fn((x = 0, y = 0, width = 0, height = 0) => {
         const rectangle = createFakeDisplayObject();
+        rectangle.x = x;
+        rectangle.y = y;
+        rectangle.width = width;
+        rectangle.height = height;
         rectangles.push(rectangle);
         return rectangle;
       }),
@@ -344,6 +354,75 @@ describe('createJournalOverlay', () => {
 
     expect(overlay.getState().detailTitle).toBe('???');
     expect(scene.texts.some((text) => text.text === 'An unknown threat.')).toBe(true);
+  });
+
+  it('scrolls overflowing ability entries and exposes a scrollable state', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+    const abilities = Array.from({ length: 12 }, (_, index) => ({
+      key: `ability-${index}`,
+      label: `Ability ${index}`,
+      discovered: true
+    }));
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'abilities',
+      enemies: [],
+      abilities,
+      selectedKey: abilities[0].key,
+      detail: {
+        title: 'Ability 0',
+        rows: [{ label: 'Damage', value: '20' }],
+        upgradePaths: Array.from({ length: 5 }, (_, index) => ({
+          label: `Upgrade ${index}`,
+          value: '+10 power'
+        })),
+        description: 'A test ability.'
+      }
+    });
+
+    expect(overlay.getState().listCanScroll).toBe(true);
+    expect(overlay.handleWheel(170, 220, 120)).toBe(true);
+    expect(overlay.getState().listScrollOffset).toBe(1);
+    expect(overlay.handlePointer(150, 220)).toEqual({
+      type: 'select-entry',
+      tab: 'abilities',
+      key: 'ability-1'
+    });
+  });
+
+  it('keeps the rendered scrollbar inside the left list panel instead of screen-space drifting', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+    const abilities = Array.from({ length: 12 }, (_, index) => ({
+      key: `ability-${index}`,
+      label: `Ability ${index}`,
+      discovered: true
+    }));
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'abilities',
+      enemies: [],
+      abilities,
+      selectedKey: abilities[0].key,
+      detail: {
+        title: 'Ability 0',
+        rows: [{ label: 'Damage', value: '20' }],
+        upgradePaths: [],
+        description: 'A test ability.'
+      }
+    });
+
+    const scrollTrack = scene.rectangles.find((rectangle) => rectangle.width === 12 && rectangle.height > 350);
+    const scrollThumb = scene.rectangles.find((rectangle) => rectangle.width === 10 && rectangle.height > 30);
+
+    expect(scrollTrack).toBeDefined();
+    expect(scrollThumb).toBeDefined();
+    expect(scrollTrack.x).toBeLessThanOrEqual(304);
+    expect(scrollTrack.x).toBeGreaterThanOrEqual(292);
+    expect(scrollThumb.x).toBeGreaterThan(scrollTrack.x);
   });
 });
 

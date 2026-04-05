@@ -146,6 +146,9 @@ export class GameScene extends Phaser.Scene {
       this.audioManager?.unlock?.();
     });
     this.input.on('pointerdown', (pointer) => this.handleScenePointerDown(pointer));
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) =>
+      this.handleSceneWheel(pointer, deltaY)
+    );
     this.input.keyboard.on?.('keydown-R', () => this.handleRestartKeyDown());
 
     this.physics.add.overlap(this.projectileManager.group, this.enemyManager.group, (projectile, enemy) => {
@@ -316,6 +319,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
+  }
+
+  handleSceneWheel(pointer, deltaY) {
+    if (this.activePauseOverlay !== 'journal' || !this.isGameplayPaused) {
+      return;
+    }
+
+    this.journalOverlay?.handleWheel?.(pointer.x, pointer.y, deltaY);
   }
 
   handleJournalKey() {

@@ -1390,6 +1390,36 @@ describe('GameScene handleScenePointerDown', () => {
   });
 });
 
+describe('GameScene handleSceneWheel', () => {
+  it('routes wheel scrolling into the journal overlay while the journal is open', () => {
+    const sceneLike = {
+      activePauseOverlay: 'journal',
+      isGameplayPaused: true,
+      journalOverlay: {
+        handleWheel: vi.fn()
+      }
+    };
+
+    GameScene.prototype.handleSceneWheel.call(sceneLike, { x: 300, y: 240 }, 120);
+
+    expect(sceneLike.journalOverlay.handleWheel).toHaveBeenCalledWith(300, 240, 120);
+  });
+
+  it('ignores wheel scrolling when the journal is not the active overlay', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      isGameplayPaused: true,
+      journalOverlay: {
+        handleWheel: vi.fn()
+      }
+    };
+
+    GameScene.prototype.handleSceneWheel.call(sceneLike, { x: 300, y: 240 }, 120);
+
+    expect(sceneLike.journalOverlay.handleWheel).not.toHaveBeenCalled();
+  });
+});
+
 describe('GameScene handleJournalPointerResult', () => {
   it('closes the journal when the overlay returns a close action', () => {
     const sceneLike = {
