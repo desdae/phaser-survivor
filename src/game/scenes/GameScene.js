@@ -468,6 +468,12 @@ export class GameScene extends Phaser.Scene {
     this.activePauseOverlay = null;
     this.isGameplayPaused = false;
     this.isGameOver = false;
+
+    if (this.scene?.restart) {
+      this.scene.restart();
+      return;
+    }
+
     this.scene.start(this.sys?.settings?.key ?? 'game');
   }
 
@@ -1019,6 +1025,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   ensureBackgroundTilePool(count) {
+    this.backgroundTiles = this.backgroundTiles.filter((tile) => tile?.scene?.sys);
+
     while (this.backgroundTiles.length < count) {
       const tile = this.add.image(0, 0, 'grass-0');
       tile.setOrigin(0);

@@ -69,6 +69,32 @@ describe('GameScene createTextures', () => {
   });
 });
 
+describe('GameScene ensureBackgroundTilePool', () => {
+  it('replaces stale destroyed background tiles before syncing textures', () => {
+    const freshTile = {
+      setOrigin: vi.fn().mockReturnThis(),
+      setDepth: vi.fn().mockReturnThis(),
+      setVisible: vi.fn()
+    };
+    const sceneLike = {
+      add: {
+        image: vi.fn().mockReturnValue(freshTile)
+      },
+      backgroundTiles: [
+        {
+          scene: undefined,
+          setVisible: vi.fn()
+        }
+      ]
+    };
+
+    GameScene.prototype.ensureBackgroundTilePool.call(sceneLike, 1);
+
+    expect(sceneLike.add.image).toHaveBeenCalledWith(0, 0, 'grass-0');
+    expect(sceneLike.backgroundTiles).toEqual([freshTile]);
+  });
+});
+
 describe('GameScene openLevelUp', () => {
   it('pauses gameplay without zeroing in-flight projectiles', () => {
     const sceneLike = {
@@ -1352,7 +1378,45 @@ describe('GameScene openGameOver', () => {
 });
 
 describe('GameScene restartRun', () => {
-  it('cleans up pause overlays and starts a fresh game scene', () => {
+  it('cleans up pause overlays and restarts the current scene when possible', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      chestOverlay: {
+        hide: vi.fn()
+      },
+      gameOverOverlay: {
+        hide: vi.fn()
+      },
+      isGameOver: true,
+      isGameplayPaused: true,
+      levelUpOverlay: {
+        hide: vi.fn()
+      },
+      physics: {
+        world: {
+          resume: vi.fn()
+        }
+      },
+      scene: {
+        restart: vi.fn(),
+        start: vi.fn()
+      }
+    };
+
+    GameScene.prototype.restartRun.call(sceneLike);
+
+    expect(sceneLike.physics.world.resume).toHaveBeenCalledOnce();
+    expect(sceneLike.levelUpOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.chestOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.gameOverOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.activePauseOverlay).toBe(null);
+    expect(sceneLike.isGameOver).toBe(false);
+    expect(sceneLike.isGameplayPaused).toBe(false);
+    expect(sceneLike.scene.restart).toHaveBeenCalledOnce();
+    expect(sceneLike.scene.start).not.toHaveBeenCalled();
+  });
+
+  it('falls back to starting the configured scene key when restart is unavailable', () => {
     const sceneLike = {
       activePauseOverlay: 'levelUp',
       chestOverlay: {
@@ -1373,18 +1437,16 @@ describe('GameScene restartRun', () => {
       },
       scene: {
         start: vi.fn()
+      },
+      sys: {
+        settings: {
+          key: 'game'
+        }
       }
     };
 
     GameScene.prototype.restartRun.call(sceneLike);
 
-    expect(sceneLike.physics.world.resume).toHaveBeenCalledOnce();
-    expect(sceneLike.levelUpOverlay.hide).toHaveBeenCalledOnce();
-    expect(sceneLike.chestOverlay.hide).toHaveBeenCalledOnce();
-    expect(sceneLike.gameOverOverlay.hide).toHaveBeenCalledOnce();
-    expect(sceneLike.activePauseOverlay).toBe(null);
-    expect(sceneLike.isGameOver).toBe(false);
-    expect(sceneLike.isGameplayPaused).toBe(false);
     expect(sceneLike.scene.start).toHaveBeenCalledWith('game');
   });
 });

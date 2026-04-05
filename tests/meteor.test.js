@@ -29,6 +29,33 @@ describe('resolveMeteorStrike', () => {
     expect(damageEnemy).toHaveBeenCalledTimes(1);
     expect(damageEnemy.mock.calls[0][0].id).toBe('near');
   });
+
+  it('damages enemies whose hit radius overlaps the impact radius even if their center sits outside it', () => {
+    const damageEnemy = vi.fn();
+    const strike = { x: 0, y: 0, radius: 40, damage: 28 };
+    const enemies = [
+      { active: true, id: 'edge', x: 50, y: 0, hitRadius: 14 },
+      { active: true, id: 'far', x: 70, y: 0, hitRadius: 10 }
+    ];
+
+    resolveMeteorStrike(strike, enemies, { damageEnemy });
+
+    expect(damageEnemy).toHaveBeenCalledTimes(1);
+    expect(damageEnemy.mock.calls[0][0].id).toBe('edge');
+  });
+
+  it('accepts enemy query objects as the source during live gameplay updates', () => {
+    const damageEnemy = vi.fn();
+    const strike = { x: 0, y: 0, radius: 40, damage: 28 };
+    const enemies = {
+      enemies: [{ active: true, id: 'query-hit', x: 20, y: 0, hitRadius: 12 }]
+    };
+
+    resolveMeteorStrike(strike, enemies, { damageEnemy });
+
+    expect(damageEnemy).toHaveBeenCalledTimes(1);
+    expect(damageEnemy.mock.calls[0][0].id).toBe('query-hit');
+  });
 });
 
 describe('MeteorManager', () => {

@@ -231,6 +231,7 @@ export class EnemyManager {
     enemy.projectileSpeed = type.projectileSpeed ?? 0;
     enemy.projectileDamage = type.projectileDamage ?? 0;
     enemy.nextShotAt = 0;
+    enemy.hitRadius = type.hitRadius;
     enemy.visualKey = visual.key;
     enemy.visualFrames = visual.frames;
     enemy.visualFrameDurationMs = visual.frameDurationMs;
@@ -244,6 +245,7 @@ export class EnemyManager {
       enemy.health = Math.round(enemy.health * eliteModifiers.healthMultiplier);
       enemy.xpValue = Math.round(enemy.xpValue * eliteModifiers.xpMultiplier);
       enemy.contactDamage = Math.round(enemy.contactDamage * eliteModifiers.contactDamageMultiplier);
+      enemy.hitRadius *= eliteModifiers.scaleMultiplier ?? 1;
       enemy.setTintFill(eliteModifiers.tint);
     }
 

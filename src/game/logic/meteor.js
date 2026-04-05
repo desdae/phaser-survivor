@@ -1,5 +1,3 @@
-import { getNearbyEnemies } from './combat.js';
-
 export function getMeteorTargets(origin, enemies, strikeCount) {
   return enemies
     .filter((enemy) => enemy?.active)
@@ -12,8 +10,26 @@ export function getMeteorTargets(origin, enemies, strikeCount) {
     .map((entry) => entry.enemy);
 }
 
+function getEnemyList(enemySource) {
+  return enemySource?.enemies ?? enemySource ?? [];
+}
+
+function getEnemyHitRadius(enemy) {
+  return enemy?.hitRadius ?? enemy?.body?.radius ?? enemy?.body?.halfWidth ?? 0;
+}
+
 export function resolveMeteorStrike(strike, enemies, enemyManager) {
-  getNearbyEnemies(strike, enemies, strike.radius).forEach((enemy) => {
-    enemyManager.damageEnemy(enemy, strike.damage, 'meteor');
-  });
+  getEnemyList(enemies)
+    .filter((enemy) => enemy?.active)
+    .forEach((enemy) => {
+      const dx = enemy.x - strike.x;
+      const dy = enemy.y - strike.y;
+      const overlapRadius = strike.radius + getEnemyHitRadius(enemy);
+
+      if (dx * dx + dy * dy > overlapRadius * overlapRadius) {
+        return;
+      }
+
+      enemyManager.damageEnemy(enemy, strike.damage, 'meteor');
+    });
 }
