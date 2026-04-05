@@ -176,10 +176,6 @@ export class GameScene extends Phaser.Scene {
         x: pointer.worldX,
         y: pointer.worldY
       };
-
-      if (this.damageStatsOverlay?.isVisible?.()) {
-        this.damageStatsOverlay.hoverPointer(pointer.x, pointer.y);
-      }
     }
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
@@ -190,6 +186,7 @@ export class GameScene extends Phaser.Scene {
     if (this.isGameplayPaused) {
       this.handlePauseHotkeys();
       this.refreshHud();
+      GameScene.prototype.refreshDamageStatsHover.call(this, pointer);
       return;
     }
 
@@ -268,6 +265,15 @@ export class GameScene extends Phaser.Scene {
     );
     this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
     this.refreshHud(livingEnemies.length);
+    GameScene.prototype.refreshDamageStatsHover.call(this, pointer);
+  }
+
+  refreshDamageStatsHover(pointer = this.input?.activePointer) {
+    if (!pointer || !this.damageStatsOverlay?.isVisible?.()) {
+      return;
+    }
+
+    this.damageStatsOverlay.hoverPointer(pointer.x, pointer.y);
   }
 
   updateEliteWave() {

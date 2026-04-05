@@ -175,6 +175,32 @@ describe('GameScene update', () => {
 
     expect(sceneLike.damageStatsOverlay.hoverPointer).toHaveBeenCalledWith(980, 74);
   });
+
+  it('reapplies damage tooltip hover after the hud refresh so overlay updates do not clear it', () => {
+    const sceneLike = {
+      input: {
+        activePointer: { x: 980, y: 74, worldX: 0, worldY: 0 }
+      },
+      damageStatsOverlay: {
+        isVisible: vi.fn().mockReturnValue(true),
+        hoverPointer: vi.fn()
+      },
+      syncBackgroundTiles: vi.fn(),
+      handleStatsToggle: vi.fn(),
+      updateFpsCounter: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: true,
+      handlePauseHotkeys: vi.fn(),
+      refreshHud: vi.fn()
+    };
+
+    GameScene.prototype.update.call(sceneLike, 1000, 16);
+
+    expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
+    expect(sceneLike.refreshHud.mock.invocationCallOrder[0]).toBeLessThan(
+      sceneLike.damageStatsOverlay.hoverPointer.mock.invocationCallOrder[0]
+    );
+  });
 });
 
 describe('GameScene openChestReward', () => {
