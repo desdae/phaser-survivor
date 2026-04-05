@@ -323,12 +323,14 @@ export function createDamageStatsOverlay(scene) {
     const visibleRows = payload.rows.slice(0, tooltipRows.length);
     const tooltipHeight = 38 + visibleRows.length * 20 + 12;
     const maxY = Math.max(12, (scene.scale?.height ?? 720) - tooltipHeight - 12);
-    const x = Math.max(12, bounds.x - 226);
-    const y = Math.max(12, Math.min(bounds.y - 10, maxY));
+    const screenX = Math.max(12, bounds.x - 226);
+    const screenY = Math.max(12, Math.min(bounds.y - 10, maxY));
+    const localX = screenX - container.x;
+    const localY = screenY - container.y;
 
-    tooltipPanel.setPosition(x, y);
+    tooltipPanel.setPosition(localX, localY);
     tooltipPanel.setSize(212, tooltipHeight);
-    tooltipTitle.setPosition(x + 14, y + 12);
+    tooltipTitle.setPosition(localX + 14, localY + 12);
     tooltipTitle.setText(payload.title);
     tooltipTitle.setVisible(true);
 
@@ -341,7 +343,7 @@ export function createDamageStatsOverlay(scene) {
         return;
       }
 
-      rowText.setPosition(x + 14, y + 40 + index * 20);
+      rowText.setPosition(localX + 14, localY + 40 + index * 20);
       rowText.setText(`${row.label} ${row.value}`);
       rowText.setVisible(true);
     });

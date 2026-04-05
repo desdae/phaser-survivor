@@ -214,6 +214,28 @@ describe('createDamageStatsOverlay', () => {
     expect(scene.texts.some((text) => text.text === 'Damage 34')).toBe(true);
   });
 
+  it('positions the tooltip locally to the panel container so it stays on screen', () => {
+    const scene = createFakeScene();
+    const overlay = createDamageStatsOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.toggle();
+    overlay.update(
+      [{ key: 'projectile', label: 'Auto Shot', totalDamage: 42, dps: 8.4 }],
+      {
+        projectile: {
+          title: 'Auto Shot',
+          rows: [{ label: 'Damage', value: '34' }]
+        }
+      }
+    );
+
+    overlay.hoverPointer(980, 74);
+
+    expect(scene.rectangles[1].x).toBeLessThan(0);
+    expect(scene.texts[9].x).toBeLessThan(0);
+  });
+
   it('hides the tooltip when hovering outside the visible row bounds', () => {
     const scene = createFakeScene();
     const overlay = createDamageStatsOverlay(scene);
