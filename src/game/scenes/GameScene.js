@@ -772,6 +772,34 @@ export class GameScene extends Phaser.Scene {
       drawBloodPuddleVariant(variant);
     }
 
+    const drawFlamePuff = (key, variant) => {
+      graphics.clear();
+      graphics.fillStyle(0x943010, 0.26);
+      graphics.fillEllipse(15, 16, 18 + variant * 2, 14 + variant);
+      graphics.fillStyle(0xff6a1f, 0.88);
+      graphics.fillCircle(14, 14, 10 + variant);
+      graphics.fillStyle(0xffb23f, 0.92);
+      graphics.fillCircle(13, 13, 7 + variant * 0.5);
+      graphics.fillStyle(0xfff1b8, 0.95);
+      graphics.fillEllipse(11, 11, 9, 6);
+      graphics.fillStyle(0xffffff, 0.72);
+      graphics.fillEllipse(9, 9, 5, 3);
+      graphics.generateTexture(key, 28, 28);
+    };
+
+    for (let variant = 0; variant < 3; variant += 1) {
+      drawFlamePuff(`flame-puff-${variant}`, variant);
+    }
+
+    graphics.clear();
+    graphics.fillStyle(0x3b3029, 0.2);
+    graphics.fillCircle(14, 14, 10);
+    graphics.fillStyle(0x5b5149, 0.24);
+    graphics.fillCircle(14, 14, 8);
+    graphics.fillStyle(0x8a7e73, 0.18);
+    graphics.fillEllipse(12, 12, 14, 10);
+    graphics.generateTexture('flame-smoke-0', 28, 28);
+
     graphics.clear();
     graphics.fillStyle(0x0f5c7e, 1);
     graphics.fillCircle(8, 8, 8);
