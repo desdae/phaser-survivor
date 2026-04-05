@@ -123,21 +123,8 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.once('keydown', () => {
       this.audioManager?.unlock?.();
     });
-    this.input.on('pointerdown', (pointer) => {
-      if (this.isGameOver) {
-        this.gameOverOverlay.choosePointer(pointer.x, pointer.y);
-        return;
-      }
-
-      if (this.isGameplayPaused) {
-        if (this.activePauseOverlay === 'chest') {
-          this.chestOverlay.choosePointer(pointer.x, pointer.y);
-          return;
-        }
-
-        this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
-      }
-    });
+    this.input.on('pointerdown', (pointer) => this.handleScenePointerDown(pointer));
+    this.input.keyboard.on?.('keydown-R', () => this.handleRestartKeyDown());
 
     this.physics.add.overlap(this.projectileManager.group, this.enemyManager.group, (projectile, enemy) => {
       this.projectileManager.handleEnemyHit(projectile, enemy, this.enemyManager);
@@ -179,7 +166,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-      this.restartRun();
+      GameScene.prototype.handleRestartKeyDown.call(this);
       return;
     }
 
@@ -274,6 +261,32 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.damageStatsOverlay.hoverPointer(pointer.x, pointer.y);
+  }
+
+  handleRestartKeyDown() {
+    if (!this.isGameOver) {
+      return;
+    }
+
+    this.restartRun();
+  }
+
+  handleScenePointerDown(pointer) {
+    if (this.isGameOver) {
+      this.gameOverOverlay.choosePointer(pointer.x, pointer.y);
+      return;
+    }
+
+    if (!this.isGameplayPaused) {
+      return;
+    }
+
+    if (this.activePauseOverlay === 'chest') {
+      this.chestOverlay.choosePointer(pointer.x, pointer.y);
+      return;
+    }
+
+    this.levelUpOverlay.choosePointer(pointer.x, pointer.y);
   }
 
   updateEliteWave() {

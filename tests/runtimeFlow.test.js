@@ -1197,6 +1197,63 @@ describe('GameScene update', () => {
   });
 });
 
+describe('GameScene handleRestartKeyDown', () => {
+  it('restarts immediately when the run is over', () => {
+    const sceneLike = {
+      isGameOver: true,
+      restartRun: vi.fn()
+    };
+
+    GameScene.prototype.handleRestartKeyDown.call(sceneLike);
+
+    expect(sceneLike.restartRun).toHaveBeenCalledOnce();
+  });
+
+  it('ignores restart keys while the run is still active', () => {
+    const sceneLike = {
+      isGameOver: false,
+      restartRun: vi.fn()
+    };
+
+    GameScene.prototype.handleRestartKeyDown.call(sceneLike);
+
+    expect(sceneLike.restartRun).not.toHaveBeenCalled();
+  });
+});
+
+describe('GameScene handleScenePointerDown', () => {
+  it('routes game-over clicks through the game over overlay', () => {
+    const sceneLike = {
+      gameOverOverlay: {
+        choosePointer: vi.fn()
+      },
+      isGameOver: true
+    };
+
+    GameScene.prototype.handleScenePointerDown.call(sceneLike, { x: 640, y: 452 });
+
+    expect(sceneLike.gameOverOverlay.choosePointer).toHaveBeenCalledWith(640, 452);
+  });
+
+  it('does not send game-over clicks into level-up selection', () => {
+    const sceneLike = {
+      gameOverOverlay: {
+        choosePointer: vi.fn()
+      },
+      isGameOver: true,
+      isGameplayPaused: true,
+      levelUpOverlay: {
+        choosePointer: vi.fn()
+      }
+    };
+
+    GameScene.prototype.handleScenePointerDown.call(sceneLike, { x: 640, y: 452 });
+
+    expect(sceneLike.gameOverOverlay.choosePointer).toHaveBeenCalledWith(640, 452);
+    expect(sceneLike.levelUpOverlay.choosePointer).not.toHaveBeenCalled();
+  });
+});
+
 describe('GameScene refreshHud', () => {
   it('updates the temporary powerup HUD from active buff summary rows', () => {
     const powerupRows = [{ buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 18 }];
