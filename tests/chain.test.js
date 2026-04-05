@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ChainManager } from '../src/game/systems/ChainManager.js';
-import { getChainTargets } from '../src/game/logic/chain.js';
+import { buildLightningBoltSegments, getChainTargets } from '../src/game/logic/chain.js';
 
 describe('getChainTargets', () => {
   it('starts at the nearest enemy and chains to nearby unseen targets', () => {
@@ -17,10 +17,40 @@ describe('getChainTargets', () => {
   });
 });
 
+describe('buildLightningBoltSegments', () => {
+  it('creates a jagged bolt path with anchored ends and short branch tendrils', () => {
+    const bolt = buildLightningBoltSegments(
+      { x: 0, y: 0 },
+      { x: 120, y: 0 },
+      () => 0.75
+    );
+
+    expect(bolt.mainPoints[0]).toEqual({ x: 0, y: 0 });
+    expect(bolt.mainPoints.at(-1)).toEqual({ x: 120, y: 0 });
+    expect(bolt.mainPoints.length).toBeGreaterThan(4);
+    expect(bolt.mainPoints.some((point) => point.y !== 0)).toBe(true);
+    expect(bolt.branches.length).toBeGreaterThan(0);
+    expect(bolt.branches.every((branch) => branch.length >= 2)).toBe(true);
+  });
+});
+
 describe('ChainManager', () => {
   it('damages each chain target once and respects cooldowns', () => {
+    const lineStyle = vi.fn();
+    const moveTo = vi.fn();
+    const lineTo = vi.fn();
+    const strokePath = vi.fn();
+    const graphics = {
+      clear() {},
+      lineStyle,
+      beginPath() {},
+      moveTo,
+      lineTo,
+      strokePath,
+      destroy() {}
+    };
     const manager = new ChainManager({
-      add: { graphics: () => ({ clear() {}, lineStyle() {}, beginPath() {}, moveTo() {}, lineTo() {}, strokePath() {}, destroy() {} }) },
+      add: { graphics: () => graphics },
       time: { delayedCall: vi.fn((_, callback) => callback()) }
     });
     const enemyA = { active: true, id: 'a', x: 30, y: 0 };
@@ -46,5 +76,9 @@ describe('ChainManager', () => {
       ['b', 14],
       ['c', 14]
     ]);
+    expect(lineStyle.mock.calls.length).toBeGreaterThanOrEqual(9);
+    expect(strokePath.mock.calls.length).toBe(lineStyle.mock.calls.length);
+    expect(moveTo).toHaveBeenCalled();
+    expect(lineTo.mock.calls.length).toBeGreaterThan(9);
   });
 });
