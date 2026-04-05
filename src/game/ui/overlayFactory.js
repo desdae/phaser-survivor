@@ -1,4 +1,5 @@
 import { getChoiceByIndex } from '../logic/upgradeSelection.js';
+export { createJournalOverlay } from './JournalOverlay.js';
 
 function createButtonCard(scene, onClick) {
   const background = scene.add
@@ -427,7 +428,7 @@ export function createDamageStatsOverlay(scene) {
   };
 }
 
-export function createJournalOverlay(scene) {
+function createJournalOverlayLegacy(scene) {
   const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.86).setOrigin(0);
   const panel = scene.add.rectangle(0, 0, 1120, 620, 0x08121c, 0.98).setOrigin(0.5);
   panel.setStrokeStyle(2, 0x6ab7ff, 0.55);

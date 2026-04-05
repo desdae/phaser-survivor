@@ -18,6 +18,7 @@ function createFakeDisplayObject() {
     visible: true,
     text: '',
     style: null,
+    texture: null,
     x: 0,
     y: 0,
     scaleX: 1,
@@ -41,7 +42,12 @@ function createFakeDisplayObject() {
       return this;
     }),
     setSize: vi.fn().mockReturnThis(),
+    setDisplaySize: vi.fn().mockReturnThis(),
     setFillStyle: vi.fn().mockReturnThis(),
+    setTexture: vi.fn(function setTexture(value) {
+      this.texture = value;
+      return this;
+    }),
     setText: vi.fn(function setText(value) {
       this.text = value;
       return this;
@@ -60,11 +66,13 @@ function createFakeDisplayObject() {
 function createFakeScene() {
   const rectangles = [];
   const texts = [];
+  const images = [];
   const containers = [];
 
   return {
     rectangles,
     texts,
+    images,
     containers,
     scale: {
       width: 1280,
@@ -81,11 +89,19 @@ function createFakeScene() {
         texts.push(text);
         return text;
       }),
+      image: vi.fn(() => {
+        const image = createFakeDisplayObject();
+        images.push(image);
+        return image;
+      }),
       container: vi.fn(() => {
         const container = createFakeDisplayObject();
         containers.push(container);
         return container;
       })
+    },
+    tweens: {
+      add: vi.fn()
     }
   };
 }
@@ -284,9 +300,9 @@ describe('createJournalOverlay', () => {
       }
     });
 
-    expect(scene.texts[0].y).toBeLessThan(scene.texts[2].y);
-    expect(overlay.handlePointer(150, 200)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'skeleton' });
-    expect(overlay.handlePointer(545, 112)).toEqual({ type: 'switch-tab', tab: 'abilities' });
+    expect(overlay.getState().layout.titleY).toBeLessThan(overlay.getState().layout.tabY);
+    expect(overlay.handlePointer(150, 220)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'skeleton' });
+    expect(overlay.handlePointer(560, 128)).toEqual({ type: 'switch-tab', tab: 'abilities' });
   });
 
   it('returns a close action when clicking the top-right close button', () => {

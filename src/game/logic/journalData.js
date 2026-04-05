@@ -317,6 +317,7 @@ export function buildJournalPayload({
 
   return {
     activeTab,
+    selectedKey,
     enemies,
     abilities,
     detail
