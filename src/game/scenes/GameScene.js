@@ -30,6 +30,7 @@ import {
 import { getAimDirection } from '../logic/combat.js';
 import { getMagicMissileTextureSpec } from '../logic/projectileVisuals.js';
 import { getSpawnProfile } from '../logic/spawn.js';
+import { buildWeaponTooltipMap } from '../logic/weaponTooltips.js';
 import {
   createChestOverlay,
   createDamageStatsOverlay,
@@ -175,6 +176,10 @@ export class GameScene extends Phaser.Scene {
         x: pointer.worldX,
         y: pointer.worldY
       };
+
+      if (this.damageStatsOverlay?.isVisible?.()) {
+        this.damageStatsOverlay.hoverPointer(pointer.x, pointer.y);
+      }
     }
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
@@ -448,6 +453,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   refreshHud(enemyCount = this.enemyManager.getLivingEnemies().length) {
+    const damageRows = this.damageStatsManager.getRows(this.elapsedMs);
+    const tooltipMap = buildWeaponTooltipMap(this.player.stats);
+
     this.hud.update({
       health: this.player.stats.health,
       maxHealth: this.player.stats.maxHealth,
@@ -462,7 +470,7 @@ export class GameScene extends Phaser.Scene {
       eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
     this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.elapsedMs) ?? []);
-    this.damageStatsOverlay.update(this.damageStatsManager.getRows(this.elapsedMs));
+    this.damageStatsOverlay.update(damageRows, tooltipMap);
   }
 
   updateFpsCounter(now) {

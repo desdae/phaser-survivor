@@ -18,6 +18,7 @@ vi.mock('phaser', () => ({
 
 import Phaser from 'phaser';
 import { GameScene } from '../src/game/scenes/GameScene.js';
+import { buildWeaponTooltipMap } from '../src/game/logic/weaponTooltips.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
@@ -102,6 +103,77 @@ describe('GameScene openLevelUp', () => {
     expect(sceneLike.enemyManager.stopAll).not.toHaveBeenCalled();
     expect(sceneLike.projectileManager.stopAll).not.toHaveBeenCalled();
     expect(sceneLike.levelUpOverlay.show).toHaveBeenCalledWith([{ key: 'damage' }]);
+  });
+});
+
+describe('GameScene refreshHud', () => {
+  it('passes both damage rows and tooltip payloads into the damage stats overlay', () => {
+    const sceneLike = {
+      elapsedMs: 5000,
+      player: {
+        stats: {
+          projectileDamage: 24,
+          fireCooldownMs: 520,
+          projectileCount: 1,
+          projectilePierce: 0,
+          projectileRicochet: 0,
+          projectileSpeed: 440
+        }
+      },
+      enemyManager: {
+        getLivingEnemies: () => []
+      },
+      hud: {
+        update: vi.fn()
+      },
+      powerupHud: {
+        update: vi.fn()
+      },
+      temporaryBuffSystem: {
+        getSummaryRows: vi.fn().mockReturnValue([])
+      },
+      eliteWaveSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false)
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([{ key: 'projectile', label: 'Auto Shot', totalDamage: 40, dps: 8 }])
+      },
+      damageStatsOverlay: {
+        update: vi.fn()
+      }
+    };
+
+    GameScene.prototype.refreshHud.call(sceneLike, 0);
+
+    expect(sceneLike.damageStatsOverlay.update).toHaveBeenCalledWith(
+      [{ key: 'projectile', label: 'Auto Shot', totalDamage: 40, dps: 8 }],
+      buildWeaponTooltipMap(sceneLike.player.stats)
+    );
+  });
+});
+
+describe('GameScene update', () => {
+  it('forwards active pointer hover coordinates into the damage stats overlay while the panel is visible', () => {
+    const sceneLike = {
+      input: {
+        activePointer: { x: 980, y: 74, worldX: 0, worldY: 0 }
+      },
+      damageStatsOverlay: {
+        isVisible: vi.fn().mockReturnValue(true),
+        hoverPointer: vi.fn()
+      },
+      syncBackgroundTiles: vi.fn(),
+      handleStatsToggle: vi.fn(),
+      updateFpsCounter: vi.fn(),
+      isGameOver: false,
+      isGameplayPaused: true,
+      handlePauseHotkeys: vi.fn(),
+      refreshHud: vi.fn()
+    };
+
+    GameScene.prototype.update.call(sceneLike, 1000, 16);
+
+    expect(sceneLike.damageStatsOverlay.hoverPointer).toHaveBeenCalledWith(980, 74);
   });
 });
 
