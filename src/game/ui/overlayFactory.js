@@ -438,6 +438,13 @@ export function createJournalOverlay(scene) {
     fontStyle: 'bold'
   });
   title.setOrigin(0.5);
+  const closeButton = scene.add.text(0, 0, '×', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '34px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  closeButton.setOrigin(0.5);
   const enemyTab = scene.add.text(0, 0, 'Enemies', {
     fontFamily: 'Trebuchet MS',
     fontSize: '18px',
@@ -500,6 +507,7 @@ export function createJournalOverlay(scene) {
     backdrop,
     panel,
     title,
+    closeButton,
     enemyTab,
     abilitiesTab,
     leftPanel,
@@ -518,6 +526,7 @@ export function createJournalOverlay(scene) {
 
   let activeTab = 'enemies';
   let tabBounds = [];
+  let closeBounds = null;
   let rowBounds = [];
   let currentState = {
     detailTitle: '',
@@ -558,7 +567,7 @@ export function createJournalOverlay(scene) {
       }
 
       const rowX = layoutState.panelLeft + 24;
-      const rowY = layoutState.panelTop + 104 + index * 34;
+        const rowY = layoutState.panelTop + 134 + index * 34;
       rowText.setPosition(rowX, rowY);
       rowText.setText(entry.label);
       rowBounds.push({
@@ -616,25 +625,32 @@ export function createJournalOverlay(scene) {
 
       backdrop.setSize(width, height);
       panel.setPosition(width / 2, height / 2);
-      title.setPosition(width / 2, layoutState.panelTop + 42);
-      enemyTab.setPosition(layoutState.panelLeft + 345, layoutState.panelTop + 36);
-      abilitiesTab.setPosition(layoutState.panelLeft + 465, layoutState.panelTop + 36);
-      leftPanel.setPosition(layoutState.panelLeft + 20, layoutState.panelTop + 86);
-      rightPanel.setPosition(layoutState.panelLeft + 360, layoutState.panelTop + 86);
-      detailTitle.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 116);
-      detailDescription.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 152);
+      title.setPosition(width / 2, layoutState.panelTop + 40);
+      closeButton.setPosition(layoutState.panelLeft + 1080, layoutState.panelTop + 40);
+      enemyTab.setPosition(layoutState.panelLeft + 355, layoutState.panelTop + 86);
+      abilitiesTab.setPosition(layoutState.panelLeft + 515, layoutState.panelTop + 86);
+      leftPanel.setPosition(layoutState.panelLeft + 20, layoutState.panelTop + 116);
+      rightPanel.setPosition(layoutState.panelLeft + 360, layoutState.panelTop + 116);
+      detailTitle.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 146);
+      detailDescription.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 182);
       detailRows.forEach((rowText, index) => {
-        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 210 + index * 28);
+        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 240 + index * 28);
       });
-      upgradeHeader.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 430);
+      upgradeHeader.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 460);
       upgradeRows.forEach((rowText, index) => {
-        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 462 + index * 22);
+        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 492 + index * 22);
       });
 
       tabBounds = [
-        { tab: 'enemies', x: layoutState.panelLeft + 250, y: layoutState.panelTop + 20, width: 170, height: 60 },
-        { tab: 'abilities', x: layoutState.panelLeft + 455, y: layoutState.panelTop + 20, width: 180, height: 60 }
+        { tab: 'enemies', x: layoutState.panelLeft + 270, y: layoutState.panelTop + 62, width: 170, height: 48 },
+        { tab: 'abilities', x: layoutState.panelLeft + 430, y: layoutState.panelTop + 62, width: 180, height: 48 }
       ];
+      closeBounds = {
+        x: layoutState.panelLeft + 1056,
+        y: layoutState.panelTop + 16,
+        width: 48,
+        height: 48
+      };
     },
     show(payload) {
       container.setVisible(true);
@@ -658,6 +674,16 @@ export function createJournalOverlay(scene) {
 
       if (tabHit) {
         return { type: 'switch-tab', tab: tabHit.tab };
+      }
+
+      if (
+        closeBounds &&
+        pointerX >= closeBounds.x &&
+        pointerX <= closeBounds.x + closeBounds.width &&
+        pointerY >= closeBounds.y &&
+        pointerY <= closeBounds.y + closeBounds.height
+      ) {
+        return { type: 'close' };
       }
 
       const rowHit = rowBounds.find(

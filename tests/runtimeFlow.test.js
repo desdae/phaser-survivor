@@ -1320,6 +1320,25 @@ describe('GameScene handleJournalToggle', () => {
   });
 });
 
+describe('GameScene handleJournalKey', () => {
+  it('closes the journal when escape is pressed while the journal is open', () => {
+    const justDownSpy = vi
+      .spyOn(Phaser.Input.Keyboard, 'JustDown')
+      .mockImplementation((key) => key?.code === 'ESC');
+    const sceneLike = {
+      activePauseOverlay: 'journal',
+      escapeKey: { code: 'ESC' },
+      handleJournalToggle: vi.fn(),
+      journalKey: { code: 'J' }
+    };
+
+    GameScene.prototype.handleJournalKey.call(sceneLike);
+
+    expect(sceneLike.handleJournalToggle).toHaveBeenCalledOnce();
+    justDownSpy.mockRestore();
+  });
+});
+
 describe('GameScene handleScenePointerDown', () => {
   it('routes game-over clicks through the game over overlay', () => {
     const sceneLike = {
@@ -1368,6 +1387,18 @@ describe('GameScene handleScenePointerDown', () => {
 
     expect(sceneLike.journalOverlay.handlePointer).toHaveBeenCalledWith(300, 200);
     expect(sceneLike.handleJournalPointerResult).toHaveBeenCalledWith(result);
+  });
+});
+
+describe('GameScene handleJournalPointerResult', () => {
+  it('closes the journal when the overlay returns a close action', () => {
+    const sceneLike = {
+      handleJournalToggle: vi.fn()
+    };
+
+    GameScene.prototype.handleJournalPointerResult.call(sceneLike, { type: 'close' });
+
+    expect(sceneLike.handleJournalToggle).toHaveBeenCalledOnce();
   });
 });
 

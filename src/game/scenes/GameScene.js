@@ -118,6 +118,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     this.journalKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
+    this.escapeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.statsKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
     this.input.keyboard.addCapture?.(Phaser.Input.Keyboard.KeyCodes.TAB);
     this.upgradeKeys = [
@@ -318,7 +319,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   handleJournalKey() {
-    if (Phaser.Input.Keyboard.JustDown(this.journalKey)) {
+    if (
+      this.activePauseOverlay === 'journal' &&
+      this.escapeKey &&
+      Phaser.Input.Keyboard.JustDown(this.escapeKey)
+    ) {
+      this.handleJournalToggle();
+      return;
+    }
+
+    if (this.journalKey && Phaser.Input.Keyboard.JustDown(this.journalKey)) {
       this.handleJournalToggle();
     }
   }
@@ -350,6 +360,11 @@ export class GameScene extends Phaser.Scene {
 
   handleJournalPointerResult(result) {
     if (!result) {
+      return;
+    }
+
+    if (result.type === 'close') {
+      this.handleJournalToggle();
       return;
     }
 

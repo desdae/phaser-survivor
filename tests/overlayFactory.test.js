@@ -284,8 +284,29 @@ describe('createJournalOverlay', () => {
       }
     });
 
-    expect(overlay.handlePointer(150, 170)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'basic' });
-    expect(overlay.handlePointer(545, 86)).toEqual({ type: 'switch-tab', tab: 'abilities' });
+    expect(scene.texts[0].y).toBeLessThan(scene.texts[2].y);
+    expect(overlay.handlePointer(150, 200)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'basic' });
+    expect(overlay.handlePointer(545, 112)).toEqual({ type: 'switch-tab', tab: 'abilities' });
+  });
+
+  it('returns a close action when clicking the top-right close button', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'enemies',
+      enemies: [],
+      abilities: [],
+      detail: {
+        title: '???',
+        rows: [],
+        upgradePaths: [],
+        description: 'An unknown threat.'
+      }
+    });
+
+    expect(overlay.handlePointer(1160, 80)).toEqual({ type: 'close' });
   });
 
   it('renders placeholder details for unknown entries and exact rows for discovered entries', () => {
