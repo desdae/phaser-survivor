@@ -28,7 +28,9 @@ export function getSpawnPosition(
 
 export function getSpawnProfile(elapsedSeconds) {
   const weights = {
-    basic: elapsedSeconds < 35 ? 1 : 0.62,
+    skeleton: elapsedSeconds < 35 ? 0.58 : 0.34,
+    zombie: elapsedSeconds < 22 ? 0.18 : 0.26,
+    bat: elapsedSeconds < 16 ? 0.12 : 0.24,
     tough: elapsedSeconds < 35 ? 0 : 0.28,
     spitter: elapsedSeconds < 55 ? 0 : Math.min(0.22, 0.06 + elapsedSeconds / 500)
   };

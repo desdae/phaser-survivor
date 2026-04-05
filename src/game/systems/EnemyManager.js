@@ -15,13 +15,29 @@ const HEART_DROP_CHANCE = 0.03;
 const HEART_HEAL_AMOUNT = 10;
 
 export const ENEMY_TYPES = {
-  basic: {
-    texture: 'enemy-basic',
+  skeleton: {
+    texture: 'enemy-skeleton',
     speed: 92,
     maxHealth: 34,
     xpValue: 4,
     contactDamage: 8,
     hitRadius: 12
+  },
+  zombie: {
+    texture: 'enemy-zombie',
+    speed: 72,
+    maxHealth: 48,
+    xpValue: 5,
+    contactDamage: 6,
+    hitRadius: 13
+  },
+  bat: {
+    texture: 'enemy-bat',
+    speed: 118,
+    maxHealth: 20,
+    xpValue: 3,
+    contactDamage: 5,
+    hitRadius: 11
   },
   tough: {
     texture: 'enemy-tough',
@@ -79,7 +95,9 @@ export class EnemyManager {
     this.nextAnimationStepAt = (scene.time?.now ?? 0) + ANIMATION_STEP_MS;
     this.spawnAccumulatorMs = 0;
     this.spawnCounts = {
-      basic: 0,
+      skeleton: 0,
+      zombie: 0,
+      bat: 0,
       tough: 0,
       spitter: 0
     };
@@ -197,7 +215,7 @@ export class EnemyManager {
     const entries = Object.entries(weights).filter(([, weight]) => weight > 0);
 
     if (entries.length === 0) {
-      return 'basic';
+      return 'skeleton';
     }
 
     const total = entries.reduce((sum, [, weight]) => sum + weight, 0);

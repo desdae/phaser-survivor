@@ -20,10 +20,10 @@ describe('journal discovery helpers', () => {
   it('tracks discovered enemies and abilities independently', () => {
     const state = createJournalDiscoveryState();
 
-    discoverEnemy(state, 'basic');
+    discoverEnemy(state, 'skeleton');
     discoverAbility(state, 'projectile');
 
-    expect(isEnemyDiscovered(state, 'basic')).toBe(true);
+    expect(isEnemyDiscovered(state, 'skeleton')).toBe(true);
     expect(isEnemyDiscovered(state, 'spitter')).toBe(false);
     expect(isAbilityDiscovered(state, 'projectile')).toBe(true);
     expect(isAbilityDiscovered(state, 'meteor')).toBe(false);
@@ -33,12 +33,12 @@ describe('journal discovery helpers', () => {
 describe('buildEnemyJournalList', () => {
   it('returns discovered names and unknown placeholders in stable roster order', () => {
     const state = createJournalDiscoveryState();
-    discoverEnemy(state, 'basic');
+    discoverEnemy(state, 'skeleton');
 
     const rows = buildEnemyJournalList(state);
 
     expect(rows.map((row) => row.key)).toEqual(ENEMY_JOURNAL_ORDER);
-    expect(rows[0]).toMatchObject({ key: 'basic', discovered: true, label: 'Grave Runner' });
+    expect(rows[0]).toMatchObject({ key: 'skeleton', discovered: true, label: 'Bone Walker' });
     expect(rows[1]).toMatchObject({ discovered: false, label: '???' });
   });
 });
@@ -110,7 +110,7 @@ describe('buildAbilityJournalDetail', () => {
 describe('buildJournalPayload', () => {
   it('builds a journal payload with tab rows and the selected detail panel', () => {
     const state = createJournalDiscoveryState();
-    discoverEnemy(state, 'basic');
+    discoverEnemy(state, 'skeleton');
 
     const payload = buildJournalPayload({
       activeTab: 'enemies',
@@ -123,7 +123,7 @@ describe('buildJournalPayload', () => {
     });
 
     expect(payload.activeTab).toBe('enemies');
-    expect(payload.enemies[0].label).toBe('Grave Runner');
-    expect(payload.detail.title).toBe('Grave Runner');
+    expect(payload.enemies[0].label).toBe('Bone Walker');
+    expect(payload.detail.title).toBe('Bone Walker');
   });
 });

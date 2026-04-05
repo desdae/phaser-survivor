@@ -270,14 +270,14 @@ describe('createJournalOverlay', () => {
     overlay.show({
       activeTab: 'enemies',
       enemies: [
-        { key: 'basic', label: 'Grave Runner', discovered: true },
+        { key: 'skeleton', label: 'Bone Walker', discovered: true },
         { key: 'tough', label: '???', discovered: false }
       ],
       abilities: [
         { key: 'projectile', label: 'Auto Shot', discovered: true }
       ],
       detail: {
-        title: 'Grave Runner',
+        title: 'Bone Walker',
         rows: [{ label: 'HP', value: '34' }],
         upgradePaths: [],
         description: 'A quick undead swarmer.'
@@ -285,7 +285,7 @@ describe('createJournalOverlay', () => {
     });
 
     expect(scene.texts[0].y).toBeLessThan(scene.texts[2].y);
-    expect(overlay.handlePointer(150, 200)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'basic' });
+    expect(overlay.handlePointer(150, 200)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'skeleton' });
     expect(overlay.handlePointer(545, 112)).toEqual({ type: 'switch-tab', tab: 'abilities' });
   });
 

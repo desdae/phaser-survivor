@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { getAnimatedTextureKey, getEnemyVisualConfig } from '../src/game/logic/enemyVisuals.js';
 
 describe('getEnemyVisualConfig', () => {
-  it('cycles through varied fantasy looks for basic enemies', () => {
-    expect(getEnemyVisualConfig('basic', 0).key).toBe('zombie');
-    expect(getEnemyVisualConfig('basic', 1).key).toBe('skeleton');
-    expect(getEnemyVisualConfig('basic', 2).key).toBe('bat');
-    expect(getEnemyVisualConfig('basic', 3).key).toBe('zombie');
+  it('maps the split small enemies to their own dedicated visual sets', () => {
+    expect(getEnemyVisualConfig('skeleton', 0).key).toBe('skeleton');
+    expect(getEnemyVisualConfig('zombie', 0).key).toBe('zombie');
+    expect(getEnemyVisualConfig('bat', 0).key).toBe('bat');
   });
 
   it('uses beefier looks for tough enemies and a caster look for spitters', () => {

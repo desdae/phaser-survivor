@@ -111,7 +111,7 @@ describe('EnemyManager audio integration', () => {
       audioManager
     );
 
-    manager.spawnEnemy('basic', { elite: true });
+    manager.spawnEnemy('skeleton', { elite: true });
 
     expect(audioManager.playEliteWarning).not.toHaveBeenCalled();
   });

@@ -9,7 +9,9 @@ vi.mock('../src/game/logic/spawn.js', () => ({
     cooldownMs: 999,
     batchSize: 1,
     weights: {
-      basic: 1,
+      skeleton: 1,
+      zombie: 0,
+      bat: 0,
       tough: 0,
       spitter: 0
     }
@@ -29,10 +31,10 @@ vi.mock('../src/game/logic/enemyVisuals.js', () => ({
     return frames[enemy.visualFrameIndex];
   },
   getEnemyVisualConfig: () => ({
-    key: 'zombie',
-    frames: ['mob-zombie-0'],
-    frameDurationMs: 170,
-    scale: 1
+    key: 'skeleton',
+    frames: ['mob-skeleton-0'],
+    frameDurationMs: 150,
+    scale: 0.98
   })
 }));
 
@@ -384,14 +386,14 @@ describe('EnemyManager', () => {
     const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
     const modifiers = getEliteModifiers();
 
-    const enemy = manager.spawnEnemy('basic', { elite: true });
+    const enemy = manager.spawnEnemy('skeleton', { elite: true });
 
     expect(enemy).toBe(createdEnemy);
     expect(enemy.isElite).toBe(true);
     expect(enemy.health).toBe(Math.round(34 * modifiers.healthMultiplier));
     expect(enemy.xpValue).toBe(Math.round(4 * modifiers.xpMultiplier));
     expect(enemy.contactDamage).toBe(Math.round(8 * modifiers.contactDamageMultiplier));
-    expect(enemy.setScale).toHaveBeenCalledWith(modifiers.scaleMultiplier);
+    expect(enemy.setScale).toHaveBeenCalledWith(0.98 * modifiers.scaleMultiplier);
     expect(enemy.setTintFill).toHaveBeenCalledWith(modifiers.tint);
   });
 
@@ -483,7 +485,7 @@ describe('EnemyManager', () => {
       active: true,
       destroy: vi.fn(),
       health: 3,
-      type: 'basic',
+        type: 'skeleton',
       x: 40,
       xpValue: 4,
       y: 80

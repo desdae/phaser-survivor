@@ -2,7 +2,7 @@ import { ENEMY_TYPES } from '../systems/EnemyManager.js';
 import { UPGRADE_DEFINITIONS } from './progression.js';
 import { isAbilityDiscovered, isEnemyDiscovered } from './journalDiscovery.js';
 
-export const ENEMY_JOURNAL_ORDER = ['basic', 'tough', 'spitter'];
+export const ENEMY_JOURNAL_ORDER = ['skeleton', 'zombie', 'bat', 'tough', 'spitter'];
 
 export const ABILITY_JOURNAL_ORDER = [
   'projectile',
@@ -20,12 +20,26 @@ export const ABILITY_JOURNAL_ORDER = [
 ];
 
 const ENEMY_REGISTRY = {
-  basic: {
-    name: 'Grave Runner',
-    textureKey: 'mob-zombie-1',
+  skeleton: {
+    name: 'Bone Walker',
+    textureKey: 'mob-skeleton-1',
     attackType: 'Melee',
     specialAbilities: 'None',
-    description: 'A fast shambling corpse that overwhelms through numbers.'
+    description: 'A brittle undead runner that keeps steady pressure on the player.'
+  },
+  zombie: {
+    name: 'Rot Husk',
+    textureKey: 'mob-zombie-1',
+    attackType: 'Melee',
+    specialAbilities: 'High durability for a small mob',
+    description: 'A slow, stubborn corpse that soaks hits and clogs escape lines.'
+  },
+  bat: {
+    name: 'Night Bat',
+    textureKey: 'mob-bat-1',
+    attackType: 'Melee swoop',
+    specialAbilities: 'Fast pursuit',
+    description: 'A fragile but speedy flier that snaps in from the edges of the swarm.'
   },
   tough: {
     name: 'Orc Brute',

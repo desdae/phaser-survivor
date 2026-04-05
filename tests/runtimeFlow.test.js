@@ -694,7 +694,7 @@ describe('GameScene update', () => {
       elapsedMs: ELITE_WAVE_INTERVAL_MS,
       enemyManager: {
         getLivingEnemies: vi.fn().mockReturnValue([]),
-        pickEnemyType: vi.fn().mockReturnValue('basic'),
+        pickEnemyType: vi.fn().mockReturnValue('skeleton'),
         spawnEnemy: vi.fn(),
         update: vi.fn()
       },
@@ -790,7 +790,7 @@ describe('GameScene update', () => {
 
     expect(sceneLike.audioManager.playEliteWarning).not.toHaveBeenCalled();
     expect(sceneLike.enemyManager.pickEnemyType).toHaveBeenCalledOnce();
-    expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('basic', { elite: true });
+    expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('skeleton', { elite: true });
     expect(sceneLike.eliteWaveSystem.consumeSpawn).toHaveBeenCalledOnce();
   });
 

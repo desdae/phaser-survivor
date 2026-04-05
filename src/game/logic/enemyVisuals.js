@@ -1,17 +1,21 @@
 const ENEMY_VISUAL_VARIANTS = {
-  basic: [
-    {
-      key: 'zombie',
-      frames: ['mob-zombie-0', 'mob-zombie-1', 'mob-zombie-2'],
-      frameDurationMs: 170,
-      scale: 1
-    },
+  skeleton: [
     {
       key: 'skeleton',
       frames: ['mob-skeleton-0', 'mob-skeleton-1', 'mob-skeleton-2'],
       frameDurationMs: 150,
       scale: 0.98
-    },
+    }
+  ],
+  zombie: [
+    {
+      key: 'zombie',
+      frames: ['mob-zombie-0', 'mob-zombie-1', 'mob-zombie-2'],
+      frameDurationMs: 170,
+      scale: 1
+    }
+  ],
+  bat: [
     {
       key: 'bat',
       frames: ['mob-bat-0', 'mob-bat-1', 'mob-bat-2'],
@@ -44,7 +48,7 @@ const ENEMY_VISUAL_VARIANTS = {
 };
 
 export function getEnemyVisualConfig(typeKey, spawnIndex = 0) {
-  const variants = ENEMY_VISUAL_VARIANTS[typeKey] ?? ENEMY_VISUAL_VARIANTS.basic;
+  const variants = ENEMY_VISUAL_VARIANTS[typeKey] ?? ENEMY_VISUAL_VARIANTS.skeleton;
   const safeIndex = Math.abs(Math.trunc(spawnIndex)) % variants.length;
 
   return variants[safeIndex];
