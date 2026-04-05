@@ -427,6 +427,259 @@ export function createDamageStatsOverlay(scene) {
   };
 }
 
+export function createJournalOverlay(scene) {
+  const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.86).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 1120, 620, 0x08121c, 0.98).setOrigin(0.5);
+  panel.setStrokeStyle(2, 0x6ab7ff, 0.55);
+  const title = scene.add.text(0, 0, 'Journal', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '34px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  title.setOrigin(0.5);
+  const enemyTab = scene.add.text(0, 0, 'Enemies', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  enemyTab.setOrigin(0.5);
+  const abilitiesTab = scene.add.text(0, 0, 'Abilities', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#cde4f8',
+    fontStyle: 'bold'
+  });
+  abilitiesTab.setOrigin(0.5);
+  const leftPanel = scene.add.rectangle(0, 0, 300, 500, 0x0d1b29, 0.92).setOrigin(0, 0);
+  leftPanel.setStrokeStyle(1, 0x315879, 0.75);
+  const rightPanel = scene.add.rectangle(0, 0, 720, 500, 0x0d1b29, 0.92).setOrigin(0, 0);
+  rightPanel.setStrokeStyle(1, 0x315879, 0.75);
+  const detailTitle = scene.add.text(0, 0, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '28px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  const detailDescription = scene.add.text(0, 0, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#cde4f8',
+    wordWrap: { width: 620 }
+  });
+  const detailRows = Array.from({ length: 8 }, () =>
+    scene.add.text(0, 0, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '16px',
+      color: '#dff1ff'
+    })
+  );
+  const upgradeHeader = scene.add.text(0, 0, 'Upgrade Paths', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '18px',
+    color: '#ffd17a',
+    fontStyle: 'bold'
+  });
+  const upgradeRows = Array.from({ length: 8 }, () =>
+    scene.add.text(0, 0, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '15px',
+      color: '#ffdca0'
+    })
+  );
+  const listRows = Array.from({ length: 12 }, () =>
+    scene.add.text(0, 0, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '18px',
+      color: '#d6e7f7'
+    })
+  );
+
+  const container = scene.add.container(0, 0, [
+    backdrop,
+    panel,
+    title,
+    enemyTab,
+    abilitiesTab,
+    leftPanel,
+    rightPanel,
+    detailTitle,
+    detailDescription,
+    ...detailRows,
+    upgradeHeader,
+    ...upgradeRows,
+    ...listRows
+  ]);
+
+  container.setDepth(68);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  let activeTab = 'enemies';
+  let tabBounds = [];
+  let rowBounds = [];
+  let currentState = {
+    detailTitle: '',
+    activeTab: 'enemies'
+  };
+  let layoutState = {
+    width: 1280,
+    height: 720,
+    panelLeft: 80,
+    panelTop: 50
+  };
+
+  function applyTabStyles() {
+    enemyTab.setStyle({
+      fontFamily: 'Trebuchet MS',
+      fontSize: '18px',
+      color: activeTab === 'enemies' ? '#f4f8ff' : '#89a9c7',
+      fontStyle: 'bold'
+    });
+    abilitiesTab.setStyle({
+      fontFamily: 'Trebuchet MS',
+      fontSize: '18px',
+      color: activeTab === 'abilities' ? '#f4f8ff' : '#89a9c7',
+      fontStyle: 'bold'
+    });
+  }
+
+  function updateRows(payload) {
+    const entries = activeTab === 'enemies' ? payload.enemies : payload.abilities;
+    rowBounds = [];
+
+    listRows.forEach((rowText, index) => {
+      const entry = entries[index];
+
+      if (!entry) {
+        rowText.setText('');
+        return;
+      }
+
+      const rowX = layoutState.panelLeft + 24;
+      const rowY = layoutState.panelTop + 104 + index * 34;
+      rowText.setPosition(rowX, rowY);
+      rowText.setText(entry.label);
+      rowBounds.push({
+        key: entry.key,
+        tab: activeTab,
+        x: rowX,
+        y: rowY,
+        width: 240,
+        height: 24
+      });
+    });
+  }
+
+  function updateDetail(payload) {
+    const detail = payload.detail ?? { title: '', rows: [], description: '', upgradePaths: [] };
+    currentState = {
+      detailTitle: detail.title,
+      activeTab
+    };
+
+    detailTitle.setText(detail.title ?? '');
+    detailDescription.setText(detail.description ?? '');
+    detailRows.forEach((rowText, index) => {
+      const row = detail.rows?.[index];
+      rowText.setText(row ? `${row.label} ${row.value}` : '');
+    });
+    upgradeHeader.setVisible((detail.upgradePaths?.length ?? 0) > 0);
+    upgradeRows.forEach((rowText, index) => {
+      const row = detail.upgradePaths?.[index];
+      rowText.setText(row ? `${row.label} ${row.value}` : '');
+    });
+  }
+
+  function applyPayload(payload) {
+    activeTab = payload.activeTab ?? activeTab;
+    applyTabStyles();
+    updateRows(payload);
+    updateDetail(payload);
+  }
+
+  return {
+    hide() {
+      container.setVisible(false);
+    },
+    isVisible() {
+      return container.visible;
+    },
+    layout(width, height) {
+      layoutState = {
+        width,
+        height,
+        panelLeft: Math.round((width - 1120) / 2),
+        panelTop: Math.round((height - 620) / 2)
+      };
+
+      backdrop.setSize(width, height);
+      panel.setPosition(width / 2, height / 2);
+      title.setPosition(width / 2, layoutState.panelTop + 42);
+      enemyTab.setPosition(layoutState.panelLeft + 345, layoutState.panelTop + 36);
+      abilitiesTab.setPosition(layoutState.panelLeft + 465, layoutState.panelTop + 36);
+      leftPanel.setPosition(layoutState.panelLeft + 20, layoutState.panelTop + 86);
+      rightPanel.setPosition(layoutState.panelLeft + 360, layoutState.panelTop + 86);
+      detailTitle.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 116);
+      detailDescription.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 152);
+      detailRows.forEach((rowText, index) => {
+        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 210 + index * 28);
+      });
+      upgradeHeader.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 430);
+      upgradeRows.forEach((rowText, index) => {
+        rowText.setPosition(layoutState.panelLeft + 390, layoutState.panelTop + 462 + index * 22);
+      });
+
+      tabBounds = [
+        { tab: 'enemies', x: layoutState.panelLeft + 250, y: layoutState.panelTop + 20, width: 170, height: 60 },
+        { tab: 'abilities', x: layoutState.panelLeft + 455, y: layoutState.panelTop + 20, width: 180, height: 60 }
+      ];
+    },
+    show(payload) {
+      container.setVisible(true);
+      applyPayload(payload);
+    },
+    update(payload) {
+      applyPayload(payload);
+    },
+    handlePointer(pointerX, pointerY) {
+      if (!container.visible) {
+        return null;
+      }
+
+      const tabHit = tabBounds.find(
+        (bounds) =>
+          pointerX >= bounds.x &&
+          pointerX <= bounds.x + bounds.width &&
+          pointerY >= bounds.y &&
+          pointerY <= bounds.y + bounds.height
+      );
+
+      if (tabHit) {
+        return { type: 'switch-tab', tab: tabHit.tab };
+      }
+
+      const rowHit = rowBounds.find(
+        (bounds) =>
+          pointerX >= bounds.x &&
+          pointerX <= bounds.x + bounds.width &&
+          pointerY >= bounds.y &&
+          pointerY <= bounds.y + bounds.height
+      );
+
+      if (rowHit) {
+        return { type: 'select-entry', tab: rowHit.tab, key: rowHit.key };
+      }
+
+      return null;
+    },
+    getState() {
+      return currentState;
+    }
+  };
+}
+
 export function createLevelUpOverlay(scene, onSelect) {
   const backdrop = scene.add.rectangle(0, 0, 100, 100, 0x02060a, 0.76).setOrigin(0);
   const panel = scene.add.rectangle(0, 0, 940, 420, 0x0b1926, 0.96).setStrokeStyle(2, 0x4da2ff, 0.5);

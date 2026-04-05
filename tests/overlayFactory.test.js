@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createJournalOverlay,
   createHud,
   createPowerupHud,
   createChestOverlay,
@@ -257,6 +258,55 @@ describe('createDamageStatsOverlay', () => {
 
     expect(shown).toBe(false);
     expect(overlay.getTooltipState()).toEqual({ visible: false, key: null });
+  });
+});
+
+describe('createJournalOverlay', () => {
+  it('switches tabs and tracks selected row through pointer hit-testing', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'enemies',
+      enemies: [
+        { key: 'basic', label: 'Grave Runner', discovered: true },
+        { key: 'tough', label: '???', discovered: false }
+      ],
+      abilities: [
+        { key: 'projectile', label: 'Auto Shot', discovered: true }
+      ],
+      detail: {
+        title: 'Grave Runner',
+        rows: [{ label: 'HP', value: '34' }],
+        upgradePaths: [],
+        description: 'A quick undead swarmer.'
+      }
+    });
+
+    expect(overlay.handlePointer(150, 170)).toEqual({ type: 'select-entry', tab: 'enemies', key: 'basic' });
+    expect(overlay.handlePointer(545, 86)).toEqual({ type: 'switch-tab', tab: 'abilities' });
+  });
+
+  it('renders placeholder details for unknown entries and exact rows for discovered entries', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'enemies',
+      enemies: [{ key: 'tough', label: '???', discovered: false }],
+      abilities: [],
+      detail: {
+        title: '???',
+        rows: [],
+        upgradePaths: [],
+        description: 'An unknown threat.'
+      }
+    });
+
+    expect(overlay.getState().detailTitle).toBe('???');
+    expect(scene.texts.some((text) => text.text === 'An unknown threat.')).toBe(true);
   });
 });
 
