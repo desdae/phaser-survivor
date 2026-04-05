@@ -3,6 +3,7 @@ import {
   createHud,
   createPowerupHud,
   createChestOverlay,
+  createDamageStatsOverlay,
   createFpsCounter,
   createGameOverOverlay,
   createLevelUpOverlay
@@ -64,6 +65,10 @@ function createFakeScene() {
     rectangles,
     texts,
     containers,
+    scale: {
+      width: 1280,
+      height: 720
+    },
     add: {
       rectangle: vi.fn(() => {
         const rectangle = createFakeDisplayObject();
@@ -171,6 +176,65 @@ describe('createPowerupHud', () => {
     powerupHud.update([]);
 
     expect(scene.containers.at(-1)?.visible).toBe(false);
+  });
+});
+
+describe('createDamageStatsOverlay', () => {
+  it('shows a tooltip when hovering a visible learned weapon row', () => {
+    const scene = createFakeScene();
+    const overlay = createDamageStatsOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.toggle();
+    overlay.update(
+      [
+        { key: 'projectile', label: 'Auto Shot', totalDamage: 42, dps: 8.4 },
+        { key: 'burstRifle', label: 'Burst Rifle', totalDamage: 21, dps: 4.2 }
+      ],
+      {
+        projectile: {
+          title: 'Auto Shot',
+          rows: [
+            { label: 'Damage', value: '34' },
+            { label: 'Cooldown', value: '0.41s' }
+          ]
+        },
+        burstRifle: {
+          title: 'Burst Rifle',
+          rows: [{ label: 'Damage', value: '17' }]
+        }
+      }
+    );
+
+    const shown = overlay.hoverPointer(980, 74);
+
+    expect(shown).toBe(true);
+    expect(overlay.getTooltipState()).toEqual({ visible: true, key: 'projectile' });
+    expect(scene.texts.some((text) => text.text === 'Auto Shot')).toBe(true);
+    expect(scene.texts.some((text) => text.text === 'Damage 34')).toBe(true);
+  });
+
+  it('hides the tooltip when hovering outside the visible row bounds', () => {
+    const scene = createFakeScene();
+    const overlay = createDamageStatsOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.toggle();
+    overlay.update(
+      [{ key: 'projectile', label: 'Auto Shot', totalDamage: 42, dps: 8.4 }],
+      {
+        projectile: {
+          title: 'Auto Shot',
+          rows: [{ label: 'Damage', value: '34' }]
+        }
+      }
+    );
+
+    overlay.hoverPointer(980, 74);
+    const shown = overlay.hoverPointer(30, 30);
+
+    expect(shown).toBe(false);
+    expect(overlay.getTooltipState()).toEqual({ visible: false, key: null });
   });
 });
 

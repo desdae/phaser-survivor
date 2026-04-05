@@ -280,15 +280,80 @@ export function createDamageStatsOverlay(scene) {
       color: '#cde4f8'
     })
   );
-  const container = scene.add.container(0, 0, [panel, title, ...rows, hint]);
+  const tooltipPanel = scene.add.rectangle(0, 0, 212, 36, 0x08121c, 0.96).setOrigin(0);
+  tooltipPanel.setStrokeStyle(2, 0x8bc7ff, 0.45);
+  const tooltipTitle = scene.add.text(0, 0, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '16px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+  const tooltipRows = Array.from({ length: 6 }, () =>
+    scene.add.text(0, 0, '', {
+      fontFamily: 'Trebuchet MS',
+      fontSize: '14px',
+      color: '#cde4f8'
+    })
+  );
+  const container = scene.add.container(0, 0, [panel, title, ...rows, hint, tooltipPanel, tooltipTitle, ...tooltipRows]);
 
   container.setDepth(52);
   container.setScrollFactor(0);
   container.setVisible(false);
 
+  let rowBounds = [];
+  let tooltipMap = {};
+  let tooltipState = { visible: false, key: null };
+
+  tooltipPanel.setVisible(false);
+  tooltipTitle.setVisible(false);
+  tooltipRows.forEach((rowText) => rowText.setVisible(false));
+
+  function hideTooltip() {
+    tooltipState = { visible: false, key: null };
+    tooltipPanel.setVisible(false);
+    tooltipTitle.setVisible(false);
+    tooltipRows.forEach((rowText) => {
+      rowText.setText('');
+      rowText.setVisible(false);
+    });
+  }
+
+  function showTooltip(bounds, payload) {
+    const visibleRows = payload.rows.slice(0, tooltipRows.length);
+    const tooltipHeight = 38 + visibleRows.length * 20 + 12;
+    const maxY = Math.max(12, (scene.scale?.height ?? 720) - tooltipHeight - 12);
+    const x = Math.max(12, bounds.x - 226);
+    const y = Math.max(12, Math.min(bounds.y - 10, maxY));
+
+    tooltipPanel.setPosition(x, y);
+    tooltipPanel.setSize(212, tooltipHeight);
+    tooltipTitle.setPosition(x + 14, y + 12);
+    tooltipTitle.setText(payload.title);
+    tooltipTitle.setVisible(true);
+
+    tooltipRows.forEach((rowText, index) => {
+      const row = visibleRows[index];
+
+      if (!row) {
+        rowText.setText('');
+        rowText.setVisible(false);
+        return;
+      }
+
+      rowText.setPosition(x + 14, y + 40 + index * 20);
+      rowText.setText(`${row.label} ${row.value}`);
+      rowText.setVisible(true);
+    });
+
+    tooltipPanel.setVisible(true);
+    tooltipState = { visible: true, key: payload.key ?? null };
+  }
+
   return {
     hide() {
       container.setVisible(false);
+      hideTooltip();
     },
     isVisible() {
       return container.visible;
@@ -298,8 +363,15 @@ export function createDamageStatsOverlay(scene) {
     },
     toggle() {
       container.setVisible(!container.visible);
+
+      if (!container.visible) {
+        hideTooltip();
+      }
     },
-    update(statRows) {
+    update(statRows, nextTooltipMap = {}) {
+      tooltipMap = nextTooltipMap;
+      rowBounds = [];
+
       rows.forEach((rowText, index) => {
         const row = statRows[index];
 
@@ -311,7 +383,44 @@ export function createDamageStatsOverlay(scene) {
         rowText.setText(
           `${row.label.padEnd(14, ' ')} ${formatDamageNumber(row.totalDamage)} dmg   ${formatDpsNumber(row.dps)} dps`
         );
+        rowBounds.push({
+          key: row.key,
+          x: container.x + 18,
+          y: container.y + 52 + index * 26,
+          width: 300,
+          height: 22
+        });
       });
+      hideTooltip();
+    },
+    hoverPointer(pointerX, pointerY) {
+      if (!container.visible) {
+        hideTooltip();
+        return false;
+      }
+
+      const hovered = rowBounds.find(
+        (bounds) =>
+          pointerX >= bounds.x &&
+          pointerX <= bounds.x + bounds.width &&
+          pointerY >= bounds.y &&
+          pointerY <= bounds.y + bounds.height
+      );
+      const payload = hovered ? tooltipMap[hovered.key] : null;
+
+      if (!hovered || !payload || payload.rows.length === 0) {
+        hideTooltip();
+        return false;
+      }
+
+      showTooltip(hovered, {
+        ...payload,
+        key: hovered.key
+      });
+      return true;
+    },
+    getTooltipState() {
+      return tooltipState;
     }
   };
 }
