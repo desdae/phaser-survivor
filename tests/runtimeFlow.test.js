@@ -16,6 +16,7 @@ vi.mock('phaser', () => ({
   }
 }));
 
+import Phaser from 'phaser';
 import { GameScene } from '../src/game/scenes/GameScene.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
@@ -269,6 +270,31 @@ describe('GameScene handlePickupCollected', () => {
 });
 
 describe('GameScene update', () => {
+  it('routes game-over restart hotkeys through the explicit restart helper', () => {
+    const justDownSpy = vi.spyOn(Phaser.Input.Keyboard, 'JustDown').mockReturnValue(true);
+    const sceneLike = {
+      handleStatsToggle: vi.fn(),
+      input: {
+        activePointer: null
+      },
+      isGameOver: true,
+      restartKey: {},
+      restartRun: vi.fn(),
+      scene: {
+        restart: vi.fn()
+      },
+      syncBackgroundTiles: vi.fn(),
+      updateFpsCounter: vi.fn()
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.restartRun).toHaveBeenCalledOnce();
+    expect(sceneLike.scene.restart).not.toHaveBeenCalled();
+
+    justDownSpy.mockRestore();
+  });
+
   it('updates mouseWorld from the active pointer each frame before aimed weapons run', () => {
     const pointer = { worldX: 320, worldY: 180 };
     const sceneLike = {
@@ -1163,6 +1189,44 @@ describe('GameScene openGameOver', () => {
 
     expect(sceneLike.audioManager.playGameOver).toHaveBeenCalledOnce();
     expect(sceneLike.gameOverOverlay.show).toHaveBeenCalledWith({ level: 4, timeMs: 12000 });
+  });
+});
+
+describe('GameScene restartRun', () => {
+  it('cleans up pause overlays and starts a fresh game scene', () => {
+    const sceneLike = {
+      activePauseOverlay: 'levelUp',
+      chestOverlay: {
+        hide: vi.fn()
+      },
+      gameOverOverlay: {
+        hide: vi.fn()
+      },
+      isGameOver: true,
+      isGameplayPaused: true,
+      levelUpOverlay: {
+        hide: vi.fn()
+      },
+      physics: {
+        world: {
+          resume: vi.fn()
+        }
+      },
+      scene: {
+        start: vi.fn()
+      }
+    };
+
+    GameScene.prototype.restartRun.call(sceneLike);
+
+    expect(sceneLike.physics.world.resume).toHaveBeenCalledOnce();
+    expect(sceneLike.levelUpOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.chestOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.gameOverOverlay.hide).toHaveBeenCalledOnce();
+    expect(sceneLike.activePauseOverlay).toBe(null);
+    expect(sceneLike.isGameOver).toBe(false);
+    expect(sceneLike.isGameplayPaused).toBe(false);
+    expect(sceneLike.scene.start).toHaveBeenCalledWith('game');
   });
 });
 

@@ -114,7 +114,7 @@ export class GameScene extends Phaser.Scene {
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
     this.chestOverlay = createChestOverlay(this, (reward) => this.handleChestRewardSelected(reward));
-    this.gameOverOverlay = createGameOverOverlay(this, () => this.scene.restart());
+    this.gameOverOverlay = createGameOverOverlay(this, () => this.restartRun());
     this.input.once('pointerdown', () => {
       this.audioManager?.unlock?.();
     });
@@ -177,7 +177,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.isGameOver && Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-      this.scene.restart();
+      this.restartRun();
       return;
     }
 
@@ -433,6 +433,17 @@ export class GameScene extends Phaser.Scene {
       timeMs: this.elapsedMs,
       level: this.player.stats.level
     });
+  }
+
+  restartRun() {
+    this.levelUpOverlay?.hide?.();
+    this.chestOverlay?.hide?.();
+    this.gameOverOverlay?.hide?.();
+    this.physics?.world?.resume?.();
+    this.activePauseOverlay = null;
+    this.isGameplayPaused = false;
+    this.isGameOver = false;
+    this.scene.start(this.sys?.settings?.key ?? 'game');
   }
 
   refreshHud(enemyCount = this.enemyManager.getLivingEnemies().length) {
