@@ -202,6 +202,50 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'burstRifleDamage')).toBe(true);
     expect(pool.some((entry) => entry.key === 'lanceDamage')).toBe(true);
   });
+
+  it('offers flamethrower and rune trap unlocks before they are acquired', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: false,
+      flamethrowerUnlocked: false,
+      runeTrapUnlocked: false,
+      lanceUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockFlamethrower')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'unlockRuneTrap')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'flamethrowerDamage')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'runeTrapDamage')).toBe(false);
+  });
+
+  it('offers flamethrower and rune trap upgrades after they are unlocked', () => {
+    const pool = getUpgradePool({
+      bladeUnlocked: false,
+      chainUnlocked: false,
+      novaUnlocked: false,
+      boomerangUnlocked: false,
+      meteorUnlocked: false,
+      burstRifleUnlocked: false,
+      flamethrowerUnlocked: true,
+      runeTrapUnlocked: true,
+      lanceUnlocked: false,
+      projectileRicochet: 0,
+      projectilePierce: 0,
+      projectileCount: 1
+    });
+
+    expect(pool.some((entry) => entry.key === 'unlockFlamethrower')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'unlockRuneTrap')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'flamethrowerDamage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'runeTrapDamage')).toBe(true);
+  });
 });
 
 describe('applyUpgrade', () => {

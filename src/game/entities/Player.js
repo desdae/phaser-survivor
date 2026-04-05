@@ -52,7 +52,18 @@ const PLAYER_STARTING_STATS = {
   lanceDamage: 0,
   lanceCooldownMs: 0,
   lanceLength: 0,
-  lanceWidth: 0
+  lanceWidth: 0,
+  flamethrowerUnlocked: false,
+  flamethrowerDamage: 0,
+  flamethrowerRange: 0,
+  flamethrowerCooldownMs: 0,
+  flamethrowerArcDeg: 0,
+  runeTrapUnlocked: false,
+  runeTrapDamage: 0,
+  runeTrapArmMs: 0,
+  runeTrapRadius: 0,
+  runeTrapCharges: 0,
+  runeTrapCooldownMs: 0
 };
 
 export class Player {

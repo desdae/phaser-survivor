@@ -271,6 +271,87 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'unlockFlamethrower',
+    label: 'Flamethrower',
+    description: 'Unlock a short mouse-aimed cone that melts enemies in front of you.',
+    isAvailable: (player) => canLearnAbility(player, 'flamethrowerUnlocked'),
+    apply(player) {
+      player.flamethrowerUnlocked = true;
+      player.flamethrowerDamage = Math.max(player.flamethrowerDamage, 4);
+      player.flamethrowerRange = Math.max(player.flamethrowerRange, 90);
+      player.flamethrowerCooldownMs = Math.max(player.flamethrowerCooldownMs, 0) || 140;
+      player.flamethrowerArcDeg = Math.max(player.flamethrowerArcDeg, 60);
+    }
+  },
+  {
+    key: 'flamethrowerDamage',
+    label: 'Cinder Breath',
+    description: '+2 flamethrower damage',
+    isAvailable: (player) => player.flamethrowerUnlocked,
+    apply(player) {
+      player.flamethrowerDamage += 2;
+    }
+  },
+  {
+    key: 'flamethrowerRange',
+    label: 'Long Burn',
+    description: '+18 flamethrower range',
+    isAvailable: (player) => player.flamethrowerUnlocked,
+    apply(player) {
+      player.flamethrowerRange += 18;
+    }
+  },
+  {
+    key: 'flamethrowerRate',
+    label: 'Bellows',
+    description: '-12ms flamethrower cooldown',
+    isAvailable: (player) => player.flamethrowerUnlocked,
+    apply(player) {
+      player.flamethrowerCooldownMs = Math.max(70, player.flamethrowerCooldownMs - 12);
+    }
+  },
+  {
+    key: 'unlockRuneTrap',
+    label: 'Rune Trap',
+    description: 'Unlock delayed rune traps that arm at your cursor and detonate on contact.',
+    isAvailable: (player) => canLearnAbility(player, 'runeTrapUnlocked'),
+    apply(player) {
+      player.runeTrapUnlocked = true;
+      player.runeTrapDamage = Math.max(player.runeTrapDamage, 22);
+      player.runeTrapArmMs = Math.max(player.runeTrapArmMs, 0) || 400;
+      player.runeTrapRadius = Math.max(player.runeTrapRadius, 40);
+      player.runeTrapCharges = Math.max(player.runeTrapCharges, 1);
+      player.runeTrapCooldownMs = Math.max(player.runeTrapCooldownMs, 0) || 900;
+    }
+  },
+  {
+    key: 'runeTrapDamage',
+    label: 'Sigil Ruin',
+    description: '+8 rune trap damage',
+    isAvailable: (player) => player.runeTrapUnlocked,
+    apply(player) {
+      player.runeTrapDamage += 8;
+    }
+  },
+  {
+    key: 'runeTrapRadius',
+    label: 'Wide Glyph',
+    description: '+10 rune trap radius',
+    isAvailable: (player) => player.runeTrapUnlocked,
+    apply(player) {
+      player.runeTrapRadius += 10;
+    }
+  },
+  {
+    key: 'runeTrapCharges',
+    label: 'Prepared Circle',
+    description: '+1 rune trap charge',
+    isAvailable: (player) => player.runeTrapUnlocked,
+    apply(player) {
+      player.runeTrapCharges += 1;
+    }
+  },
+  {
     key: 'lanceDamage',
     label: 'Moonsteel Tip',
     description: '+8 lance damage',
