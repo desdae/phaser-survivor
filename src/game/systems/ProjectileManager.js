@@ -75,14 +75,20 @@ export class ProjectileManager {
     );
   }
 
-  fireProjectile(origin, direction, stats, now) {
+  fireProjectile(origin, direction, stats, now, options = {}) {
     const projectile = this.getReusableProjectile();
     const speed = stats.projectileSpeed ?? 0;
+    const rotation = options.rotation ?? Math.atan2(direction.y, direction.x);
+    const textureKey = options.textureKey ?? 'projectile';
+    const weaponKey = options.weaponKey ?? 'projectile';
 
     projectile.setPosition?.(origin.x, origin.y);
+    projectile.setTexture?.(textureKey);
+    projectile.setRotation?.(rotation);
     projectile.damage = stats.projectileDamage ?? 0;
     projectile.remainingPierce = stats.projectilePierce ?? 0;
     projectile.remainingRicochet = stats.projectileRicochet ?? 0;
+    projectile.weaponKey = weaponKey;
     projectile.hitEnemyKeys = new Set();
     projectile.expiresAt = now + 1400;
     projectile.setDepth(3);

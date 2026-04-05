@@ -23,7 +23,9 @@ export class BurstRifleManager {
     const shot = {
       damage: stats.burstRifleDamage ?? 0,
       direction,
+      rotation: Math.atan2(direction.y, direction.x),
       speed: stats.burstRifleProjectileSpeed ?? 0,
+      textureKey: 'burst-rifle-projectile',
       weaponKey: 'burstRifle',
       x: origin.x,
       y: origin.y
@@ -44,9 +46,13 @@ export class BurstRifleManager {
           projectileRicochet: 0,
           projectileSpeed: shot.speed
         },
-        now
+        now,
+        {
+          rotation: shot.rotation,
+          textureKey: shot.textureKey,
+          weaponKey: shot.weaponKey
+        }
       );
-      projectile.weaponKey = shot.weaponKey;
       return projectile;
     }
 

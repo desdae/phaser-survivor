@@ -85,4 +85,21 @@ describe('DamageStatsManager', () => {
 
     expect(manager.getRows(2200).map((row) => row.key)).toEqual(['projectile', 'burstRifle']);
   });
+
+  it('keeps base shot and burst rifle damage in separate rows', () => {
+    const manager = new DamageStatsManager();
+
+    manager.unlock('burstRifle', 1000);
+    manager.record('projectile', 25);
+    manager.record('burstRifle', 40);
+
+    const rows = manager.getRows(5000);
+
+    expect(rows.find((row) => row.key === 'projectile')).toMatchObject({
+      totalDamage: 25
+    });
+    expect(rows.find((row) => row.key === 'burstRifle')).toMatchObject({
+      totalDamage: 40
+    });
+  });
 });

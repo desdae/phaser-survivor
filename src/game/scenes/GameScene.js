@@ -690,6 +690,24 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('projectile', magicMissileSpec.width, magicMissileSpec.height);
 
     graphics.clear();
+    graphics.fillStyle(0x8e5b33, 0.32);
+    graphics.fillEllipse(8.3, 6.1, 9.2, 4.4);
+    graphics.fillStyle(0xbd7b47, 1);
+    graphics.fillEllipse(4.3, 5, 5.6, 6);
+    graphics.fillRect(4.3, 2, 7.8, 6);
+    graphics.fillEllipse(12.1, 5, 4.2, 6);
+    graphics.fillStyle(0xe2a06c, 0.9);
+    graphics.fillEllipse(5.1, 3.2, 3.4, 1.2);
+    graphics.fillRect(5.1, 2.6, 7.1, 1.2);
+    graphics.fillStyle(0x2d231f, 1);
+    graphics.fillEllipse(13.8, 5, 3.2, 5.2);
+    graphics.fillStyle(0xf4c293, 0.72);
+    graphics.fillRect(3.1, 3.2, 0.9, 3.4);
+    graphics.lineStyle(1, 0x9f6336, 0.75);
+    graphics.lineBetween(9.8, 2.2, 9.8, 7.8);
+    graphics.generateTexture('burst-rifle-projectile', 16, 10);
+
+    graphics.clear();
     graphics.fillStyle(0xd9f2ff, 1);
     graphics.fillTriangle(6, 20, 14, 0, 22, 20);
     graphics.generateTexture('blade', 28, 22);
