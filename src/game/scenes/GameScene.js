@@ -773,10 +773,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     graphics.clear();
-    graphics.fillStyle(0x7df0ac, 1);
+    graphics.fillStyle(0x0f5c7e, 1);
     graphics.fillCircle(8, 8, 8);
-    graphics.lineStyle(2, 0xdfffe9, 1);
-    graphics.strokeCircle(8, 8, 7);
+    graphics.fillStyle(0x1189b6, 0.98);
+    graphics.fillCircle(8, 8, 6.8);
+    graphics.fillStyle(0x40d9ff, 0.94);
+    graphics.fillCircle(7, 7, 5.2);
+    graphics.fillStyle(0x8ff6ff, 0.65);
+    graphics.fillEllipse(5.2, 4.8, 5.8, 3.8);
+    graphics.fillStyle(0xffffff, 0.84);
+    graphics.fillCircle(4.6, 4.5, 1.3);
+    graphics.fillCircle(6.8, 3.8, 0.6);
+    graphics.fillStyle(0x04283d, 0.34);
+    graphics.fillEllipse(10.2, 10.8, 6.2, 4.4);
+    graphics.lineStyle(1, 0xbdf7ff, 0.95);
+    graphics.strokeCircle(8, 8, 7.1);
     graphics.generateTexture('xp-orb', 16, 16);
 
     graphics.clear();
