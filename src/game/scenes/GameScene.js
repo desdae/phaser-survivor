@@ -28,6 +28,7 @@ import {
   getVisibleGrassTiles
 } from '../logic/backgroundTiles.js';
 import { getAimDirection } from '../logic/combat.js';
+import { getMagicMissileTextureSpec } from '../logic/projectileVisuals.js';
 import { getSpawnProfile } from '../logic/spawn.js';
 import {
   createChestOverlay,
@@ -670,10 +671,23 @@ export class GameScene extends Phaser.Scene {
       createNecromancerFrame(frame);
     }
 
+    const magicMissileSpec = getMagicMissileTextureSpec();
     graphics.clear();
-    graphics.fillStyle(0xffefaa, 1);
-    graphics.fillCircle(5, 5, 5);
-    graphics.generateTexture('projectile', 10, 10);
+    magicMissileSpec.glows.forEach((glow) => {
+      graphics.fillStyle(glow.color, glow.alpha);
+      graphics.fillCircle(glow.x, glow.y, glow.radius);
+    });
+    magicMissileSpec.spikes.forEach((spike) => {
+      graphics.fillStyle(spike.color, spike.alpha);
+      graphics.fillTriangle(...spike.points);
+    });
+    graphics.fillStyle(magicMissileSpec.core.color, magicMissileSpec.core.alpha);
+    graphics.fillCircle(
+      magicMissileSpec.core.x,
+      magicMissileSpec.core.y,
+      magicMissileSpec.core.radius
+    );
+    graphics.generateTexture('projectile', magicMissileSpec.width, magicMissileSpec.height);
 
     graphics.clear();
     graphics.fillStyle(0xd9f2ff, 1);
