@@ -43,6 +43,22 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'regen',
+    label: 'Blood Renewal',
+    description: '+0.1 health regenerated per second',
+    apply(player) {
+      player.healthRegenPerSec = (player.healthRegenPerSec ?? 0) + 0.1;
+    }
+  },
+  {
+    key: 'guard',
+    label: 'Grim Ward',
+    description: '-10% damage taken multiplicatively',
+    apply(player) {
+      player.damageTakenMultiplier = (player.damageTakenMultiplier ?? 1) * 0.9;
+    }
+  },
+  {
     key: 'unlockBlade',
     label: 'Orbiting Blade',
     description: 'Unlock a blade that circles you and cuts nearby enemies.',

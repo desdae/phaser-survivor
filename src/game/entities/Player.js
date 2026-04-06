@@ -17,6 +17,8 @@ const PLAYER_STARTING_STATS = {
   projectileRicochet: 0,
   projectileSpreadDeg: 14,
   pickupRadius: 48,
+  healthRegenPerSec: 0,
+  damageTakenMultiplier: 1,
   bladeUnlocked: false,
   bladeCount: 0,
   bladeDamage: 0,
@@ -124,7 +126,8 @@ export class Player {
   }
 
   takeDamage(amount) {
-    this.stats.health = Math.max(0, this.stats.health - amount);
+    const scaledAmount = amount * (this.stats.damageTakenMultiplier ?? 1);
+    this.stats.health = Math.max(0, this.stats.health - scaledAmount);
     this.refreshHealthBar();
     return this.stats.health === 0;
   }

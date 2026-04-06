@@ -210,6 +210,7 @@ export class GameScene extends Phaser.Scene {
     this.temporaryBuffSystem?.update?.(this.elapsedMs);
     const effectiveStats =
       this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, this.elapsedMs) ?? this.player.stats;
+    this.applyPassiveRegen?.(delta, effectiveStats);
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
@@ -280,6 +281,16 @@ export class GameScene extends Phaser.Scene {
     this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
     this.refreshHud(livingEnemies.length);
     GameScene.prototype.refreshDamageStatsHover.call(this, pointer);
+  }
+
+  applyPassiveRegen(delta, effectiveStats = this.player?.stats) {
+    const regenPerSec = effectiveStats?.healthRegenPerSec ?? 0;
+
+    if (!regenPerSec || !this.player?.stats || this.player.stats.health >= this.player.stats.maxHealth) {
+      return;
+    }
+
+    this.player.heal((regenPerSec * delta) / 1000);
   }
 
   refreshDamageStatsHover(pointer = this.input?.activePointer) {

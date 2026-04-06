@@ -665,6 +665,78 @@ describe('GameScene update', () => {
     expect(sceneLike.enemyManager.getLivingEnemies).not.toHaveBeenCalled();
   });
 
+  it('applies passive health regeneration from learned upgrades during active gameplay', () => {
+    const sceneLike = {
+      activePauseOverlay: null,
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      elapsedMs: 0,
+      enemyManager: {
+        getNearEnemyQuery: vi.fn().mockReturnValue([]),
+        update: vi.fn().mockReturnValue([])
+      },
+      handleStatsToggle: vi.fn(),
+      input: {
+        activePointer: null
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      meteorManager: {
+        update: vi.fn()
+      },
+      novaManager: {
+        update: vi.fn()
+      },
+      applyPassiveRegen: GameScene.prototype.applyPassiveRegen,
+      pickupManager: {
+        update: vi.fn()
+      },
+      player: {
+        heal: vi.fn(),
+        sprite: { x: 0, y: 0 },
+        stats: {
+          health: 55,
+          healthRegenPerSec: 0.2,
+          maxHealth: 100,
+          pickupRadius: 48
+        },
+        updateMovement: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: vi.fn(),
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        update: vi.fn()
+      },
+      time: {
+        now: 1000
+      },
+      updateEliteWave: vi.fn()
+    };
+
+    GameScene.prototype.update.call(sceneLike, 1000, 1000);
+
+    expect(sceneLike.player.heal).toHaveBeenCalledWith(0.2);
+  });
+
   it('plays warning audio first, then spawns the elite after the warning window ends', () => {
     const eliteState = {
       pendingElite: false,
