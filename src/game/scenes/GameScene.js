@@ -44,6 +44,7 @@ import {
 } from '../logic/journalDiscovery.js';
 import { getMagicMissileTextureSpec } from '../logic/projectileVisuals.js';
 import { getSpawnProfile } from '../logic/spawn.js';
+import { getCobbleWallTextureSpec } from '../logic/wallVisuals.js';
 import { buildWeaponTooltipMap } from '../logic/weaponTooltips.js';
 import {
   createChestOverlay,
@@ -1008,24 +1009,44 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('arc-mine', 36, 36);
 
     graphics.clear();
-    graphics.fillStyle(0x0c0a09, 0.42);
-    graphics.fillRect(2, 4, 28, 24);
-    graphics.fillStyle(0x4e4037, 1);
-    graphics.fillRect(0, 2, 28, 28);
-    graphics.fillStyle(0x6b5a4f, 0.9);
-    graphics.fillRect(2, 4, 12, 10);
-    graphics.fillRect(16, 4, 10, 10);
-    graphics.fillRect(2, 16, 14, 10);
-    graphics.fillRect(18, 16, 8, 10);
-    graphics.fillStyle(0x8d7869, 0.46);
-    graphics.fillRect(3, 5, 10, 2);
-    graphics.fillRect(17, 6, 7, 2);
-    graphics.fillRect(4, 18, 8, 2);
-    graphics.fillRect(19, 19, 5, 2);
-    graphics.lineStyle(2, 0x241a15, 0.9);
-    graphics.strokeRect(1, 3, 26, 24);
-    graphics.lineStyle(1, 0xaa987c, 0.2);
-    graphics.strokeRect(3, 5, 22, 20);
+    const wallSpec = getCobbleWallTextureSpec();
+    graphics.fillStyle(wallSpec.background.color, wallSpec.background.alpha);
+    graphics.fillRect(
+      wallSpec.background.x,
+      wallSpec.background.y,
+      wallSpec.background.width,
+      wallSpec.background.height
+    );
+    wallSpec.highlightRects.forEach((rect) => {
+      graphics.fillStyle(rect.color, rect.alpha);
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+    });
+    wallSpec.shadowRects.forEach((rect) => {
+      graphics.fillStyle(rect.color, rect.alpha);
+      graphics.fillRect(rect.x, rect.y, rect.width, rect.height);
+    });
+    graphics.lineStyle(
+      wallSpec.outerStroke.lineWidth,
+      wallSpec.outerStroke.color,
+      wallSpec.outerStroke.alpha
+    );
+    graphics.strokeRect(
+      wallSpec.outerStroke.x,
+      wallSpec.outerStroke.y,
+      wallSpec.outerStroke.width,
+      wallSpec.outerStroke.height
+    );
+    graphics.lineStyle(
+      wallSpec.innerStroke.lineWidth,
+      wallSpec.innerStroke.color,
+      wallSpec.innerStroke.alpha
+    );
+    graphics.strokeRect(
+      wallSpec.innerStroke.x,
+      wallSpec.innerStroke.y,
+      wallSpec.innerStroke.width,
+      wallSpec.innerStroke.height
+    );
     graphics.generateTexture('cobble-wall', 32, 32);
 
     graphics.clear();
