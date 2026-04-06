@@ -37,6 +37,7 @@ export class RuneTrapManager {
 
       enemyManager.damageEnemy(hitEnemy, trap.damage, 'runeTrap');
       triggered = true;
+      this.renderDetonation(trap);
       trap.marker?.destroy?.();
       return false;
     });
@@ -56,6 +57,23 @@ export class RuneTrapManager {
       radius: stats.runeTrapRadius ?? 0,
       x: cursorWorld.x,
       y: cursorWorld.y
+    });
+  }
+
+  renderDetonation(trap) {
+    const burst = this.scene?.add?.image?.(trap.x, trap.y, 'rune-trap-burst');
+    burst?.setDepth?.(2.2);
+    burst?.setAlpha?.(0.92);
+    burst?.setScale?.(0.7);
+
+    this.scene?.tweens?.add?.({
+      targets: burst,
+      alpha: 0,
+      duration: 180,
+      ease: 'Cubic.easeOut',
+      scaleX: 1.45,
+      scaleY: 1.45,
+      onComplete: () => burst?.destroy?.()
     });
   }
 }

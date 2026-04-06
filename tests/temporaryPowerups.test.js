@@ -167,19 +167,35 @@ describe('getEffectiveStats', () => {
 });
 
 describe('buildPowerupSummaryRows', () => {
-  it('returns one row per active buff type with stack count and countdown', () => {
+  it('builds icon-ready buff summaries with remaining ratio and texture keys', () => {
+    const now = 10000;
+
     expect(
       buildPowerupSummaryRows(
         [
-          createPowerupStack('frenzy', 0),
-          createPowerupStack('frenzy', 5000),
-          createPowerupStack('volley', 10000)
+          createPowerupStack('frenzy', now - 21000),
+          createPowerupStack('frenzy', now - 10000),
+          createPowerupStack('volley', now - 15000)
         ],
-        12000
+        now
       )
     ).toEqual([
-      { buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 18 },
-      { buffKey: 'volley', label: 'Volley', stacks: 1, secondsLeft: 28 }
+      {
+        buffKey: 'frenzy',
+        textureKey: 'powerup-frenzy',
+        stacks: 2,
+        remainingMs: 9000,
+        durationMs: POWERUP_DURATION_MS,
+        remainingRatio: 0.3
+      },
+      {
+        buffKey: 'volley',
+        textureKey: 'powerup-volley',
+        stacks: 1,
+        remainingMs: 15000,
+        durationMs: POWERUP_DURATION_MS,
+        remainingRatio: 0.5
+      }
     ]);
   });
 });

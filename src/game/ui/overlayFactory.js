@@ -5,7 +5,7 @@ function createButtonCard(scene, onClick) {
   const background = scene.add
     .rectangle(0, 0, 280, 170, 0x163042, 0.96)
     .setStrokeStyle(2, 0x89c7ff, 0.65);
-  const badge = scene.add.text(92, -58, '', {
+  const badge = scene.add.text(0, -84, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '13px',
     color: '#0d1721',
@@ -13,6 +13,7 @@ function createButtonCard(scene, onClick) {
     backgroundColor: '#89c7ff',
     padding: { left: 8, right: 8, top: 2, bottom: 2 }
   });
+  badge.setOrigin(0.5);
   const title = scene.add.text(-118, -52, '', {
     fontFamily: 'Trebuchet MS',
     fontSize: '22px',
@@ -136,6 +137,12 @@ export function createHud(scene) {
   const XP_BAR_HEIGHT = 24;
   const XP_BAR_INSET = 4;
   let currentXpBarWidth = Math.max(0, MAX_XP_BAR_WIDTH - XP_BAR_INSET * 2);
+  let currentXpBarBounds = {
+    x: 0,
+    y: 0,
+    width: MAX_XP_BAR_WIDTH,
+    height: XP_BAR_HEIGHT
+  };
 
   return {
     layout(width = 1280, height = 720) {
@@ -145,11 +152,18 @@ export function createHud(scene) {
       const barX = Math.round((width - barWidth) / 2) - 18;
       const barY = height - XP_BAR_MARGIN - XP_BAR_HEIGHT - 18;
       currentXpBarWidth = Math.max(0, barWidth - XP_BAR_INSET * 2);
+      currentXpBarBounds = {
+        x: barX,
+        y: barY,
+        width: barWidth,
+        height: XP_BAR_HEIGHT
+      };
 
       xpBarFrame.setPosition(barX, barY);
       xpBarFrame.setSize(barWidth, XP_BAR_HEIGHT);
       xpBarFill.setPosition(barX + XP_BAR_INSET, barY + XP_BAR_INSET);
       xpBarFill.setSize(currentXpBarWidth, XP_BAR_HEIGHT - XP_BAR_INSET * 2);
+      return currentXpBarBounds;
     },
     update({
       health,
@@ -208,46 +222,148 @@ export function createFpsCounter(scene) {
 }
 
 export function createPowerupHud(scene) {
-  const panel = scene.add.rectangle(0, 0, 224, 112, 0x08121c, 0.82).setOrigin(0);
-  panel.setStrokeStyle(2, 0xffd17a, 0.28);
-  const title = scene.add.text(14, 10, 'Powerups', {
-    fontFamily: 'Trebuchet MS',
-    fontSize: '16px',
-    color: '#ffe9b8',
-    fontStyle: 'bold'
+  const ICON_SIZE = 34;
+  const FRAME_SIZE = 40;
+  const SLOT_GAP = 10;
+  const ABOVE_BAR_GAP = 28;
+  const FRAME_BORDER = 0xffd17a;
+  const FRAME_FILL = 0x08121c;
+  const BUFF_USED_COLORS = {
+    frenzy: 0x2a1f3e,
+    overcharge: 0x4a1616,
+    volley: 0x344200
+  };
+  const BUFF_DIVIDER_COLORS = {
+    frenzy: 0xd6a7ff,
+    overcharge: 0xff9ea2,
+    volley: 0xdff58a
+  };
+  const slots = Array.from({ length: 3 }, () => {
+    const frame = scene.add.rectangle(0, 0, FRAME_SIZE, FRAME_SIZE, FRAME_FILL, 0.94);
+    frame.setStrokeStyle(2, FRAME_BORDER, 0.35);
+    const icon = scene.add.image(0, 0, '');
+    icon.setDisplaySize?.(ICON_SIZE, ICON_SIZE);
+    const cooldown = scene.add.graphics();
+    const stackBadge = scene.add
+      .text(0, 0, '', {
+        fontFamily: 'Trebuchet MS',
+        fontSize: '11px',
+        color: '#f8edd3',
+        fontStyle: 'bold',
+        backgroundColor: '#5b0e14',
+        padding: { left: 4, right: 4, top: 1, bottom: 1 }
+      })
+      .setOrigin(1, 1);
+    const slot = scene.add.container(0, 0, [frame, icon, cooldown, stackBadge]);
+
+    slot.setVisible(false);
+    return { cooldown, frame, icon, root: slot, stackBadge, stacks: 0 };
   });
-  const rows = Array.from({ length: 3 }, (_, index) =>
-    scene.add.text(14, 34 + index * 24, '', {
-      fontFamily: 'Trebuchet MS',
-      fontSize: '15px',
-      color: '#f4f8ff'
-    })
-  );
-  const container = scene.add.container(0, 0, [panel, title, ...rows]);
+  const container = scene.add.container(0, 0, slots.map((slot) => slot.root));
 
   container.setDepth(41);
   container.setScrollFactor(0);
   container.setVisible(false);
+  let currentXpBarBounds = null;
+  let state = {
+    iconSlots: [],
+    visible: false,
+    xpBarCenterX: 0,
+    xpBarY: 0
+  };
+
+  function drawCooldownWedge(graphics, ratio, radius, buffKey) {
+    graphics.clear();
+    if (ratio <= 0 || ratio >= 1) {
+      return;
+    }
+
+    const clampedRatio = Math.max(0, Math.min(1, ratio));
+    const dividerAngle = -Math.PI / 2 + Math.PI * 2 * clampedRatio;
+    const usedColor = BUFF_USED_COLORS[buffKey] ?? 0x10161c;
+    const dividerColor = BUFF_DIVIDER_COLORS[buffKey] ?? 0xf8edd3;
+    const dividerLength = radius + 2;
+
+    graphics.fillStyle(usedColor, 0.82);
+    graphics.beginPath();
+    graphics.moveTo(0, 0);
+    graphics.arc(0, 0, radius, dividerAngle, -Math.PI / 2, false);
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.lineStyle(2, dividerColor, 0.96);
+    graphics.beginPath();
+    graphics.moveTo(0, 0);
+    graphics.lineTo(Math.cos(dividerAngle) * dividerLength, Math.sin(dividerAngle) * dividerLength);
+    graphics.strokePath();
+    return dividerAngle;
+  }
 
   return {
-    layout(width) {
-      container.setPosition(width - 242, 72);
+    layout(width, _height, xpBarBounds = null) {
+      currentXpBarBounds = xpBarBounds ?? currentXpBarBounds;
+
+      if (!currentXpBarBounds) {
+        currentXpBarBounds = { x: width - 242, y: 72, width: 224, height: 24 };
+      }
+
+      const baseX = currentXpBarBounds.x;
+      const baseY = currentXpBarBounds.y - ABOVE_BAR_GAP;
+
+      container.setPosition(baseX, baseY);
+      state = {
+        ...state,
+        xpBarCenterX: currentXpBarBounds.x + currentXpBarBounds.width / 2,
+        xpBarY: currentXpBarBounds.y
+      };
     },
     update(summaryRows = []) {
-      const activeRows = summaryRows.slice(0, rows.length);
+      const activeRows = summaryRows.slice(0, slots.length);
+      const iconSlots = [];
 
-      rows.forEach((rowText, index) => {
+      slots.forEach((slot, index) => {
         const row = activeRows[index];
 
         if (!row) {
-          rowText.setText('');
+          slot.root.setVisible(false);
+          slot.stackBadge.setText('');
+          slot.stacks = 0;
+          slot.dividerAngle = null;
+          drawCooldownWedge(slot.cooldown, 0, ICON_SIZE / 2, null);
           return;
         }
 
-        rowText.setText(`${row.label} x${row.stacks} ${row.secondsLeft}s`);
+        const slotX = index * (FRAME_SIZE + SLOT_GAP);
+        slot.root.setVisible(true);
+        slot.root.setPosition(slotX, 0);
+        slot.icon.setTexture(row.textureKey);
+        slot.icon.setPosition(0, 0);
+        slot.cooldown.setPosition(0, 0);
+        slot.stackBadge.setText(row.stacks > 1 ? `${row.stacks}` : '');
+        slot.stackBadge.setPosition(FRAME_SIZE / 2 - 2, FRAME_SIZE / 2 - 2);
+        slot.stacks = row.stacks;
+        slot.dividerAngle = drawCooldownWedge(
+          slot.cooldown,
+          row.remainingRatio,
+          ICON_SIZE / 2,
+          row.buffKey
+        );
+        iconSlots.push({
+          dividerAngle: slot.dividerAngle,
+          stacks: row.stacks,
+          x: container.x + slotX,
+          y: container.y
+        });
       });
 
       container.setVisible(activeRows.length > 0);
+      state = {
+        ...state,
+        iconSlots,
+        visible: activeRows.length > 0
+      };
+    },
+    getState() {
+      return state;
     }
   };
 }

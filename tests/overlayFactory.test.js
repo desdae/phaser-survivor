@@ -69,17 +69,48 @@ function createFakeDisplayObject() {
   };
 }
 
+function createFakeGraphicsObject() {
+  return {
+    x: 0,
+    y: 0,
+    visible: true,
+    setDepth: vi.fn().mockReturnThis(),
+    setScrollFactor: vi.fn().mockReturnThis(),
+    setVisible: vi.fn(function setVisible(value) {
+      this.visible = value;
+      return this;
+    }),
+    setPosition: vi.fn(function setPosition(x, y) {
+      this.x = x;
+      this.y = y;
+      return this;
+    }),
+    clear: vi.fn().mockReturnThis(),
+    fillStyle: vi.fn().mockReturnThis(),
+    lineStyle: vi.fn().mockReturnThis(),
+    beginPath: vi.fn().mockReturnThis(),
+    moveTo: vi.fn().mockReturnThis(),
+    lineTo: vi.fn().mockReturnThis(),
+    arc: vi.fn().mockReturnThis(),
+    closePath: vi.fn().mockReturnThis(),
+    fillPath: vi.fn().mockReturnThis(),
+    strokePath: vi.fn().mockReturnThis()
+  };
+}
+
 function createFakeScene() {
   const rectangles = [];
   const texts = [];
   const images = [];
   const containers = [];
+  const graphics = [];
 
   return {
     rectangles,
     texts,
     images,
     containers,
+    graphics,
     scale: {
       width: 1280,
       height: 720
@@ -94,15 +125,25 @@ function createFakeScene() {
         rectangles.push(rectangle);
         return rectangle;
       }),
-      text: vi.fn(() => {
+      text: vi.fn((x = 0, y = 0) => {
         const text = createFakeDisplayObject();
+        text.x = x;
+        text.y = y;
         texts.push(text);
         return text;
       }),
-      image: vi.fn(() => {
+      image: vi.fn((x = 0, y = 0, texture = '') => {
         const image = createFakeDisplayObject();
+        image.x = x;
+        image.y = y;
+        image.texture = texture;
         images.push(image);
         return image;
+      }),
+      graphics: vi.fn(() => {
+        const graphic = createFakeGraphicsObject();
+        graphics.push(graphic);
+        return graphic;
       }),
       container: vi.fn(() => {
         const container = createFakeDisplayObject();
@@ -182,27 +223,67 @@ describe('createFpsCounter', () => {
 });
 
 describe('createPowerupHud', () => {
-  it('shows formatted active buff rows and hides empty rows', () => {
+  it('renders active buff icons left-aligned above the xp bar', () => {
     const scene = createFakeScene();
     const powerupHud = createPowerupHud(scene);
 
+    powerupHud.layout(1280, 720, { x: 160, y: 636, width: 960, height: 24 });
     powerupHud.update([
-      { buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 18 },
-      { buffKey: 'volley', label: 'Volley', stacks: 1, secondsLeft: 9 }
+      {
+        buffKey: 'frenzy',
+        textureKey: 'powerup-frenzy',
+        stacks: 2,
+        remainingMs: 12000,
+        durationMs: 30000,
+        remainingRatio: 0.4
+      }
     ]);
 
-    expect(scene.containers.at(-1)?.visible).toBe(true);
-    expect(scene.texts.some((text) => text.text === 'Frenzy x2 18s')).toBe(true);
-    expect(scene.texts.some((text) => text.text === 'Volley x1 9s')).toBe(true);
+    expect(scene.images.some((image) => image.texture === 'powerup-frenzy')).toBe(true);
+    expect(powerupHud.getState().visible).toBe(true);
+    expect(powerupHud.getState().iconSlots[0].x).toBe(160);
+    expect(powerupHud.getState().iconSlots[0].y).toBe(608);
+    expect(powerupHud.getState().iconSlots[0].x).toBeLessThan(powerupHud.getState().xpBarCenterX);
+    expect(powerupHud.getState().iconSlots[0].y).toBeLessThan(powerupHud.getState().xpBarY);
   });
 
   it('hides the panel when there are no active buffs', () => {
     const scene = createFakeScene();
     const powerupHud = createPowerupHud(scene);
 
+    powerupHud.layout(1280, 720, { x: 160, y: 636, width: 960, height: 24 });
     powerupHud.update([]);
 
-    expect(scene.containers.at(-1)?.visible).toBe(false);
+    expect(powerupHud.getState().visible).toBe(false);
+  });
+
+  it('shows stack counts and redraws darker buff-tinted cooldown clocks with a divider hand', () => {
+    const scene = createFakeScene();
+    const powerupHud = createPowerupHud(scene);
+
+    powerupHud.layout(1280, 720, { x: 160, y: 636, width: 960, height: 24 });
+    powerupHud.update([
+      {
+        buffKey: 'volley',
+        textureKey: 'powerup-volley',
+        stacks: 3,
+        remainingMs: 6000,
+        durationMs: 30000,
+        remainingRatio: 0.2
+      }
+    ]);
+
+    expect(powerupHud.getState().iconSlots[0].stacks).toBe(3);
+    expect(powerupHud.getState().iconSlots[0].dividerAngle).toBeCloseTo(
+      -Math.PI / 2 + Math.PI * 2 * 0.2,
+      5
+    );
+    expect(scene.texts.some((text) => text.text === '3')).toBe(true);
+    expect(scene.graphics.some((graphic) => graphic.clear.mock.calls.length > 0)).toBe(true);
+    expect(scene.graphics.some((graphic) => graphic.lineStyle.mock.calls.length > 0)).toBe(true);
+    expect(scene.graphics.some((graphic) =>
+      graphic.fillStyle.mock.calls.some((call) => call[0] === 0x344200)
+    )).toBe(true);
   });
 });
 
@@ -479,6 +560,26 @@ describe('createJournalOverlay', () => {
 });
 
 describe('createLevelUpOverlay', () => {
+  it('centers unlock and upgrade badges on the top border of cards', () => {
+    const scene = createFakeScene();
+    const overlay = createLevelUpOverlay(scene, vi.fn());
+    const choices = [
+      { key: 'unlockBlade', label: 'Orbiting Blade', description: 'Unlock a circling blade.' },
+      { key: 'damage', label: 'Sharpened Shots', description: '+8 projectile damage' },
+      { key: 'heal', label: 'Field Medicine', description: 'Restore 30 health' }
+    ];
+
+    overlay.show(choices);
+
+    const unlockBadge = scene.texts.find((text) => text.text === 'UNLOCK');
+    const upgradeBadge = scene.texts.find((text) => text.text === 'UPGRADE');
+
+    expect(unlockBadge?.x).toBe(0);
+    expect(unlockBadge?.y).toBe(-84);
+    expect(upgradeBadge?.x).toBe(0);
+    expect(upgradeBadge?.y).toBe(-84);
+  });
+
   it('selects a choice when a pointer hits a visible card region', () => {
     const scene = createFakeScene();
     const onSelect = vi.fn();

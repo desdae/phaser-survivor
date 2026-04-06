@@ -5,12 +5,6 @@ export const POWERUP_DROP_CHANCE_BY_SOURCE = {
 };
 export const POWERUP_KEYS = ['frenzy', 'overcharge', 'volley'];
 
-const POWERUP_LABELS = {
-  frenzy: 'Frenzy',
-  overcharge: 'Overcharge',
-  volley: 'Volley'
-};
-
 const FRENZY_SCALAR_PER_STACK = 0.7;
 const OVERCHARGE_BONUS_PER_STACK = 0.4;
 const MIN_COOLDOWN_MS = 60;
@@ -117,12 +111,15 @@ export function buildPowerupSummaryRows(stacks, now) {
     }
 
     const nextExpiresAt = Math.min(...matchingStacks.map((stack) => stack.expiresAt));
+    const remainingMs = Math.max(0, nextExpiresAt - now);
 
     return {
       buffKey,
-      label: POWERUP_LABELS[buffKey],
+      durationMs: POWERUP_DURATION_MS,
+      remainingMs,
+      remainingRatio: POWERUP_DURATION_MS > 0 ? remainingMs / POWERUP_DURATION_MS : 0,
       stacks: matchingStacks.length,
-      secondsLeft: Math.max(0, Math.ceil((nextExpiresAt - now) / 1000))
+      textureKey: `powerup-${buffKey}`
     };
   }).filter(Boolean);
 }

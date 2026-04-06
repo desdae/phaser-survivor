@@ -691,7 +691,7 @@ export class GameScene extends Phaser.Scene {
     this.syncBackgroundTiles?.();
 
     if (this.hud) {
-      this.hud.layout(width, height);
+      this.currentXpBarBounds = this.hud.layout(width, height);
     }
 
     if (this.fpsCounter) {
@@ -699,7 +699,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.powerupHud) {
-      this.powerupHud.layout(width, height);
+      this.powerupHud.layout(width, height, this.currentXpBarBounds);
     }
 
     this.layoutPowerupCompassIndicators?.();
@@ -986,6 +986,46 @@ export class GameScene extends Phaser.Scene {
     graphics.lineBetween(8, 8, 24, 24);
     graphics.lineBetween(24, 8, 8, 24);
     graphics.generateTexture('rune-trap', 32, 32);
+
+    graphics.clear();
+    graphics.fillStyle(0x120709, 0.35);
+    graphics.fillCircle(20, 20, 16);
+    graphics.fillStyle(0x3b050c, 0.46);
+    graphics.fillCircle(18, 18, 13);
+    graphics.lineStyle(3, 0xc02735, 0.92);
+    graphics.strokeCircle(18, 18, 11);
+    graphics.lineStyle(2, 0x6f0f18, 0.62);
+    graphics.strokeCircle(18, 18, 14);
+    graphics.lineStyle(2, 0xe6a6a6, 0.8);
+    graphics.beginPath();
+    graphics.moveTo(18, 5);
+    graphics.lineTo(23, 12);
+    graphics.lineTo(31, 14);
+    graphics.lineTo(25, 19);
+    graphics.lineTo(27, 29);
+    graphics.lineTo(18, 24);
+    graphics.lineTo(9, 29);
+    graphics.lineTo(11, 19);
+    graphics.lineTo(5, 14);
+    graphics.lineTo(13, 12);
+    graphics.lineTo(18, 5);
+    graphics.strokePath();
+    graphics.lineStyle(2, 0xffd2c1, 0.75);
+    graphics.beginPath();
+    graphics.moveTo(18, 8);
+    graphics.lineTo(18, 28);
+    graphics.moveTo(8, 18);
+    graphics.lineTo(28, 18);
+    graphics.moveTo(11, 11);
+    graphics.lineTo(25, 25);
+    graphics.moveTo(25, 11);
+    graphics.lineTo(11, 25);
+    graphics.strokePath();
+    graphics.fillStyle(0xff6f7e, 0.88);
+    graphics.fillCircle(18, 18, 4.4);
+    graphics.fillStyle(0x2a0408, 0.54);
+    graphics.fillEllipse(18, 18, 9, 6);
+    graphics.generateTexture('rune-trap-burst', 36, 36);
 
     graphics.clear();
     graphics.fillStyle(0x1d2143, 0.98);

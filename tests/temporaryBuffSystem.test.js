@@ -10,15 +10,43 @@ describe('TemporaryBuffSystem', () => {
     system.addStack('volley', 5000);
 
     expect(system.getSummaryRows(12000)).toEqual([
-      { buffKey: 'frenzy', label: 'Frenzy', stacks: 2, secondsLeft: 19 },
-      { buffKey: 'volley', label: 'Volley', stacks: 1, secondsLeft: 23 }
+      {
+        buffKey: 'frenzy',
+        textureKey: 'powerup-frenzy',
+        stacks: 2,
+        remainingMs: 19000,
+        durationMs: 30000,
+        remainingRatio: 19000 / 30000
+      },
+      {
+        buffKey: 'volley',
+        textureKey: 'powerup-volley',
+        stacks: 1,
+        remainingMs: 23000,
+        durationMs: 30000,
+        remainingRatio: 23000 / 30000
+      }
     ]);
 
     system.update(31000);
 
     expect(system.getSummaryRows(31000)).toEqual([
-      { buffKey: 'frenzy', label: 'Frenzy', stacks: 1, secondsLeft: 3 },
-      { buffKey: 'volley', label: 'Volley', stacks: 1, secondsLeft: 4 }
+      {
+        buffKey: 'frenzy',
+        textureKey: 'powerup-frenzy',
+        stacks: 1,
+        remainingMs: 3000,
+        durationMs: 30000,
+        remainingRatio: 0.1
+      },
+      {
+        buffKey: 'volley',
+        textureKey: 'powerup-volley',
+        stacks: 1,
+        remainingMs: 4000,
+        durationMs: 30000,
+        remainingRatio: 4000 / 30000
+      }
     ]);
   });
 
