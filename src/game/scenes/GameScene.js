@@ -30,6 +30,9 @@ import {
 import {
   getVisibleStructureTiles
 } from '../logic/worldStructures.js';
+import {
+  getPowerupCompassState
+} from '../logic/powerupCompass.js';
 import { getAimDirection } from '../logic/combat.js';
 import {
   buildJournalPayload
@@ -58,6 +61,7 @@ export class GameScene extends Phaser.Scene {
     super('game');
     this.backgroundTiles = [];
     this.structureTiles = [];
+    this.powerupCompassIndicators = [];
   }
 
   create() {
@@ -140,6 +144,7 @@ export class GameScene extends Phaser.Scene {
     this.hud = createHud(this);
     this.fpsCounter = createFpsCounter(this);
     this.powerupHud = createPowerupHud(this);
+    this.syncPowerupCompassIndicators?.();
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.journalOverlay = createJournalOverlay(this);
     this.levelUpOverlay = createLevelUpOverlay(this, (choice) => this.handleUpgradeSelected(choice));
@@ -294,6 +299,7 @@ export class GameScene extends Phaser.Scene {
       this.enemyManager
     );
     this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
+    this.updatePowerupCompassIndicators?.();
     this.refreshHud(livingEnemies.length);
     GameScene.prototype.refreshDamageStatsHover.call(this, pointer);
   }
@@ -694,6 +700,8 @@ export class GameScene extends Phaser.Scene {
     if (this.powerupHud) {
       this.powerupHud.layout(width, height);
     }
+
+    this.layoutPowerupCompassIndicators?.();
 
     if (this.damageStatsOverlay) {
       this.damageStatsOverlay.layout(width, height);
@@ -1331,5 +1339,83 @@ export class GameScene extends Phaser.Scene {
       }
       tile.refreshBody?.();
     });
+  }
+
+  ensurePowerupCompassPool(count) {
+    this.powerupCompassIndicators = this.powerupCompassIndicators.filter((indicator) => indicator?.icon?.scene?.sys);
+
+    while (this.powerupCompassIndicators.length < count) {
+      const glow = this.add.circle(0, 0, 15, 0x33210f, 0.7);
+      const icon = this.add.image(0, 0, 'powerup-frenzy');
+      const arrow = this.add.triangle(0, 0, 0, 12, 18, 6, 0, 0, 0xffe8ae, 0.92);
+      glow.setDepth(43);
+      icon.setDepth(44);
+      arrow.setDepth(42.5);
+      glow.setScrollFactor(0);
+      icon.setScrollFactor(0);
+      arrow.setScrollFactor(0);
+      icon.setScale(1.05);
+      icon.setVisible(false);
+      glow.setVisible(false);
+      arrow.setVisible(false);
+      this.powerupCompassIndicators.push({ arrow, glow, icon });
+    }
+
+    for (let index = count; index < this.powerupCompassIndicators.length; index += 1) {
+      this.powerupCompassIndicators[index].icon.setVisible(false);
+      this.powerupCompassIndicators[index].glow.setVisible(false);
+      this.powerupCompassIndicators[index].arrow.setVisible(false);
+    }
+  }
+
+  syncPowerupCompassIndicators() {
+    const activePowerups = (this.pickupManager?.group?.getChildren?.() ?? []).filter(
+      (pickup) => pickup?.active && pickup.kind === 'powerup'
+    );
+    this.ensurePowerupCompassPool(activePowerups.length);
+    this.updatePowerupCompassIndicators();
+  }
+
+  layoutPowerupCompassIndicators() {
+    this.updatePowerupCompassIndicators();
+  }
+
+  updatePowerupCompassIndicators() {
+    const camera = this.cameras?.main;
+    const viewportWidth = this.scale?.width;
+    const viewportHeight = this.scale?.height;
+    const activePowerups = (this.pickupManager?.group?.getChildren?.() ?? []).filter(
+      (pickup) => pickup?.active && pickup.kind === 'powerup'
+    );
+
+    this.ensurePowerupCompassPool(activePowerups.length);
+
+    activePowerups.forEach((pickup, index) => {
+      const indicator = this.powerupCompassIndicators[index];
+      const state = getPowerupCompassState(pickup, camera, viewportWidth, viewportHeight);
+
+      if (!indicator || !state) {
+        indicator?.icon?.setVisible(false);
+        indicator?.glow?.setVisible(false);
+        indicator?.arrow?.setVisible(false);
+        return;
+      }
+
+      const textureKey = `powerup-${pickup.buffKey}`;
+      indicator.icon.setTexture(textureKey);
+      indicator.icon.setPosition(state.x, state.y);
+      indicator.glow.setPosition(state.x, state.y);
+      indicator.arrow.setPosition(state.x + Math.cos(state.angle) * 17, state.y + Math.sin(state.angle) * 17);
+      indicator.arrow.setRotation(state.angle + Math.PI / 2);
+      indicator.icon.setVisible(true);
+      indicator.glow.setVisible(true);
+      indicator.arrow.setVisible(true);
+    });
+
+    for (let index = activePowerups.length; index < this.powerupCompassIndicators.length; index += 1) {
+      this.powerupCompassIndicators[index].icon.setVisible(false);
+      this.powerupCompassIndicators[index].glow.setVisible(false);
+      this.powerupCompassIndicators[index].arrow.setVisible(false);
+    }
   }
 }

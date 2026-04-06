@@ -133,6 +133,76 @@ describe('GameScene ensureBackgroundTilePool', () => {
   });
 });
 
+describe('GameScene updatePowerupCompassIndicators', () => {
+  it('shows edge-clamped compass icons for off-screen powerups only', () => {
+    const makeHudObject = () => ({
+      scene: { sys: {} },
+      setDepth() {
+        return this;
+      },
+      setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+      },
+      setRotation(rotation) {
+        this.rotation = rotation;
+        return this;
+      },
+      setScrollFactor() {
+        return this;
+      },
+      setScale() {
+        return this;
+      },
+      setTexture(texture) {
+        this.texture = texture;
+        return this;
+      },
+      setVisible(value) {
+        this.visible = value;
+        return this;
+      }
+    });
+    const sceneLike = {
+      add: {
+        circle: () => makeHudObject(),
+        image: () => makeHudObject(),
+        triangle: () => makeHudObject()
+      },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      pickupManager: {
+        group: {
+          getChildren: () => [
+            { active: true, kind: 'powerup', buffKey: 'frenzy', x: 2000, y: 360 },
+            { active: true, kind: 'powerup', buffKey: 'volley', x: 640, y: 320 }
+          ]
+        }
+      },
+      powerupCompassIndicators: [],
+      scale: {
+        height: 720,
+        width: 1280
+      }
+    };
+
+    sceneLike.ensurePowerupCompassPool = GameScene.prototype.ensurePowerupCompassPool;
+
+    GameScene.prototype.updatePowerupCompassIndicators.call(sceneLike);
+
+    expect(sceneLike.powerupCompassIndicators).toHaveLength(2);
+    expect(sceneLike.powerupCompassIndicators[0].icon.visible).toBe(true);
+    expect(sceneLike.powerupCompassIndicators[0].icon.texture).toBe('powerup-frenzy');
+    expect(sceneLike.powerupCompassIndicators[0].icon.x).toBeLessThanOrEqual(1280);
+    expect(sceneLike.powerupCompassIndicators[1].icon.visible).toBe(false);
+  });
+});
+
 describe('GameScene openLevelUp', () => {
   it('pauses gameplay without zeroing in-flight projectiles', () => {
     const sceneLike = {
