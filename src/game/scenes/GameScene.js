@@ -953,6 +953,27 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('rune-trap', 32, 32);
 
     graphics.clear();
+    graphics.fillStyle(0x1d2143, 0.98);
+    graphics.fillCircle(18, 18, 13);
+    graphics.fillStyle(0x6578ff, 0.34);
+    graphics.fillCircle(18, 18, 15);
+    graphics.lineStyle(2, 0xd2e7ff, 0.86);
+    graphics.strokeCircle(18, 18, 11);
+    graphics.lineStyle(2, 0x9c7aff, 0.9);
+    graphics.beginPath();
+    graphics.moveTo(18, 6);
+    graphics.lineTo(13, 14);
+    graphics.lineTo(20, 16);
+    graphics.lineTo(14, 27);
+    graphics.lineTo(23, 19);
+    graphics.lineTo(17, 18);
+    graphics.lineTo(23, 9);
+    graphics.strokePath();
+    graphics.fillStyle(0xebf7ff, 0.78);
+    graphics.fillCircle(14, 12, 2.2);
+    graphics.generateTexture('arc-mine', 36, 36);
+
+    graphics.clear();
     graphics.fillStyle(0xa11724, 1);
     graphics.fillCircle(5, 5, 5);
     graphics.generateTexture('blood-drop', 10, 10);

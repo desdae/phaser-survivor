@@ -33,6 +33,10 @@ describe('GameScene createTextures', () => {
       fillEllipse: vi.fn(),
       fillRect: vi.fn(),
       fillTriangle: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      strokePath: vi.fn(),
       lineBetween: vi.fn(),
       lineStyle: vi.fn(),
       strokeRect: vi.fn(),
@@ -56,6 +60,7 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('burst-rifle-projectile', 16, 10);
     expect(generateTexture).toHaveBeenCalledWith('meteor-fall', 40, 80);
     expect(generateTexture).toHaveBeenCalledWith('meteor-explosion', 96, 96);
+    expect(generateTexture).toHaveBeenCalledWith('arc-mine', 36, 36);
     expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-frenzy', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-overcharge', 22, 22);
