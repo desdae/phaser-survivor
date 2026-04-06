@@ -392,6 +392,37 @@ describe('createJournalOverlay', () => {
     });
   });
 
+  it('scrolls overflowing detail content inside the right panel', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'abilities',
+      enemies: [],
+      abilities: [{ key: 'projectile', label: 'Auto Shot', discovered: true }],
+      selectedKey: 'projectile',
+      detail: {
+        title: 'Auto Shot',
+        rows: [
+          { label: 'Damage', value: '18' },
+          { label: 'Speed', value: '440' },
+          { label: 'Cooldown', value: '520 ms' },
+          { label: 'Projectiles', value: '1' }
+        ],
+        upgradePaths: Array.from({ length: 8 }, (_, index) => ({
+          label: `Upgrade ${index}`,
+          value: 'Long wrapped bonus description for scrolling verification'
+        })),
+        description: 'A test ability.'
+      }
+    });
+
+    expect(overlay.getState().detailCanScroll).toBe(true);
+    expect(overlay.handleWheel(910, 470, 120)).toBe(true);
+    expect(overlay.getState().detailScrollOffset).toBeGreaterThan(0);
+  });
+
   it('keeps the rendered scrollbar inside the left list panel instead of screen-space drifting', () => {
     const scene = createFakeScene();
     const overlay = createJournalOverlay(scene);

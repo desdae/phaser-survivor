@@ -15,6 +15,7 @@ const JOURNAL_THEME = {
   listRowStep: 46,
   listVisibleRows: 9,
   listScrollStep: 1,
+  detailScrollStep: 26,
   colors: {
     backdrop: 0x040507,
     vignette: 0x000000,
@@ -262,6 +263,8 @@ export function createJournalOverlay(scene) {
   const detailRows = Array.from({ length: 8 }, () => scene.add.text(0, 0, '', JOURNAL_THEME.fonts.stat));
   const upgradeHeader = scene.add.text(0, 0, 'Upgrade Paths', JOURNAL_THEME.fonts.section);
   const upgradeRows = Array.from({ length: 8 }, () => scene.add.text(0, 0, '', JOURNAL_THEME.fonts.bodyDim));
+  const detailScrollTrack = scene.add.rectangle(0, 0, 12, 0, 0x241916, 0.7).setOrigin(0, 0);
+  const detailScrollThumb = scene.add.rectangle(0, 0, 10, 0, JOURNAL_THEME.colors.parchment, 0.9).setOrigin(0, 0);
 
   const closePlate = scene.add.rectangle(0, 0, JOURNAL_THEME.closeSize, JOURNAL_THEME.closeSize, 0x6c2419, 0.95).setOrigin(0.5);
   const closePlateInner = scene.add.rectangle(0, 0, JOURNAL_THEME.closeSize - 8, JOURNAL_THEME.closeSize - 8, 0x892d1f, 0.45).setOrigin(0.5);
@@ -330,6 +333,8 @@ export function createJournalOverlay(scene) {
     ...detailRows,
     upgradeHeader,
     ...upgradeRows,
+    detailScrollTrack,
+    detailScrollThumb,
     ...rowBackgrounds,
     ...rowTexts,
     listScrollTrack,
@@ -359,6 +364,8 @@ export function createJournalOverlay(scene) {
   setRectStyle(rightPanelInner, 0x3a2c24, 0.16, JOURNAL_THEME.colors.bronze, 0.12, 1);
   setRectStyle(listScrollTrack, 0x201612, 0.8, JOURNAL_THEME.colors.bronzeDim, 0.12, 1);
   setRectStyle(listScrollThumb, JOURNAL_THEME.colors.parchment, 0.88, JOURNAL_THEME.colors.bronze, 0.2, 1);
+  setRectStyle(detailScrollTrack, 0x201612, 0.72, JOURNAL_THEME.colors.bronzeDim, 0.1, 1);
+  setRectStyle(detailScrollThumb, JOURNAL_THEME.colors.parchment, 0.84, JOURNAL_THEME.colors.bronze, 0.2, 1);
   setRectStyle(portraitFrame, 0x16110d, 0.96, JOURNAL_THEME.colors.bronze, 0.42, 2);
   setRectStyle(portraitMat, 0x2c211c, 0.72, JOURNAL_THEME.colors.bronzeDim, 0.14, 1);
   setRectStyle(closePlate, 0x6c2419, 0.95, JOURNAL_THEME.colors.bone, 0.26, 2);
@@ -377,6 +384,10 @@ export function createJournalOverlay(scene) {
     selectedRowKey: null,
     listScrollOffset: 0,
     listCanScroll: false,
+    detailScrollOffset: 0,
+    detailCanScroll: false,
+    detailContentHeight: 0,
+    detailViewportHeight: 0,
     hasPortraitFrame: true,
     ambient: {
       candleCount: 2,
@@ -391,10 +402,14 @@ export function createJournalOverlay(scene) {
   let listBounds = null;
   let listScrollBounds = null;
   let listScrollLocalBounds = null;
+  let detailScrollBounds = null;
+  let detailScrollLocalBounds = null;
+  let detailViewportBounds = null;
   const scrollOffsets = {
     enemies: 0,
     abilities: 0
   };
+  let detailScrollOffset = 0;
 
   function clampScrollOffset(entries) {
     const maxOffset = Math.max(0, entries.length - JOURNAL_THEME.listVisibleRows);
@@ -436,6 +451,30 @@ export function createJournalOverlay(scene) {
     listScrollTrack.setSize(listScrollLocalBounds.width, trackHeight);
     listScrollThumb.setPosition(listScrollLocalBounds.x + 1, thumbY + 1);
     listScrollThumb.setSize(listScrollLocalBounds.width - 2, thumbHeight - 2);
+  }
+
+  function updateDetailScrollVisual(contentHeight, viewportHeight) {
+    const maxOffset = Math.max(0, contentHeight - viewportHeight);
+    const canScroll = maxOffset > 0;
+
+    currentState.detailCanScroll = canScroll;
+    currentState.detailScrollOffset = detailScrollOffset;
+    detailScrollTrack.setVisible(canScroll);
+    detailScrollThumb.setVisible(canScroll);
+
+    if (!canScroll || !detailScrollBounds || !detailScrollLocalBounds) {
+      return;
+    }
+
+    const thumbHeight = Math.max(42, Math.round(viewportHeight * (viewportHeight / contentHeight)));
+    const travel = Math.max(0, viewportHeight - thumbHeight);
+    const ratio = maxOffset === 0 ? 0 : detailScrollOffset / maxOffset;
+    const thumbY = detailScrollLocalBounds.y + Math.round(travel * ratio);
+
+    detailScrollTrack.setPosition(detailScrollLocalBounds.x, detailScrollLocalBounds.y);
+    detailScrollTrack.setSize(detailScrollLocalBounds.width, viewportHeight);
+    detailScrollThumb.setPosition(detailScrollLocalBounds.x + 1, thumbY + 1);
+    detailScrollThumb.setSize(detailScrollLocalBounds.width - 2, thumbHeight - 2);
   }
 
   function updateTabStyles() {
@@ -528,25 +567,46 @@ export function createJournalOverlay(scene) {
       rowText.setVisible(Boolean(row));
     });
 
-    const statsStartY = layout.rightPanelY + 156;
+    const viewportTop = layout.rightPanelY + 156;
+    const viewportBottom = layout.rightPanelY + layout.contentHeight - 24;
+    const viewportHeight = Math.max(40, viewportBottom - viewportTop);
+    const statsStartY = viewportTop;
     const statsEndY = statsStartY + statRowsData.length * 40;
     const upgradeStartY = Math.max(layout.upgradeY, statsEndY + 12);
+    const upgradeHeight = upgradePathData.reduce((height, row) => {
+      const lineCount = estimateWrappedLineCount(`${row.label} ${row.value}`);
+      return height + 18 * lineCount + 8;
+    }, 0);
+    const contentHeight = Math.max(0, upgradeStartY + 32 + upgradeHeight - viewportTop);
+    const maxOffset = Math.max(0, contentHeight - viewportHeight);
+    detailScrollOffset = Math.min(maxOffset, Math.max(0, detailScrollOffset));
+    currentState.detailScrollOffset = detailScrollOffset;
+    currentState.detailContentHeight = contentHeight;
+    currentState.detailViewportHeight = viewportHeight;
+    const contentOffset = detailScrollOffset;
+
+    const isWithinViewport = (y, height = 22) =>
+      y + height >= viewportTop && y <= viewportBottom;
 
     detailRows.forEach((rowText, index) => {
       if (!statRowsData[index]) {
         return;
       }
 
-      rowText.setPosition(layout.detailStartX, statsStartY + index * 40);
+      const rowY = statsStartY + index * 40 - contentOffset;
+      rowText.setPosition(layout.detailStartX, rowY);
+      rowText.setVisible(isWithinViewport(rowY, 20));
     });
 
     const hasUpgrades = upgradePathData.length > 0;
-    upgradeHeader.setVisible(hasUpgrades);
-    upgradeHeader.setPosition(layout.detailStartX, upgradeStartY);
-    statDivider.setPosition(layout.detailStartX, upgradeStartY - 16);
+    const upgradeHeaderY = upgradeStartY - contentOffset;
+    upgradeHeader.setVisible(hasUpgrades && isWithinViewport(upgradeHeaderY, 26));
+    upgradeHeader.setPosition(layout.detailStartX, upgradeHeaderY);
+    statDivider.setPosition(layout.detailStartX, upgradeStartY - 16 - contentOffset);
     statDivider.setSize(layout.rightPanelWidth - 322, 1);
+    statDivider.setVisible(isWithinViewport(upgradeStartY - 16 - contentOffset, 6));
 
-    let nextUpgradeY = upgradeStartY + 32;
+    let nextUpgradeY = upgradeStartY + 32 - contentOffset;
     upgradeRows.forEach((rowText, index) => {
       const row = upgradePathData[index];
 
@@ -563,9 +623,11 @@ export function createJournalOverlay(scene) {
         wordWrap: { width: Math.max(280, layout.rightPanelWidth - 330) }
       });
       rowText.setText(`${row.label} ${row.value}`);
-      rowText.setVisible(Boolean(row));
+      rowText.setVisible(Boolean(row) && isWithinViewport(nextUpgradeY, 18 * lineCount + 6));
       nextUpgradeY += 18 * lineCount + 8;
     });
+
+    updateDetailScrollVisual(contentHeight, viewportHeight);
   }
 
   function applyPayload(payload) {
@@ -676,6 +738,24 @@ export function createJournalOverlay(scene) {
         width: 12,
         height: JOURNAL_THEME.listVisibleRows * JOURNAL_THEME.listRowStep - 12
       };
+      detailViewportBounds = {
+        x: layout.panelLeft + layout.detailStartX,
+        y: layout.panelTop + layout.rightPanelY + 156,
+        width: layout.rightPanelWidth - 322,
+        height: layout.contentHeight - 180
+      };
+      detailScrollBounds = {
+        x: layout.panelLeft + layout.rightPanelX + layout.rightPanelWidth - 20,
+        y: layout.panelTop + layout.rightPanelY + 156,
+        width: 12,
+        height: layout.contentHeight - 180
+      };
+      detailScrollLocalBounds = {
+        x: layout.rightPanelX + layout.rightPanelWidth - 20,
+        y: layout.rightPanelY + 156,
+        width: 12,
+        height: layout.contentHeight - 180
+      };
 
       closePlate.setPosition(layout.panelWidth - 42, 42);
       closePlateInner.setPosition(layout.panelWidth - 42, 42);
@@ -749,7 +829,34 @@ export function createJournalOverlay(scene) {
         pointerY <= listScrollBounds.y + listScrollBounds.height;
 
       if (!withinList && !withinScrollbar) {
-        return false;
+        const withinDetail =
+          detailViewportBounds &&
+          pointerX >= detailViewportBounds.x &&
+          pointerX <= detailViewportBounds.x + detailViewportBounds.width &&
+          pointerY >= detailViewportBounds.y &&
+          pointerY <= detailViewportBounds.y + detailViewportBounds.height;
+        const withinDetailScrollbar =
+          detailScrollBounds &&
+          pointerX >= detailScrollBounds.x &&
+          pointerX <= detailScrollBounds.x + detailScrollBounds.width &&
+          pointerY >= detailScrollBounds.y &&
+          pointerY <= detailScrollBounds.y + detailScrollBounds.height;
+
+        if (!withinDetail && !withinDetailScrollbar || !currentState.detailCanScroll) {
+          return false;
+        }
+
+        const detailContentMaxOffset = Math.max(
+          0,
+          currentState.detailContentHeight ? currentState.detailContentHeight - currentState.detailViewportHeight : 0
+        );
+        const direction = deltaY > 0 ? 1 : -1;
+        detailScrollOffset = Math.min(
+          detailContentMaxOffset,
+          Math.max(0, detailScrollOffset + direction * JOURNAL_THEME.detailScrollStep)
+        );
+        updateDetail(currentPayload);
+        return true;
       }
 
       const entries = activeTab === 'enemies' ? currentPayload?.enemies ?? [] : currentPayload?.abilities ?? [];
@@ -818,6 +925,26 @@ export function createJournalOverlay(scene) {
           const ratio = Math.min(1, Math.max(0, (pointerY - listScrollBounds.y) / listScrollBounds.height));
           scrollOffsets[activeTab] = Math.round(ratio * maxOffset);
           updateRows(currentPayload);
+        }
+      }
+
+      if (
+        detailScrollBounds &&
+        pointerX >= detailScrollBounds.x &&
+        pointerX <= detailScrollBounds.x + detailScrollBounds.width &&
+        pointerY >= detailScrollBounds.y &&
+        pointerY <= detailScrollBounds.y + detailScrollBounds.height &&
+        currentState.detailCanScroll
+      ) {
+        const maxOffset = Math.max(
+          0,
+          (currentState.detailContentHeight ?? 0) - (currentState.detailViewportHeight ?? 0)
+        );
+
+        if (maxOffset > 0) {
+          const ratio = Math.min(1, Math.max(0, (pointerY - detailScrollBounds.y) / detailScrollBounds.height));
+          detailScrollOffset = Math.round(ratio * maxOffset);
+          updateDetail(currentPayload);
         }
       }
 

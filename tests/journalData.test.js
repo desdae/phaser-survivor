@@ -99,6 +99,41 @@ describe('buildAbilityJournalDetail', () => {
     expect(detail.upgradePaths).toContainEqual({ label: 'Falling Wrath', value: '+10 meteor damage' });
   });
 
+  it('omits zero-only modifier rows that are marked as hidden when empty', () => {
+    const state = createJournalDiscoveryState();
+    discoverAbility(state, 'projectile');
+
+    const detail = buildAbilityJournalDetail('projectile', state, {
+      projectileDamage: 18,
+      projectileSpeed: 440,
+      fireCooldownMs: 520,
+      projectileCount: 1,
+      projectilePierce: 0,
+      projectileRicochet: 0
+    });
+
+    expect(detail.rows).toContainEqual({ label: 'Damage', value: '18' });
+    expect(detail.rows.some((row) => row.label === 'Pierce')).toBe(false);
+    expect(detail.rows.some((row) => row.label === 'Ricochet')).toBe(false);
+  });
+
+  it('keeps non-zero hidden rows when the modifier is actually learned', () => {
+    const state = createJournalDiscoveryState();
+    discoverAbility(state, 'projectile');
+
+    const detail = buildAbilityJournalDetail('projectile', state, {
+      projectileDamage: 18,
+      projectileSpeed: 440,
+      fireCooldownMs: 520,
+      projectileCount: 1,
+      projectilePierce: 2,
+      projectileRicochet: 1
+    });
+
+    expect(detail.rows).toContainEqual({ label: 'Pierce', value: '2' });
+    expect(detail.rows).toContainEqual({ label: 'Ricochet', value: '1' });
+  });
+
   it('hides upgrade paths for unlearned abilities', () => {
     const detail = buildAbilityJournalDetail('chain', createJournalDiscoveryState(), {});
 

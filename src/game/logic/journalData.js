@@ -67,8 +67,8 @@ const ABILITY_REGISTRY = {
       { label: 'Speed', value: String(stats.projectileSpeed ?? 0) },
       { label: 'Cooldown', value: `${stats.fireCooldownMs ?? 0} ms` },
       { label: 'Projectiles', value: String(stats.projectileCount ?? 0) },
-      { label: 'Pierce', value: String(stats.projectilePierce ?? 0) },
-      { label: 'Ricochet', value: String(stats.projectileRicochet ?? 0) }
+      { label: 'Pierce', value: String(stats.projectilePierce ?? 0), hideIfZero: true },
+      { label: 'Ricochet', value: String(stats.projectileRicochet ?? 0), hideIfZero: true }
     ],
     upgradeKeys: ['damage', 'fireRate', 'multiShot', 'pierce', 'ricochet']
   },
@@ -219,6 +219,20 @@ function getUnknownEnemyDetail() {
   };
 }
 
+function filterAbilityStatRows(rows = []) {
+  return rows
+    .filter(Boolean)
+    .filter((row) => {
+      if (!row.hideIfZero) {
+        return true;
+      }
+
+      const numericValue = Number.parseFloat(String(row.value));
+      return Number.isNaN(numericValue) || numericValue !== 0;
+    })
+    .map(({ hideIfZero, ...row }) => row);
+}
+
 function getUnknownAbilityDetail() {
   return {
     title: '???',
@@ -294,7 +308,7 @@ export function buildAbilityJournalDetail(key, discoveryState, playerStats = {})
   return {
     title: entry.name,
     iconKey: entry.iconKey,
-    rows: entry.statRows(playerStats),
+    rows: filterAbilityStatRows(entry.statRows(playerStats)),
     upgradePaths: getUpgradePaths(entry.upgradeKeys),
     description: entry.description
   };
