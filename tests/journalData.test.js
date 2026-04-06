@@ -77,6 +77,17 @@ describe('buildEnemyJournalDetail', () => {
     expect(detail.rows).toEqual([]);
     expect(detail.description).toMatch(/unknown/i);
   });
+
+  it('describes the poison blob split mechanic in the discovered journal detail', () => {
+    const state = createJournalDiscoveryState();
+    discoverEnemy(state, 'poisonBlob');
+
+    const detail = buildEnemyJournalDetail('poisonBlob', state);
+
+    expect(detail.title).toBe('Blight Ooze');
+    expect(detail.description).toContain('splits into two lesser poison blobbies');
+    expect(detail.rows.some((row) => row.label === 'HP')).toBe(true);
+  });
 });
 
 describe('buildAbilityJournalDetail', () => {

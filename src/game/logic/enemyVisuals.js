@@ -44,6 +44,22 @@ const ENEMY_VISUAL_VARIANTS = {
       frameDurationMs: 190,
       scale: 1.04
     }
+  ],
+  poisonBlob: [
+    {
+      key: 'poisonBlob',
+      frames: ['mob-poison-0', 'mob-poison-1', 'mob-poison-2'],
+      frameDurationMs: 210,
+      scale: 1.18
+    }
+  ],
+  miniPoisonBlob: [
+    {
+      key: 'miniPoisonBlob',
+      frames: ['mob-poison-0', 'mob-poison-1', 'mob-poison-2'],
+      frameDurationMs: 190,
+      scale: 0.82
+    }
   ]
 };
 

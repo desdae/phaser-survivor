@@ -23,6 +23,11 @@ describe('getSpawnProfile', () => {
     expect(getSpawnProfile(90).weights.spitter).toBeGreaterThan(0);
   });
 
+  it('adds poison blobs to later waves after the early game', () => {
+    expect(getSpawnProfile(45).weights.poisonBlob ?? 0).toBe(0);
+    expect(getSpawnProfile(95).weights.poisonBlob ?? 0).toBeGreaterThan(0);
+  });
+
   it('increases spawn pressure over time', () => {
     const early = getSpawnProfile(5);
     const late = getSpawnProfile(90);

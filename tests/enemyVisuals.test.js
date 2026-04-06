@@ -13,6 +13,17 @@ describe('getEnemyVisualConfig', () => {
     expect(getEnemyVisualConfig('tough', 1).key).toBe('ogre');
     expect(getEnemyVisualConfig('spitter', 0).key).toBe('necromancer');
   });
+
+  it('returns poison blob and mini poison blob visual configs', () => {
+    expect(getEnemyVisualConfig('poisonBlob', 0).frames).toEqual([
+      'mob-poison-0',
+      'mob-poison-1',
+      'mob-poison-2'
+    ]);
+    expect(getEnemyVisualConfig('miniPoisonBlob', 0).scale).toBeLessThan(
+      getEnemyVisualConfig('poisonBlob', 0).scale
+    );
+  });
 });
 
 describe('getAnimatedTextureKey', () => {

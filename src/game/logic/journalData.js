@@ -2,7 +2,7 @@ import { ENEMY_TYPES } from '../systems/EnemyManager.js';
 import { UPGRADE_DEFINITIONS } from './progression.js';
 import { isAbilityDiscovered, isEnemyDiscovered } from './journalDiscovery.js';
 
-export const ENEMY_JOURNAL_ORDER = ['skeleton', 'zombie', 'bat', 'tough', 'spitter'];
+export const ENEMY_JOURNAL_ORDER = ['skeleton', 'zombie', 'bat', 'tough', 'spitter', 'poisonBlob'];
 
 export const ABILITY_JOURNAL_ORDER = [
   'projectile',
@@ -54,6 +54,14 @@ const ENEMY_REGISTRY = {
     attackType: 'Ranged spit',
     specialAbilities: 'Maintains standoff range and fires cursed projectiles.',
     description: 'A ranged grave caster that kites and spits from a safe distance.'
+  },
+  poisonBlob: {
+    name: 'Blight Ooze',
+    textureKey: 'mob-poison-1',
+    attackType: 'Melee + poison trail',
+    specialAbilities: 'Leaves toxic puddles and splits into two lesser poison blobbies on death.',
+    description:
+      'A slow, bloated ooze that fouls the ground and splits into two lesser poison blobbies when slain.'
   }
 };
 

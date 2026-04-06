@@ -13,6 +13,9 @@ import { rollPowerupDrop } from '../logic/temporaryPowerups.js';
 
 const HEART_DROP_CHANCE = 0.03;
 const HEART_HEAL_AMOUNT = 10;
+const POISON_PUDDLE_LIFETIME_MS = 5000;
+const POISON_TICK_INTERVAL_MS = 500;
+const PLAYER_POISON_RADIUS = 14;
 
 export const ENEMY_TYPES = {
   skeleton: {
@@ -59,6 +62,28 @@ export const ENEMY_TYPES = {
     projectileDamage: 10,
     attackCooldownMs: 1600,
     hitRadius: 14
+  },
+  poisonBlob: {
+    texture: 'enemy-poisonBlob',
+    speed: 42,
+    maxHealth: 96,
+    xpValue: 10,
+    contactDamage: 10,
+    hitRadius: 18,
+    poisonTickDamage: 2,
+    trailDropIntervalMs: 650,
+    canSplit: true
+  },
+  miniPoisonBlob: {
+    texture: 'enemy-miniPoisonBlob',
+    speed: 60,
+    maxHealth: 28,
+    xpValue: 4,
+    contactDamage: 6,
+    hitRadius: 12,
+    poisonTickDamage: 1,
+    trailDropIntervalMs: 800,
+    canSplit: false
   }
 };
 
@@ -91,6 +116,9 @@ export class EnemyManager {
       });
     this.enemyQuery = createEnemyQuery([]);
     this.nearEnemyQuery = createEnemyQuery([]);
+    this.poisonPuddles = [];
+    this.playerPoisonDamaged = false;
+    this.playerKilledByPoison = false;
     this.frameIndex = 0;
     this.nextAnimationStepAt = (scene.time?.now ?? 0) + ANIMATION_STEP_MS;
     this.spawnAccumulatorMs = 0;
@@ -99,7 +127,9 @@ export class EnemyManager {
       zombie: 0,
       bat: 0,
       tough: 0,
-      spitter: 0
+      spitter: 0,
+      poisonBlob: 0,
+      miniPoisonBlob: 0
     };
   }
 
@@ -128,6 +158,8 @@ export class EnemyManager {
   }
 
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
+    this.playerPoisonDamaged = false;
+    this.playerKilledByPoison = false;
     this.frameIndex += 1;
     this.spawnAccumulatorMs += deltaMs;
     const profile = getSpawnProfile(elapsedSeconds);
@@ -191,11 +223,22 @@ export class EnemyManager {
 
       enemy.setVelocity((enemy.cachedMoveX ?? 0) * enemy.speed, (enemy.cachedMoveY ?? 0) * enemy.speed);
 
+      if (enemy.poisonTickDamage && enemy.trailDropIntervalMs) {
+        if (enemy.nextTrailDropAt === undefined) {
+          enemy.nextTrailDropAt = now + enemy.trailDropIntervalMs;
+        } else if (now >= enemy.nextTrailDropAt) {
+          this.spawnPoisonPuddle(enemy.x, enemy.y, enemy.poisonTickDamage, now);
+          enemy.nextTrailDropAt = now + enemy.trailDropIntervalMs;
+        }
+      }
+
       if (enemy.cachedWantsToShoot && shouldEnemyShoot(enemy, now, distance)) {
         this.fireEnemyProjectile(enemy, dx / distance, dy / distance, now);
         enemy.nextShotAt = now + enemy.attackCooldownMs;
       }
     });
+
+    this.updatePoisonPuddles(now);
 
     this.enemyQuery = createEnemyQuery(livingEnemies);
     this.nearEnemyQuery = createEnemyQuery(livingEnemies.filter((enemy) => enemy.lodTier === 'near'));
@@ -234,14 +277,20 @@ export class EnemyManager {
 
   spawnEnemy(typeKey, options = {}) {
     const type = ENEMY_TYPES[typeKey];
-    const camera = this.scene.cameras.main;
-    const view = {
-      left: camera.scrollX,
-      right: camera.scrollX + camera.width,
-      top: camera.scrollY,
-      bottom: camera.scrollY + camera.height
-    };
-    const position = getSpawnPosition(view, 100);
+    const camera = this.scene.cameras?.main;
+    const position =
+      options.position ??
+      (camera
+        ? getSpawnPosition(
+            {
+              left: camera.scrollX,
+              right: camera.scrollX + camera.width,
+              top: camera.scrollY,
+              bottom: camera.scrollY + camera.height
+            },
+            100
+          )
+        : { x: 0, y: 0 });
     const visual = getEnemyVisualConfig(typeKey, this.spawnCounts[typeKey] ?? 0);
     const eliteModifiers = options.elite ? getEliteModifiers() : null;
     this.spawnCounts[typeKey] = (this.spawnCounts[typeKey] ?? 0) + 1;
@@ -260,6 +309,9 @@ export class EnemyManager {
     enemy.projectileDamage = type.projectileDamage ?? 0;
     enemy.nextShotAt = 0;
     enemy.hitRadius = type.hitRadius;
+    enemy.poisonTickDamage = type.poisonTickDamage ?? 0;
+    enemy.trailDropIntervalMs = type.trailDropIntervalMs ?? 0;
+    enemy.canSplit = type.canSplit ?? false;
     enemy.visualKey = visual.key;
     enemy.visualFrames = visual.frames;
     enemy.visualFrameDurationMs = visual.frameDurationMs;
@@ -277,7 +329,9 @@ export class EnemyManager {
       enemy.setTintFill(eliteModifiers.tint);
     }
 
-    this.onSpawn?.(typeKey);
+    if (options.discover !== false) {
+      this.onSpawn?.(typeKey);
+    }
 
     return enemy;
   }
@@ -343,8 +397,124 @@ export class EnemyManager {
       this.pickupManager.spawnHeart?.(enemy.x, enemy.y, HEART_HEAL_AMOUNT);
     }
 
+    if (enemy.canSplit) {
+      const splitOffset = enemy.hitRadius ?? 16;
+      this.spawnEnemy('miniPoisonBlob', {
+        discover: false,
+        position: {
+          x: enemy.x - splitOffset * 0.65,
+          y: enemy.y - splitOffset * 0.3
+        }
+      });
+      this.spawnEnemy('miniPoisonBlob', {
+        discover: false,
+        position: {
+          x: enemy.x + splitOffset * 0.65,
+          y: enemy.y + splitOffset * 0.3
+        }
+      });
+    }
+
     enemy.destroy();
     return true;
+  }
+
+  ensurePoisonPuddlePool(count) {
+    this.poisonPuddles = this.poisonPuddles.filter((puddle) => puddle?.sprite?.scene?.sys || !puddle?.sprite);
+
+    while (this.poisonPuddles.length < count) {
+      const sprite =
+        this.scene.add?.image?.(0, 0, 'poison-puddle') ??
+        {
+          setAlpha() {
+            return this;
+          },
+          setDepth() {
+            return this;
+          },
+          setPosition() {
+            return this;
+          },
+          setScale() {
+            return this;
+          },
+          setTexture() {
+            return this;
+          },
+          setVisible() {
+            return this;
+          }
+        };
+      sprite.setDepth?.(1.8);
+      sprite.setAlpha?.(0.9);
+      sprite.setVisible?.(false);
+      this.poisonPuddles.push({
+        active: false,
+        damage: 0,
+        expiresAt: 0,
+        nextDamageAt: 0,
+        radius: 0,
+        sprite,
+        x: 0,
+        y: 0
+      });
+    }
+  }
+
+  spawnPoisonPuddle(x, y, damage, now, radius = 20) {
+    this.ensurePoisonPuddlePool(this.poisonPuddles.length + 1);
+    const puddle = this.poisonPuddles.find((entry) => !entry.active) ?? this.poisonPuddles[this.poisonPuddles.length - 1];
+
+    puddle.active = true;
+    puddle.x = x;
+    puddle.y = y;
+    puddle.damage = damage;
+    puddle.radius = radius;
+    puddle.expiresAt = now + POISON_PUDDLE_LIFETIME_MS;
+    puddle.nextDamageAt = now;
+    puddle.sprite.setTexture?.('poison-puddle');
+    puddle.sprite.setPosition?.(x, y);
+    puddle.sprite.setScale?.(radius / 20);
+    puddle.sprite.setAlpha?.(0.88);
+    puddle.sprite.setVisible?.(true);
+
+    return puddle;
+  }
+
+  updatePoisonPuddles(now) {
+    const playerSprite = this.player?.sprite ?? this.player;
+
+    this.poisonPuddles.forEach((puddle) => {
+      if (!puddle.active) {
+        return;
+      }
+
+      if (now >= puddle.expiresAt) {
+        puddle.active = false;
+        puddle.sprite.setVisible?.(false);
+        return;
+      }
+
+      const progress = (puddle.expiresAt - now) / POISON_PUDDLE_LIFETIME_MS;
+      puddle.sprite.setAlpha?.(0.18 + progress * 0.7);
+
+      if (!playerSprite) {
+        return;
+      }
+
+      const dx = playerSprite.x - puddle.x;
+      const dy = playerSprite.y - puddle.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance > puddle.radius + PLAYER_POISON_RADIUS || now < puddle.nextDamageAt) {
+        return;
+      }
+
+      puddle.nextDamageAt = now + POISON_TICK_INTERVAL_MS;
+      const died = this.player.takeDamage?.(puddle.damage) ?? false;
+      this.playerPoisonDamaged = true;
+      this.playerKilledByPoison ||= died;
+    });
   }
 
   canDamagePlayer(enemy, now) {

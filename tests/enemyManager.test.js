@@ -443,6 +443,74 @@ describe('EnemyManager', () => {
     expect(enemy.destroy).toHaveBeenCalledOnce();
   });
 
+  it('splits a poison blob into two mini poison blobs on death', () => {
+    const manager = new EnemyManager(
+      createEnemySceneHarness(),
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnHeart: vi.fn() },
+      null,
+      () => 1
+    );
+    manager.spawnEnemy = vi.fn();
+    const enemy = {
+      active: true,
+      canSplit: true,
+      destroy: vi.fn(),
+      health: 1,
+      setTintFill: vi.fn(),
+      type: 'poisonBlob',
+      x: 160,
+      xpValue: 10,
+      y: 220
+    };
+
+    manager.damageEnemy(enemy, 5);
+
+    expect(manager.spawnEnemy).toHaveBeenCalledTimes(2);
+    expect(manager.spawnEnemy).toHaveBeenNthCalledWith(
+      1,
+      'miniPoisonBlob',
+      expect.objectContaining({
+        discover: false,
+        position: expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) })
+      })
+    );
+    expect(manager.spawnEnemy).toHaveBeenNthCalledWith(
+      2,
+      'miniPoisonBlob',
+      expect.objectContaining({
+        discover: false,
+        position: expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) })
+      })
+    );
+  });
+
+  it('does not split mini poison blobs further on death', () => {
+    const manager = new EnemyManager(
+      createEnemySceneHarness(),
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnHeart: vi.fn() },
+      null,
+      () => 1
+    );
+    manager.spawnEnemy = vi.fn();
+    const enemy = {
+      active: true,
+      canSplit: false,
+      destroy: vi.fn(),
+      health: 1,
+      setTintFill: vi.fn(),
+      type: 'miniPoisonBlob',
+      x: 160,
+      xpValue: 4,
+      y: 220
+    };
+
+    manager.damageEnemy(enemy, 5);
+
+    expect(manager.spawnEnemy).not.toHaveBeenCalled();
+  });
+
   it('spawns a temporary powerup pickup through PickupManager', () => {
     const createdPickup = {
       setDepth: vi.fn().mockReturnThis(),
@@ -725,5 +793,96 @@ describe('EnemyManager update', () => {
 
     expect(enemy.setTexture).toHaveBeenCalledTimes(1);
     expect(enemy.setTexture).toHaveBeenCalledWith('b');
+  });
+
+  it('drops poison trails that tick the player and expire after five seconds', () => {
+    const enemyGroup = {
+      children: {
+        iterate: vi.fn()
+      },
+      getChildren: vi.fn().mockReturnValue([])
+    };
+    const enemyProjectileGroup = {
+      children: {
+        iterate: vi.fn()
+      },
+      getChildren: vi.fn().mockReturnValue([])
+    };
+    const puddleSprite = {
+      scene: { sys: {} },
+      setAlpha: vi.fn(function setAlpha() {
+        return this;
+      }),
+      setDepth: vi.fn(function setDepth() {
+        return this;
+      }),
+      setPosition: vi.fn(function setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+      }),
+      setScale: vi.fn(function setScale() {
+        return this;
+      }),
+      setVisible: vi.fn(function setVisible(value) {
+        this.visible = value;
+        return this;
+      }),
+      visible: false
+    };
+    const scene = {
+      add: {
+        image: vi.fn(() => puddleSprite)
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(enemyProjectileGroup)
+        }
+      },
+      time: {
+        now: 0,
+        delayedCall: vi.fn()
+      }
+    };
+    const player = {
+      sprite: { x: 200, y: 200 },
+      takeDamage: vi.fn(() => false)
+    };
+    const manager = new EnemyManager(scene, player, { spawnOrb: vi.fn() });
+    manager.spawnBatch = vi.fn();
+    const poisonBlob = {
+      active: true,
+      cachedMoveX: 0,
+      cachedMoveY: 0,
+      cachedWantsToShoot: false,
+      health: 96,
+      hitRadius: 18,
+      poisonTickDamage: 2,
+      setVelocity: vi.fn(),
+      speed: 42,
+      texture: { key: 'mob-poison-0' },
+      trailDropIntervalMs: 650,
+      visualFrames: ['mob-poison-0'],
+      x: 200,
+      y: 200
+    };
+    manager.getLivingEnemies = vi
+      .fn()
+      .mockReturnValueOnce([poisonBlob])
+      .mockReturnValueOnce([poisonBlob])
+      .mockReturnValueOnce([]);
+
+    manager.update(700, 100, 700);
+    manager.update(700, 100, 1400);
+    manager.update(5000, 100, 6400);
+
+    expect(manager.poisonPuddles).toHaveLength(1);
+    expect(player.takeDamage).toHaveBeenCalledWith(2);
+    expect(manager.poisonPuddles[0].active).toBe(false);
+    expect(puddleSprite.visible).toBe(false);
   });
 });

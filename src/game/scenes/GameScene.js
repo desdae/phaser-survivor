@@ -233,6 +233,17 @@ export class GameScene extends Phaser.Scene {
       this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, this.elapsedMs) ?? this.player.stats;
     this.applyPassiveRegen?.(delta, effectiveStats);
     const livingEnemies = this.enemyManager.update(delta, this.elapsedMs / 1000, time) ?? [];
+
+    if (this.enemyManager.playerPoisonDamaged) {
+      this.audioManager?.playPlayerHurt?.();
+      this.cameras.main.shake(70, 0.0018);
+      if (this.enemyManager.playerKilledByPoison) {
+        this.refreshHud(livingEnemies.length);
+        this.openGameOver();
+        return;
+      }
+    }
+
     const nearEnemyQuery =
       this.enemyManager.getNearEnemyQuery?.() ?? this.enemyManager.getEnemyQuery?.() ?? livingEnemies;
     const aimDirection = getAimDirection(this.player.sprite, this.mouseWorld);
@@ -870,6 +881,42 @@ export class GameScene extends Phaser.Scene {
         drawLimb(20, 17 + bob, 25 + sleeveSwing, 24 + bob, 0x281b36, 1, 3);
       });
     };
+    const createPoisonBlobFrame = (frame) => {
+      generateMobTexture(`mob-poison-${frame}`, 40, 40, () => {
+        const bob = frame === 1 ? -1 : 0;
+        const wobbleX = frame === 0 ? -1.5 : frame === 2 ? 1.5 : 0;
+        const wobbleY = frame === 0 ? 1 : frame === 2 ? -1 : 0;
+        const outerColor = frame === 1 ? 0x8fcf2d : 0x7fb723;
+        const innerColor = frame === 1 ? 0x5d9220 : 0x4b7518;
+        const coreColor = frame === 1 ? 0x2d4311 : 0x24350d;
+
+        graphics.fillStyle(0x23400f, 0.24);
+        graphics.fillEllipse(20, 29, 24, 10);
+        graphics.fillStyle(outerColor, 0.92);
+        graphics.fillEllipse(20 + wobbleX, 20 + bob, 30, 24);
+        graphics.fillEllipse(13 + wobbleX, 18 + wobbleY, 12, 10);
+        graphics.fillEllipse(27 + wobbleX, 17 - wobbleY, 13, 11);
+        graphics.fillEllipse(15 + wobbleX, 24 + wobbleY, 11, 9);
+        graphics.fillEllipse(27 + wobbleX, 24 - wobbleY, 12, 10);
+        graphics.fillStyle(innerColor, 0.88);
+        graphics.fillEllipse(20 + wobbleX, 21 + bob, 23, 17);
+        graphics.fillEllipse(20 + wobbleX, 19 + bob, 16, 11);
+        graphics.fillStyle(coreColor, 0.74);
+        graphics.fillEllipse(20 + wobbleX, 20 + bob, 13, 10);
+        graphics.fillStyle(0xb5ef4a, 0.58);
+        graphics.fillEllipse(15 + wobbleX, 14 + wobbleY, 7, 4);
+        graphics.fillEllipse(26 + wobbleX, 15 - wobbleY, 6, 4);
+        graphics.fillEllipse(22 + wobbleX, 25, 8, 4);
+        graphics.fillStyle(0xcdfb79, 0.48);
+        graphics.fillCircle(12 + wobbleX, 12 + wobbleY, frame === 1 ? 3.4 : 2.6);
+        graphics.fillCircle(29 + wobbleX, 11 - wobbleY, frame === 1 ? 2.8 : 2.1);
+        graphics.fillCircle(30 + wobbleX, 24, frame === 0 ? 1.9 : 2.5);
+        graphics.fillCircle(15 + wobbleX, 26, frame === 2 ? 2.9 : 2.2);
+        graphics.fillStyle(0xffffff, 0.22);
+        graphics.fillEllipse(14 + wobbleX, 13 + wobbleY, 4, 2);
+        graphics.fillEllipse(26 + wobbleX, 14 - wobbleY, 3.2, 1.8);
+      });
+    };
 
     graphics.clear();
     graphics.fillStyle(0x1d4f7a, 1);
@@ -885,6 +932,7 @@ export class GameScene extends Phaser.Scene {
       createOrcFrame(frame);
       createOgreFrame(frame);
       createNecromancerFrame(frame);
+      createPoisonBlobFrame(frame);
     }
 
     const magicMissileSpec = getMagicMissileTextureSpec();
@@ -1160,6 +1208,22 @@ export class GameScene extends Phaser.Scene {
     for (let variant = 0; variant < 8; variant += 1) {
       drawBloodPuddleVariant(variant);
     }
+
+    graphics.clear();
+    graphics.fillStyle(0x142509, 0.3);
+    graphics.fillEllipse(20, 26, 24, 12);
+    graphics.fillStyle(0x487f16, 0.42);
+    graphics.fillEllipse(20, 20, 24, 18);
+    graphics.fillEllipse(12, 18, 8, 6);
+    graphics.fillEllipse(28, 21, 9, 7);
+    graphics.fillStyle(0x7fd02b, 0.34);
+    graphics.fillEllipse(20, 20, 17, 11);
+    graphics.fillEllipse(15, 15, 6, 4);
+    graphics.fillEllipse(26, 16, 5, 3);
+    graphics.fillStyle(0xc5f77b, 0.18);
+    graphics.fillCircle(14, 15, 2.4);
+    graphics.fillCircle(27, 16, 1.8);
+    graphics.generateTexture('poison-puddle', 40, 40);
 
     const drawFlamePuff = (key, variant) => {
       graphics.clear();
