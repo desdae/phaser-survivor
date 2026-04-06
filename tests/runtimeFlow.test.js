@@ -24,7 +24,7 @@ import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
-  it('generates the projectile, burst rifle bullet, meteor vfx, reward chest, temporary powerup, grass background, blood puddle, and flamethrower textures', () => {
+  it('generates the projectile, burst rifle bullet, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, and flamethrower textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -67,11 +67,43 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('powerup-volley', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('grass-0', 128, 128);
     expect(generateTexture).toHaveBeenCalledWith('grass-15', 128, 128);
+    expect(generateTexture).toHaveBeenCalledWith('cobble-wall', 32, 32);
     expect(generateTexture).toHaveBeenCalledWith('blood-puddle-0', 64, 48);
     expect(generateTexture).toHaveBeenCalledWith('blood-puddle-7', 64, 48);
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-0', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-2', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-smoke-0', 28, 28);
+  });
+});
+
+describe('GameScene ensureStructureTilePool', () => {
+  it('creates reusable wall tiles and disables extras outside the visible structure set', () => {
+    const firstTile = {
+      body: { enable: true },
+      scene: { sys: {} },
+      setDepth: vi.fn().mockReturnThis(),
+      setOrigin: vi.fn().mockReturnThis(),
+      setVisible: vi.fn()
+    };
+    const secondTile = {
+      body: { enable: true },
+      scene: { sys: {} },
+      setDepth: vi.fn().mockReturnThis(),
+      setOrigin: vi.fn().mockReturnThis(),
+      setVisible: vi.fn()
+    };
+    const sceneLike = {
+      structureTiles: [firstTile, secondTile],
+      wallGroup: {
+        create: vi.fn()
+      }
+    };
+
+    GameScene.prototype.ensureStructureTilePool.call(sceneLike, 1);
+
+    expect(sceneLike.wallGroup.create).not.toHaveBeenCalled();
+    expect(secondTile.setVisible).toHaveBeenCalledWith(false);
+    expect(secondTile.body.enable).toBe(false);
   });
 });
 

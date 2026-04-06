@@ -27,6 +27,9 @@ import {
   getGrassTextureKey,
   getVisibleGrassTiles
 } from '../logic/backgroundTiles.js';
+import {
+  getVisibleStructureTiles
+} from '../logic/worldStructures.js';
 import { getAimDirection } from '../logic/combat.js';
 import {
   buildJournalPayload
@@ -54,6 +57,7 @@ export class GameScene extends Phaser.Scene {
   constructor() {
     super('game');
     this.backgroundTiles = [];
+    this.structureTiles = [];
   }
 
   create() {
@@ -104,6 +108,7 @@ export class GameScene extends Phaser.Scene {
     this.lanceManager = new LanceManager(this);
     this.arcMineManager = new ArcMineManager(this);
     this.spearBarrageManager = new SpearBarrageManager(this);
+    this.wallGroup = this.physics.add.staticGroup();
     this.upgradeSystem = new UpgradeSystem();
     this.temporaryBuffSystem = new TemporaryBuffSystem();
     this.chestRewardSystem = new ChestRewardSystem();
@@ -130,6 +135,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
     this.cameras.main.roundPixels = true;
     this.syncBackgroundTiles?.();
+    this.syncStructureTiles?.();
 
     this.hud = createHud(this);
     this.fpsCounter = createFpsCounter(this);
@@ -153,6 +159,14 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.projectileManager.group, this.enemyManager.group, (projectile, enemy) => {
       this.projectileManager.handleEnemyHit(projectile, enemy, this.enemyManager);
+    });
+    this.physics.add.collider(this.player.sprite, this.wallGroup);
+    this.physics.add.collider(this.enemyManager.group, this.wallGroup);
+    this.physics.add.collider(this.projectileManager.group, this.wallGroup, (projectile) => {
+      this.projectileManager.deactivateProjectile(projectile);
+    });
+    this.physics.add.collider(this.enemyManager.enemyProjectileGroup, this.wallGroup, (projectile) => {
+      this.enemyManager.deactivateEnemyProjectile?.(projectile) ?? projectile.destroy?.();
     });
     this.physics.add.overlap(this.player.sprite, this.enemyManager.group, (_, enemy) => {
       this.handlePlayerEnemyOverlap(enemy);
@@ -180,6 +194,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     this.syncBackgroundTiles?.();
+    this.syncStructureTiles?.();
     this.handleStatsToggle();
     this.updateFpsCounter?.(time);
     this.handleJournalKey?.();
@@ -985,6 +1000,27 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('arc-mine', 36, 36);
 
     graphics.clear();
+    graphics.fillStyle(0x0c0a09, 0.42);
+    graphics.fillRect(2, 4, 28, 24);
+    graphics.fillStyle(0x4e4037, 1);
+    graphics.fillRect(0, 2, 28, 28);
+    graphics.fillStyle(0x6b5a4f, 0.9);
+    graphics.fillRect(2, 4, 12, 10);
+    graphics.fillRect(16, 4, 10, 10);
+    graphics.fillRect(2, 16, 14, 10);
+    graphics.fillRect(18, 16, 8, 10);
+    graphics.fillStyle(0x8d7869, 0.46);
+    graphics.fillRect(3, 5, 10, 2);
+    graphics.fillRect(17, 6, 7, 2);
+    graphics.fillRect(4, 18, 8, 2);
+    graphics.fillRect(19, 19, 5, 2);
+    graphics.lineStyle(2, 0x241a15, 0.9);
+    graphics.strokeRect(1, 3, 26, 24);
+    graphics.lineStyle(1, 0xaa987c, 0.2);
+    graphics.strokeRect(3, 5, 22, 20);
+    graphics.generateTexture('cobble-wall', 32, 32);
+
+    graphics.clear();
     graphics.fillStyle(0xa11724, 1);
     graphics.fillCircle(5, 5, 5);
     graphics.generateTexture('blood-drop', 10, 10);
@@ -1243,6 +1279,57 @@ export class GameScene extends Phaser.Scene {
 
       tile.setPosition(tileData.worldX, tileData.worldY);
       tile.setVisible(true);
+    });
+  }
+
+  ensureStructureTilePool(count) {
+    this.structureTiles = this.structureTiles.filter((tile) => tile?.scene?.sys);
+
+    while (this.structureTiles.length < count) {
+      const tile = this.wallGroup.create(0, 0, 'cobble-wall');
+      tile.setOrigin(0);
+      tile.setDepth(1.5);
+      if (tile.body) {
+        tile.body.enable = false;
+      }
+      this.structureTiles.push(tile);
+    }
+
+    for (let index = count; index < this.structureTiles.length; index += 1) {
+      this.structureTiles[index].setVisible(false);
+      if (this.structureTiles[index].body) {
+        this.structureTiles[index].body.enable = false;
+      }
+    }
+  }
+
+  syncStructureTiles() {
+    if (!this.cameras?.main || !this.scale?.width || !this.scale?.height || !this.physics?.add) {
+      return;
+    }
+
+    const tiles = getVisibleStructureTiles(
+      this.cameras.main.scrollX,
+      this.cameras.main.scrollY,
+      this.scale.width,
+      this.scale.height
+    );
+
+    this.ensureStructureTilePool(tiles.length);
+
+    tiles.forEach((tileData, index) => {
+      const tile = this.structureTiles[index];
+
+      if (tile.texture?.key !== 'cobble-wall') {
+        tile.setTexture?.('cobble-wall');
+      }
+
+      tile.setPosition(tileData.worldX, tileData.worldY);
+      tile.setVisible(true);
+      if (tile.body) {
+        tile.body.enable = true;
+      }
+      tile.refreshBody?.();
     });
   }
 }
