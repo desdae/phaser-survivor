@@ -260,7 +260,7 @@ describe('createDamageStatsOverlay', () => {
     overlay.hoverPointer(980, 74);
 
     expect(scene.rectangles[1].x).toBeLessThan(0);
-    expect(scene.texts[9].x).toBeLessThan(0);
+    expect(scene.texts.find((text) => text.text === 'Damage 34')?.x).toBeLessThan(0);
   });
 
   it('hides the tooltip when hovering outside the visible row bounds', () => {
@@ -284,6 +284,27 @@ describe('createDamageStatsOverlay', () => {
 
     expect(shown).toBe(false);
     expect(overlay.getTooltipState()).toEqual({ visible: false, key: null });
+  });
+
+  it('renders more than six learned weapons when the roster grows', () => {
+    const scene = createFakeScene();
+    const overlay = createDamageStatsOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.toggle();
+    overlay.update([
+      { key: 'projectile', label: 'Auto Shot', totalDamage: 10, dps: 1 },
+      { key: 'blade', label: 'Orbiting Blade', totalDamage: 20, dps: 2 },
+      { key: 'chain', label: 'Storm Lash', totalDamage: 30, dps: 3 },
+      { key: 'nova', label: 'Pulse Engine', totalDamage: 40, dps: 4 },
+      { key: 'boomerang', label: 'Razor Boomerang', totalDamage: 50, dps: 5 },
+      { key: 'meteor', label: 'Starcall', totalDamage: 60, dps: 6 },
+      { key: 'burstRifle', label: 'Burst Rifle', totalDamage: 70, dps: 7 },
+      { key: 'arcMine', label: 'Arc Mine', totalDamage: 80, dps: 8 }
+    ]);
+
+    expect(scene.texts.some((text) => text.text.includes('Burst Rifle'))).toBe(true);
+    expect(scene.texts.some((text) => text.text.includes('Arc Mine'))).toBe(true);
   });
 });
 

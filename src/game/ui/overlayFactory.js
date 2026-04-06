@@ -261,7 +261,7 @@ function formatDpsNumber(value) {
 }
 
 export function createDamageStatsOverlay(scene) {
-  const panel = scene.add.rectangle(0, 0, 344, 254, 0x08121c, 0.9).setOrigin(0);
+  const panel = scene.add.rectangle(0, 0, 344, 410, 0x08121c, 0.9).setOrigin(0);
   panel.setStrokeStyle(2, 0x8bc7ff, 0.35);
   const title = scene.add.text(18, 16, 'Damage Stats', {
     fontFamily: 'Trebuchet MS',
@@ -269,12 +269,12 @@ export function createDamageStatsOverlay(scene) {
     color: '#f4f8ff',
     fontStyle: 'bold'
   });
-  const hint = scene.add.text(18, 220, 'Tab to toggle', {
+  const hint = scene.add.text(18, 376, 'Tab to toggle', {
     fontFamily: 'Trebuchet MS',
     fontSize: '14px',
     color: '#ffd17a'
   });
-  const rows = Array.from({ length: 6 }, (_, index) =>
+  const rows = Array.from({ length: 12 }, (_, index) =>
     scene.add.text(18, 52 + index * 26, '', {
       fontFamily: 'Trebuchet MS',
       fontSize: '15px',
