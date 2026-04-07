@@ -8,7 +8,8 @@ export class RuneTrapManager {
   constructor(scene = null) {
     this.scene = scene;
     this.traps = [];
-    this.nextPlaceAt = 0;
+    this.availableCharges = null;
+    this.rechargeQueue = [];
   }
 
   update(player, stats, cursorWorld, now, enemies, enemyManager) {
@@ -16,9 +17,13 @@ export class RuneTrapManager {
       return false;
     }
 
-    if (now >= this.nextPlaceAt && this.traps.length < (stats.runeTrapCharges ?? 0)) {
+    const maxCharges = Math.max(0, stats.runeTrapCharges ?? 0);
+    this.syncCharges(maxCharges, now);
+
+    if (this.availableCharges > 0 && this.traps.length < maxCharges) {
       this.placeTrap(cursorWorld, stats, now);
-      this.nextPlaceAt = now + (stats.runeTrapCooldownMs ?? 0);
+      this.availableCharges -= 1;
+      this.rechargeQueue.push(now + (stats.runeTrapCooldownMs ?? 0));
     }
 
     let triggered = false;
@@ -43,6 +48,30 @@ export class RuneTrapManager {
     });
 
     return triggered;
+  }
+
+  syncCharges(maxCharges, now) {
+    if (this.availableCharges === null) {
+      this.availableCharges = maxCharges;
+    } else if (this.availableCharges > maxCharges) {
+      this.availableCharges = maxCharges;
+    }
+
+    this.rechargeQueue = this.rechargeQueue.filter((readyAt) => {
+      if (readyAt > now) {
+        return true;
+      }
+
+      this.availableCharges = Math.min(maxCharges, this.availableCharges + 1);
+      return false;
+    });
+
+    const pendingCapacity = Math.max(0, maxCharges - this.availableCharges);
+    if (this.rechargeQueue.length > pendingCapacity) {
+      this.rechargeQueue = this.rechargeQueue
+        .sort((left, right) => left - right)
+        .slice(0, pendingCapacity);
+    }
   }
 
   placeTrap(cursorWorld, stats, now) {

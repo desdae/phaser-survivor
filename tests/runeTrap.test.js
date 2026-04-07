@@ -76,4 +76,23 @@ describe('RuneTrapManager', () => {
 
     expect(images.some((image) => image.texture === 'rune-trap-burst')).toBe(true);
   });
+
+  it('lets extra rune trap charges place a second rune before the cooldown refills', () => {
+    const manager = new RuneTrapManager();
+    const stats = {
+      runeTrapUnlocked: true,
+      runeTrapDamage: 22,
+      runeTrapArmMs: 100,
+      runeTrapRadius: 40,
+      runeTrapCharges: 2,
+      runeTrapCooldownMs: 900
+    };
+
+    manager.update({ sprite: { x: 0, y: 0 } }, stats, { x: 32, y: 0 }, 1000, [], { damageEnemy: () => {} });
+    manager.update({ sprite: { x: 0, y: 0 } }, stats, { x: 96, y: 0 }, 1100, [], { damageEnemy: () => {} });
+
+    expect(manager.traps).toHaveLength(2);
+    expect(manager.traps[0].x).toBe(32);
+    expect(manager.traps[1].x).toBe(96);
+  });
 });
