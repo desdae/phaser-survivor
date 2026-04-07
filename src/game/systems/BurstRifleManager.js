@@ -1,5 +1,7 @@
 import { getShotDirections } from '../logic/combat.js';
 
+const MIN_MULTI_SHOT_SPREAD_DEG = 8;
+
 export class BurstRifleManager {
   constructor(projectileBridge = null) {
     this.projectileBridge = projectileBridge;
@@ -12,7 +14,10 @@ export class BurstRifleManager {
     }
 
     const projectileCount = Math.max(1, stats.burstRifleBurstCount ?? 1);
-    const spreadDeg = Math.max(0, stats.burstRifleSpreadDeg ?? 0);
+    const spreadDeg = Math.max(
+      projectileCount > 1 ? MIN_MULTI_SHOT_SPREAD_DEG : 0,
+      stats.burstRifleSpreadDeg ?? 0
+    );
     const directions = getShotDirections(aimDirection, projectileCount, spreadDeg);
 
     this.nextFireAt = now + (stats.burstRifleCooldownMs ?? 0);

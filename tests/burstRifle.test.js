@@ -59,4 +59,25 @@ describe('BurstRifleManager', () => {
     });
     expect(firedProjectiles[0].options.rotation).toBeCloseTo(Math.PI / 2, 5);
   });
+
+  it('fans out multiple burst rifle projectiles instead of stacking them on one line', () => {
+    const shots = [];
+    const manager = new BurstRifleManager({
+      addShot: (shot) => shots.push(shot)
+    });
+    const player = { sprite: { x: 0, y: 0 } };
+    const stats = {
+      burstRifleUnlocked: true,
+      burstRifleDamage: 9,
+      burstRifleCooldownMs: 180,
+      burstRifleBurstCount: 2,
+      burstRifleProjectileSpeed: 640,
+      burstRifleSpreadDeg: 0
+    };
+
+    manager.update(player, stats, { x: 1, y: 0 }, 1000);
+
+    expect(shots).toHaveLength(2);
+    expect(shots[0].direction).not.toEqual(shots[1].direction);
+  });
 });
