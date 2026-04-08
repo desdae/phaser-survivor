@@ -75,6 +75,7 @@ describe('powerup stack lifecycle', () => {
 describe('getEffectiveStats', () => {
   it('applies frenzy, overcharge, and volley buffs to derived combat stats', () => {
     const baseStats = {
+      globalDamageBonus: 0.1,
       fireCooldownMs: 500,
       chainCooldownMs: 1000,
       novaCooldownMs: 1200,
@@ -112,12 +113,12 @@ describe('getEffectiveStats', () => {
     expect(effective.novaCooldownMs).toBe(588);
     expect(effective.boomerangCooldownMs).toBe(441);
     expect(effective.meteorCooldownMs).toBe(735);
-    expect(effective.projectileDamage).toBe(28);
-    expect(effective.bladeDamage).toBeCloseTo(16.8, 5);
-    expect(effective.chainDamage).toBeCloseTo(11.2, 5);
-    expect(effective.novaDamage).toBe(14);
-    expect(effective.boomerangDamage).toBeCloseTo(19.6, 5);
-    expect(effective.meteorDamage).toBeCloseTo(22.4, 5);
+    expect(effective.projectileDamage).toBeCloseTo(30.8, 5);
+    expect(effective.bladeDamage).toBeCloseTo(18.48, 5);
+    expect(effective.chainDamage).toBeCloseTo(12.32, 5);
+    expect(effective.novaDamage).toBeCloseTo(15.4, 5);
+    expect(effective.boomerangDamage).toBeCloseTo(21.56, 5);
+    expect(effective.meteorDamage).toBeCloseTo(24.64, 5);
     expect(effective.projectileCount).toBe(3);
     expect(effective.bladeCount).toBe(4);
     expect(effective.chainLinks).toBe(5);
@@ -151,6 +152,7 @@ describe('getEffectiveStats', () => {
 
   it('does not mutate the base stats object', () => {
     const baseStats = {
+      globalDamageBonus: 0.1,
       fireCooldownMs: 500,
       projectileDamage: 20,
       projectileCount: 1
@@ -159,6 +161,7 @@ describe('getEffectiveStats', () => {
     getEffectiveStats(baseStats, [createPowerupStack('volley', 0)], 1000);
 
     expect(baseStats).toEqual({
+      globalDamageBonus: 0.1,
       fireCooldownMs: 500,
       projectileDamage: 20,
       projectileCount: 1

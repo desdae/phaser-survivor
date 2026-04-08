@@ -59,6 +59,14 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'allDamage',
+    label: 'Battle Focus',
+    description: '+10% damage to all learned abilities',
+    apply(player) {
+      player.globalDamageBonus = (player.globalDamageBonus ?? 0) + 0.1;
+    }
+  },
+  {
     key: 'unlockBlade',
     label: 'Orbiting Blade',
     description: 'Unlock a blade that circles you and cuts nearby enemies.',

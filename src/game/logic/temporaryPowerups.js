@@ -23,7 +23,13 @@ const DAMAGE_KEYS = [
   'chainDamage',
   'novaDamage',
   'boomerangDamage',
-  'meteorDamage'
+  'meteorDamage',
+  'burstRifleDamage',
+  'lanceDamage',
+  'flamethrowerDamage',
+  'runeTrapDamage',
+  'arcMineDamage',
+  'spearBarrageDamage'
 ];
 
 const VOLLEY_KEYS = [
@@ -76,6 +82,7 @@ function countStacks(stacks, now) {
 export function getEffectiveStats(baseStats, stacks, now) {
   const counts = countStacks(stacks, now);
   const effective = { ...baseStats };
+  const learnedDamageScalar = 1 + (baseStats.globalDamageBonus ?? 0);
   const frenzyScalar = FRENZY_SCALAR_PER_STACK ** counts.frenzy;
   const damageScalar = 1 + counts.overcharge * OVERCHARGE_BONUS_PER_STACK;
 
@@ -87,7 +94,7 @@ export function getEffectiveStats(baseStats, stacks, now) {
 
   DAMAGE_KEYS.forEach((key) => {
     if (typeof effective[key] === 'number' && effective[key] > 0) {
-      effective[key] *= damageScalar;
+      effective[key] *= learnedDamageScalar * damageScalar;
     }
   });
 

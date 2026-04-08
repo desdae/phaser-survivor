@@ -19,6 +19,7 @@ const PLAYER_STARTING_STATS = {
   pickupRadius: 48,
   healthRegenPerSec: 0,
   damageTakenMultiplier: 1,
+  globalDamageBonus: 0,
   bladeUnlocked: false,
   bladeCount: 0,
   bladeDamage: 0,
