@@ -65,6 +65,7 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'regen')).toBe(true);
     expect(pool.some((entry) => entry.key === 'guard')).toBe(true);
     expect(pool.some((entry) => entry.key === 'allDamage')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'moveSpeed')).toBe(true);
     expect(pool.some((entry) => entry.key === 'bladeCount')).toBe(false);
   });
 
@@ -366,7 +367,8 @@ describe('applyUpgrade', () => {
       pickupRadius: 48,
       healthRegenPerSec: 0,
       damageTakenMultiplier: 1,
-      globalDamageBonus: 0
+      globalDamageBonus: 0,
+      moveSpeedBonus: 0
     };
 
     applyUpgrade(player, 'damage');
@@ -376,6 +378,8 @@ describe('applyUpgrade', () => {
     applyUpgrade(player, 'guard');
     applyUpgrade(player, 'guard');
     applyUpgrade(player, 'allDamage');
+    applyUpgrade(player, 'moveSpeed');
+    applyUpgrade(player, 'moveSpeed');
 
     expect(player.projectileDamage).toBe(26);
     expect(player.maxHealth).toBe(120);
@@ -383,6 +387,7 @@ describe('applyUpgrade', () => {
     expect(player.healthRegenPerSec).toBeCloseTo(0.1, 5);
     expect(player.damageTakenMultiplier).toBeCloseTo(0.81, 5);
     expect(player.globalDamageBonus).toBeCloseTo(0.1, 5);
+    expect(player.moveSpeedBonus).toBeCloseTo(0.1, 5);
   });
 
   it('adds projectile branching stats', () => {

@@ -73,4 +73,21 @@ describe('Player', () => {
     expect(died).toBe(false);
     expect(player.stats.health).toBeCloseTo(91.9, 5);
   });
+
+  it('applies additive move speed bonuses from the base speed when moving', () => {
+    const player = new Player(createSceneStub(), 0, 0);
+    const setVelocity = vi.spyOn(player.sprite, 'setVelocity');
+    player.stats.moveSpeedBonus = 0.1;
+
+    player.updateMovement({
+      up: { isDown: false },
+      down: { isDown: false },
+      left: { isDown: false },
+      right: { isDown: true }
+    });
+
+    expect(setVelocity).toHaveBeenCalledTimes(1);
+    expect(setVelocity.mock.calls[0][0]).toBeCloseTo(242, 5);
+    expect(setVelocity.mock.calls[0][1]).toBe(0);
+  });
 });

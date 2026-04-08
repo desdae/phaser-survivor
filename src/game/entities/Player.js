@@ -20,6 +20,7 @@ const PLAYER_STARTING_STATS = {
   healthRegenPerSec: 0,
   damageTakenMultiplier: 1,
   globalDamageBonus: 0,
+  moveSpeedBonus: 0,
   bladeUnlocked: false,
   bladeCount: 0,
   bladeDamage: 0,
@@ -106,7 +107,8 @@ export class Player {
     }
 
     const vector = new Phaser.Math.Vector2(horizontal, vertical).normalize();
-    this.sprite.setVelocity(vector.x * this.stats.speed, vector.y * this.stats.speed);
+    const moveSpeed = this.stats.speed * (1 + (this.stats.moveSpeedBonus ?? 0));
+    this.sprite.setVelocity(vector.x * moveSpeed, vector.y * moveSpeed);
     this.refreshHealthBar();
   }
 

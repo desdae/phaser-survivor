@@ -67,6 +67,14 @@ export const UPGRADE_DEFINITIONS = [
     }
   },
   {
+    key: 'moveSpeed',
+    label: 'Fleet Step',
+    description: '+5% movement speed',
+    apply(player) {
+      player.moveSpeedBonus = (player.moveSpeedBonus ?? 0) + 0.05;
+    }
+  },
+  {
     key: 'unlockBlade',
     label: 'Orbiting Blade',
     description: 'Unlock a blade that circles you and cuts nearby enemies.',
