@@ -1,3 +1,7 @@
+const PICKUP_COLLECT_RADIUS = 18;
+const PICKUP_ATTRACT_SPEED = 300;
+const POWERUP_MAGNET_SPEED = 880;
+
 export class PickupManager {
   constructor(scene, onCollect) {
     this.scene = scene;
@@ -41,7 +45,7 @@ export class PickupManager {
     return pickup;
   }
 
-  pullNearbyToPlayer(playerSprite, radius = 260, speed = 440) {
+  pullNearbyToPlayer(playerSprite, radius = 260, speed = POWERUP_MAGNET_SPEED) {
     if (!playerSprite) {
       return;
     }
@@ -67,8 +71,8 @@ export class PickupManager {
   }
 
   update(playerSprite, pickupRadius) {
-    const pickupRadiusSq = pickupRadius * pickupRadius;
-    const attractRadiusSq = pickupRadiusSq * 4;
+    const collectRadiusSq = PICKUP_COLLECT_RADIUS * PICKUP_COLLECT_RADIUS;
+    const attractRadiusSq = pickupRadius * pickupRadius;
     const orbs = this.group.getChildren();
 
     for (const pickup of orbs) {
@@ -80,7 +84,7 @@ export class PickupManager {
       const dy = playerSprite.y - pickup.y;
       const distanceSq = dx * dx + dy * dy;
 
-      if (distanceSq <= pickupRadiusSq) {
+      if (distanceSq <= collectRadiusSq) {
         const collectPayload = {
           kind: pickup.kind ?? 'xp',
           value: pickup.value
@@ -109,7 +113,7 @@ export class PickupManager {
 
       if (distanceSq <= attractRadiusSq) {
         const distance = Math.hypot(dx, dy) || 1;
-        pickup.setVelocity((dx / distance) * 150, (dy / distance) * 150);
+        pickup.setVelocity((dx / distance) * PICKUP_ATTRACT_SPEED, (dy / distance) * PICKUP_ATTRACT_SPEED);
       } else {
         pickup.setVelocity(0, 0);
       }

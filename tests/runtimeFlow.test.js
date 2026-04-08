@@ -1800,6 +1800,67 @@ describe('GameScene restartRun', () => {
 });
 
 describe('PickupManager update', () => {
+  it('pulls distant pickups from the pickup radius without collecting them until they are very close', () => {
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            getChildren: () => []
+          })
+        }
+      }
+    };
+    const onCollect = vi.fn();
+    const manager = new PickupManager(scene, onCollect);
+    const orb = {
+      active: true,
+      kind: 'xp',
+      value: 3,
+      x: 40,
+      y: 0,
+      setVelocity: vi.fn(),
+      destroy: vi.fn()
+    };
+
+    manager.group = {
+      getChildren: () => [orb]
+    };
+
+    manager.update({ x: 0, y: 0 }, 96);
+
+    expect(onCollect).not.toHaveBeenCalled();
+    expect(orb.destroy).not.toHaveBeenCalled();
+    expect(orb.setVelocity).toHaveBeenCalledWith(-300, 0);
+  });
+
+  it('doubles the magnet pull speed when vacuuming nearby pickups to the player', () => {
+    const scene = {
+      physics: {
+        add: {
+          group: () => ({
+            getChildren: () => []
+          })
+        }
+      }
+    };
+    const manager = new PickupManager(scene, vi.fn());
+    const orb = {
+      active: true,
+      kind: 'xp',
+      x: 100,
+      y: 0,
+      setVelocity: vi.fn()
+    };
+
+    manager.group = {
+      getChildren: () => [orb]
+    };
+
+    manager.pullNearbyToPlayer({ x: 0, y: 0 }, 260);
+
+    expect(orb.setVelocity).toHaveBeenCalledWith(-880, 0);
+  });
+
   it('stops collecting more orbs after a level-up is triggered', () => {
     const scene = {
       physics: {
