@@ -35,4 +35,22 @@ describe('getSpawnProfile', () => {
     expect(late.batchSize).toBeGreaterThanOrEqual(early.batchSize);
     expect(late.cooldownMs).toBeLessThan(early.cooldownMs);
   });
+
+  it('keeps early pressure much gentler through the first ninety seconds', () => {
+    const thirtySeconds = getSpawnProfile(30);
+    const ninetySeconds = getSpawnProfile(90);
+
+    expect(thirtySeconds.cooldownMs).toBeGreaterThanOrEqual(850);
+    expect(thirtySeconds.batchSize).toBe(1);
+    expect(ninetySeconds.cooldownMs).toBeGreaterThanOrEqual(620);
+    expect(ninetySeconds.batchSize).toBeLessThanOrEqual(3);
+  });
+
+  it('still ramps hard after the calmer early game', () => {
+    const ninetySeconds = getSpawnProfile(90);
+    const late = getSpawnProfile(180);
+
+    expect(late.batchSize).toBeGreaterThan(ninetySeconds.batchSize);
+    expect(late.cooldownMs).toBeLessThan(ninetySeconds.cooldownMs);
+  });
 });

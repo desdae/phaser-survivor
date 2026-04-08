@@ -27,6 +27,8 @@ export function getSpawnPosition(
 }
 
 export function getSpawnProfile(elapsedSeconds) {
+  const earlyRampSeconds = Math.min(elapsedSeconds, 90);
+  const lateRampSeconds = Math.max(0, elapsedSeconds - 90);
   const weights = {
     skeleton: elapsedSeconds < 35 ? 0.58 : 0.34,
     zombie: elapsedSeconds < 22 ? 0.18 : 0.26,
@@ -37,8 +39,8 @@ export function getSpawnProfile(elapsedSeconds) {
   };
 
   return {
-    cooldownMs: Math.max(210, 900 - elapsedSeconds * 12),
-    batchSize: Math.min(1 + Math.floor(elapsedSeconds / 16), 6),
+    cooldownMs: Math.max(210, 960 - earlyRampSeconds * 3.5 - lateRampSeconds * 9),
+    batchSize: Math.min(1 + Math.floor(earlyRampSeconds / 45) + Math.floor(lateRampSeconds / 20), 6),
     allowTough: elapsedSeconds >= 35,
     weights
   };
