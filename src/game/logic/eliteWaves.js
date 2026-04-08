@@ -26,10 +26,10 @@ export function consumePendingElite(state) {
 
 export function getEliteModifiers() {
   return {
-    healthMultiplier: 4,
+    healthMultiplier: 10,
     contactDamageMultiplier: 1.5,
     xpMultiplier: 1.6,
-    scaleMultiplier: 1.32,
+    scaleMultiplier: 1.5,
     tint: 0xf4bf63
   };
 }

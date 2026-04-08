@@ -66,10 +66,10 @@ describe('consumePendingElite', () => {
 describe('getEliteModifiers', () => {
   it('returns the elite modifier set', () => {
     expect(getEliteModifiers()).toEqual({
-      healthMultiplier: 4,
+      healthMultiplier: 10,
       contactDamageMultiplier: 1.5,
       xpMultiplier: 1.6,
-      scaleMultiplier: 1.32,
+      scaleMultiplier: 1.5,
       tint: 0xf4bf63
     });
   });

@@ -133,6 +133,51 @@ export class EnemyManager {
     };
   }
 
+  createEliteHealthBar(enemy) {
+    if (!this.scene?.add?.rectangle) {
+      return;
+    }
+
+    enemy.eliteHealthBarFrame = this.scene.add
+      .rectangle(0, 0, 0, 0, 0x140f0a, 0.92)
+      .setOrigin(0.5, 0.5)
+      .setStrokeStyle(1, 0xf0c97c, 0.95)
+      .setDepth(6.1)
+      .setVisible(true);
+    enemy.eliteHealthBarFill = this.scene.add
+      .rectangle(0, 0, 0, 0, 0xc84a2f, 0.98)
+      .setOrigin(0, 0.5)
+      .setDepth(6.2)
+      .setVisible(true);
+    this.updateEliteHealthBar(enemy);
+  }
+
+  updateEliteHealthBar(enemy) {
+    if (!enemy?.isElite || !enemy?.eliteHealthBarFrame || !enemy?.eliteHealthBarFill) {
+      return;
+    }
+
+    const width = Math.max(26, (enemy.hitRadius ?? 12) * 2.4);
+    const height = 5;
+    const x = enemy.x;
+    const y = enemy.y - (enemy.hitRadius ?? 12) - 15;
+    const healthRatio = Math.max(0, Math.min(1, enemy.health / enemy.maxHealth));
+
+    enemy.eliteHealthBarFrame.setPosition?.(x, y);
+    enemy.eliteHealthBarFrame.setSize?.(width, height);
+    enemy.eliteHealthBarFill.setPosition?.(x - width / 2 + 1, y);
+    enemy.eliteHealthBarFill.setSize?.(Math.max(0, (width - 2) * healthRatio), height - 2);
+    enemy.eliteHealthBarFrame.setVisible?.(enemy.active !== false);
+    enemy.eliteHealthBarFill.setVisible?.(enemy.active !== false && healthRatio > 0);
+  }
+
+  destroyEliteHealthBar(enemy) {
+    enemy?.eliteHealthBarFrame?.destroy?.();
+    enemy?.eliteHealthBarFill?.destroy?.();
+    enemy.eliteHealthBarFrame = null;
+    enemy.eliteHealthBarFill = null;
+  }
+
   getReusableEnemyProjectile() {
     for (const projectile of this.enemyProjectileGroup.getChildren?.() ?? []) {
       if (!projectile?.active) {
@@ -222,6 +267,7 @@ export class EnemyManager {
       }
 
       enemy.setVelocity((enemy.cachedMoveX ?? 0) * enemy.speed, (enemy.cachedMoveY ?? 0) * enemy.speed);
+      this.updateEliteHealthBar(enemy);
 
       if (enemy.poisonTickDamage && enemy.trailDropIntervalMs) {
         if (enemy.nextTrailDropAt === undefined) {
@@ -299,6 +345,7 @@ export class EnemyManager {
     enemy.type = typeKey;
     enemy.speed = type.speed;
     enemy.health = type.maxHealth;
+    enemy.maxHealth = type.maxHealth;
     enemy.xpValue = type.xpValue;
     enemy.contactDamage = type.contactDamage;
     enemy.nextContactDamageAt = 0;
@@ -323,10 +370,12 @@ export class EnemyManager {
       enemy.isElite = true;
       enemy.eliteTint = eliteModifiers.tint;
       enemy.health = Math.round(enemy.health * eliteModifiers.healthMultiplier);
+      enemy.maxHealth = enemy.health;
       enemy.xpValue = Math.round(enemy.xpValue * eliteModifiers.xpMultiplier);
       enemy.contactDamage = Math.round(enemy.contactDamage * eliteModifiers.contactDamageMultiplier);
       enemy.hitRadius *= eliteModifiers.scaleMultiplier ?? 1;
       enemy.setTintFill(eliteModifiers.tint);
+      this.createEliteHealthBar(enemy);
     }
 
     if (options.discover !== false) {
@@ -361,6 +410,7 @@ export class EnemyManager {
     this.damageStats?.record?.(sourceKey, appliedDamage);
 
     if (enemy.health > 0) {
+      this.updateEliteHealthBar(enemy);
       this.effects?.spawnHitSplash?.(enemy, false);
       this.audioManager?.playEnemyHit?.();
       enemy.setTintFill(0xfff0f0);
@@ -415,6 +465,7 @@ export class EnemyManager {
       });
     }
 
+    this.destroyEliteHealthBar(enemy);
     enemy.destroy();
     return true;
   }

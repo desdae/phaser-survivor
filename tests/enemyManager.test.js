@@ -356,6 +356,15 @@ describe('EnemyManager', () => {
   it('applies elite markers and stronger stats when spawning an elite enemy', () => {
     const enemyGroup = { id: 'enemies' };
     const projectileGroup = { id: 'enemy-projectiles' };
+    const makeBarRect = () => ({
+      setDepth: vi.fn().mockReturnThis(),
+      setOrigin: vi.fn().mockReturnThis(),
+      setPosition: vi.fn().mockReturnThis(),
+      setSize: vi.fn().mockReturnThis(),
+      setStrokeStyle: vi.fn().mockReturnThis(),
+      setVisible: vi.fn().mockReturnThis(),
+      destroy: vi.fn()
+    });
     const createdEnemy = {
       clearTint: vi.fn(),
       setCircle: vi.fn(),
@@ -364,6 +373,9 @@ describe('EnemyManager', () => {
       setTintFill: vi.fn()
     };
     const scene = {
+      add: {
+        rectangle: vi.fn(() => makeBarRect())
+      },
       cameras: {
         main: {
           height: 600,
@@ -395,6 +407,8 @@ describe('EnemyManager', () => {
     expect(enemy.contactDamage).toBe(Math.round(8 * modifiers.contactDamageMultiplier));
     expect(enemy.setScale).toHaveBeenCalledWith(0.98 * modifiers.scaleMultiplier);
     expect(enemy.setTintFill).toHaveBeenCalledWith(modifiers.tint);
+    expect(enemy.eliteHealthBarFrame).toBeTruthy();
+    expect(enemy.eliteHealthBarFill).toBeTruthy();
   });
 
   it('drops a chest when an elite enemy dies', () => {
@@ -441,6 +455,52 @@ describe('EnemyManager', () => {
     expect(spawnOrb).toHaveBeenCalledWith(64, 96, 5);
     expect(spawnChest).toHaveBeenCalledWith(64, 96, 'spitter');
     expect(enemy.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('cleans up elite hp bar visuals when an elite dies', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const eliteHealthBarFrame = { destroy: vi.fn() };
+    const eliteHealthBarFill = { destroy: vi.fn() };
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn()
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnChest: vi.fn(), spawnOrb: vi.fn() },
+      null,
+      () => 1
+    );
+    const enemy = {
+      active: true,
+      destroy: vi.fn(),
+      eliteHealthBarFill,
+      eliteHealthBarFrame,
+      health: 10,
+      isElite: true,
+      setTintFill: vi.fn(),
+      type: 'spitter',
+      x: 64,
+      xpValue: 5,
+      y: 96
+    };
+
+    manager.damageEnemy(enemy, 12);
+
+    expect(eliteHealthBarFrame.destroy).toHaveBeenCalledOnce();
+    expect(eliteHealthBarFill.destroy).toHaveBeenCalledOnce();
   });
 
   it('splits a poison blob into two mini poison blobs on death', () => {
