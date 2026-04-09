@@ -65,6 +65,8 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('powerup-frenzy', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-overcharge', 22, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-volley', 22, 22);
+    expect(generateTexture).toHaveBeenCalledWith('powerup-frost', 22, 22);
+    expect(generateTexture).toHaveBeenCalledWith('slow-burst-ring', 80, 80);
     expect(generateTexture).toHaveBeenCalledWith('grass-0', 128, 128);
     expect(generateTexture).toHaveBeenCalledWith('grass-15', 128, 128);
     expect(generateTexture).toHaveBeenCalledWith('cobble-wall', 32, 32);
@@ -504,6 +506,40 @@ describe('GameScene handlePickupCollected', () => {
     expect(result).toBe(false);
     expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
     expect(sceneLike.temporaryBuffSystem.addStack).toHaveBeenCalledWith('frenzy', 9000);
+    expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
+  });
+
+  it('triggers the frost pickup as an instant enemy slow pulse instead of a player buff stack', () => {
+    const sceneLike = {
+      audioManager: {
+        playPickup: vi.fn()
+      },
+      elapsedMs: 9000,
+      enemyManager: {
+        applyAreaSlow: vi.fn().mockReturnValue(3)
+      },
+      isGameOver: false,
+      player: {
+        sprite: { x: 120, y: 80 }
+      },
+      playSlowBurstVfx: vi.fn(),
+      refreshHud: vi.fn(),
+      temporaryBuffSystem: {
+        addStack: vi.fn()
+      }
+    };
+
+    const result = GameScene.prototype.handlePickupCollected.call(sceneLike, {
+      kind: 'powerup',
+      buffKey: 'frost',
+      value: 0
+    });
+
+    expect(result).toBe(false);
+    expect(sceneLike.audioManager.playPickup).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.applyAreaSlow).toHaveBeenCalledWith(120, 80, 200, 9000, 20000, 0.5);
+    expect(sceneLike.playSlowBurstVfx).toHaveBeenCalledWith(120, 80);
+    expect(sceneLike.temporaryBuffSystem.addStack).not.toHaveBeenCalled();
     expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
   });
 });

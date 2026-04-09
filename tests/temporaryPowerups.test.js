@@ -17,7 +17,7 @@ describe('temporaryPowerups constants', () => {
       normal: 0.015,
       elite: 0.06
     });
-    expect(POWERUP_KEYS).toEqual(['frenzy', 'overcharge', 'volley']);
+    expect(POWERUP_KEYS).toEqual(['frenzy', 'overcharge', 'volley', 'frost']);
   });
 });
 
@@ -27,9 +27,19 @@ describe('rollPowerupDrop', () => {
       rollPowerupDrop({
         isElite: false,
         roll: 0.01,
-        keyRoll: 0.9
+        keyRoll: 0.7
       })
     ).toBe('volley');
+  });
+
+  it('can roll the new frost slow pickup', () => {
+    expect(
+      rollPowerupDrop({
+        isElite: false,
+        roll: 0.01,
+        keyRoll: 0.95
+      })
+    ).toBe('frost');
   });
 
   it('returns null when the drop roll misses for elites too', () => {

@@ -504,6 +504,16 @@ export class GameScene extends Phaser.Scene {
 
     if (pickup.kind === 'powerup') {
       this.audioManager?.playPickup?.();
+      if (pickup.buffKey === 'frost') {
+        const playerSprite = this.player?.sprite ?? this.player;
+        const x = playerSprite?.x ?? 0;
+        const y = playerSprite?.y ?? 0;
+        this.enemyManager?.applyAreaSlow?.(x, y, 200, this.elapsedMs, 20000, 0.5);
+        this.playSlowBurstVfx?.(x, y);
+        this.refreshHud();
+        return false;
+      }
+
       this.temporaryBuffSystem.addStack(pickup.buffKey, this.elapsedMs);
       this.refreshHud();
       return false;
@@ -1319,6 +1329,34 @@ export class GameScene extends Phaser.Scene {
     graphics.fillCircle(16, 11, 2.5);
     graphics.generateTexture('powerup-volley', 22, 22);
 
+    graphics.clear();
+    graphics.fillStyle(0x162637, 1);
+    graphics.fillCircle(11, 11, 10);
+    graphics.lineStyle(2, 0xaee9ff, 0.95);
+    graphics.strokeCircle(11, 11, 7);
+    graphics.lineStyle(2, 0x69cfff, 0.95);
+    graphics.beginPath();
+    graphics.moveTo(11, 4);
+    graphics.lineTo(8, 9);
+    graphics.lineTo(13, 9);
+    graphics.lineTo(9, 18);
+    graphics.lineTo(14, 12);
+    graphics.lineTo(10, 12);
+    graphics.lineTo(11, 4);
+    graphics.strokePath();
+    graphics.fillStyle(0xd8f5ff, 0.92);
+    graphics.fillCircle(11, 11, 2.5);
+    graphics.generateTexture('powerup-frost', 22, 22);
+
+    graphics.clear();
+    graphics.lineStyle(4, 0x7fdcff, 0.42);
+    graphics.strokeCircle(40, 40, 30);
+    graphics.lineStyle(2, 0xc7f4ff, 0.8);
+    graphics.strokeCircle(40, 40, 20);
+    graphics.fillStyle(0x9ae8ff, 0.18);
+    graphics.fillCircle(40, 40, 10);
+    graphics.generateTexture('slow-burst-ring', 80, 80);
+
     const createSeededRng = (seed) => {
       let value = (seed + 1) >>> 0;
       return () => {
@@ -1371,6 +1409,39 @@ export class GameScene extends Phaser.Scene {
     }
 
     graphics.destroy();
+  }
+
+  playSlowBurstVfx(x, y) {
+    const add = this.add;
+    const tweens = this.tweens;
+
+    if (!add?.image || !tweens?.add) {
+      return;
+    }
+
+    const outerRing = add.image(x, y, 'slow-burst-ring').setDepth(5.35).setAlpha(0.9).setScale(0.45);
+    const innerRing = add.image(x, y, 'slow-burst-ring');
+    innerRing.setDepth?.(5.36);
+    innerRing.setTint?.(0xdff8ff);
+    innerRing.setAlpha?.(0.7);
+    innerRing.setScale?.(0.28);
+
+    tweens.add({
+      targets: outerRing,
+      alpha: 0,
+      scale: 2.2,
+      duration: 320,
+      ease: 'Cubic.Out',
+      onComplete: () => outerRing.destroy?.()
+    });
+    tweens.add({
+      targets: innerRing,
+      alpha: 0,
+      scale: 1.5,
+      duration: 260,
+      ease: 'Quad.Out',
+      onComplete: () => innerRing.destroy?.()
+    });
   }
 
   ensureBackgroundTilePool(count) {

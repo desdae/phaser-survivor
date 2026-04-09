@@ -4,6 +4,8 @@ function isEnemyInsideTrap(enemy, trap) {
   return dx * dx + dy * dy <= trap.radius * trap.radius;
 }
 
+const RUNE_TRAP_LIFETIME_MS = 15000;
+
 export class RuneTrapManager {
   constructor(scene = null) {
     this.scene = scene;
@@ -17,6 +19,7 @@ export class RuneTrapManager {
       return false;
     }
 
+    this.pruneExpiredTraps(now);
     const maxCharges = Math.max(0, stats.runeTrapCharges ?? 0);
     this.syncCharges(maxCharges, now);
 
@@ -48,6 +51,17 @@ export class RuneTrapManager {
     });
 
     return triggered;
+  }
+
+  pruneExpiredTraps(now) {
+    this.traps = this.traps.filter((trap) => {
+      if (now < trap.expiresAt) {
+        return true;
+      }
+
+      this.fadeExpiredTrap(trap);
+      return false;
+    });
   }
 
   syncCharges(maxCharges, now) {
@@ -82,6 +96,7 @@ export class RuneTrapManager {
     this.traps.push({
       armedAt: now + (stats.runeTrapArmMs ?? 0),
       damage: stats.runeTrapDamage ?? 0,
+      expiresAt: now + RUNE_TRAP_LIFETIME_MS,
       marker,
       radius: stats.runeTrapRadius ?? 0,
       x: cursorWorld.x,
@@ -103,6 +118,27 @@ export class RuneTrapManager {
       scaleX: 1.45,
       scaleY: 1.45,
       onComplete: () => burst?.destroy?.()
+    });
+  }
+
+  fadeExpiredTrap(trap) {
+    const marker = trap.marker;
+
+    if (!marker) {
+      return;
+    }
+
+    if (!this.scene?.tweens?.add) {
+      marker.destroy?.();
+      return;
+    }
+
+    this.scene.tweens.add({
+      targets: marker,
+      alpha: 0,
+      duration: 220,
+      ease: 'Sine.easeInOut',
+      onComplete: () => marker.destroy?.()
     });
   }
 }

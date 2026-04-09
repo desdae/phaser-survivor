@@ -945,4 +945,35 @@ describe('EnemyManager update', () => {
     expect(manager.poisonPuddles[0].active).toBe(false);
     expect(puddleSprite.visible).toBe(false);
   });
+
+  it('applies a one-time frost slow to nearby enemies and lets it expire naturally', () => {
+    const manager = createEnemyManagerHarness();
+    const nearbyEnemy = makeEnemy({ x: 80, y: 0, speed: 100 });
+    nearbyEnemy.cachedMoveX = 1;
+    nearbyEnemy.cachedMoveY = 0;
+    nearbyEnemy.cachedWantsToShoot = false;
+    const farEnemy = makeEnemy({ x: 400, y: 0, speed: 100 });
+    farEnemy.cachedMoveX = 1;
+    farEnemy.cachedMoveY = 0;
+    farEnemy.cachedWantsToShoot = false;
+    manager.getLivingEnemies = vi
+      .fn()
+      .mockReturnValueOnce([nearbyEnemy, farEnemy])
+      .mockReturnValueOnce([nearbyEnemy, farEnemy])
+      .mockReturnValueOnce([nearbyEnemy, farEnemy]);
+
+    const affectedCount = manager.applyAreaSlow(0, 0, 200, 1000, 20000, 0.5);
+
+    manager.update(16, 60, 1000);
+    manager.update(16, 60, 15000);
+    manager.update(16, 60, 21001);
+
+    expect(affectedCount).toBe(1);
+    expect(nearbyEnemy.setVelocity).toHaveBeenNthCalledWith(1, 50, 0);
+    expect(nearbyEnemy.setVelocity).toHaveBeenNthCalledWith(2, 50, 0);
+    expect(nearbyEnemy.setVelocity).toHaveBeenNthCalledWith(3, 100, 0);
+    expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(1, 100, 0);
+    expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(2, 100, 0);
+    expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(3, 100, 0);
+  });
 });

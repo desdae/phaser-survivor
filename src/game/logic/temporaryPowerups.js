@@ -3,7 +3,7 @@ export const POWERUP_DROP_CHANCE_BY_SOURCE = {
   normal: 0.015,
   elite: 0.06
 };
-export const POWERUP_KEYS = ['frenzy', 'overcharge', 'volley'];
+export const POWERUP_KEYS = ['frenzy', 'overcharge', 'volley', 'frost'];
 
 const FRENZY_SCALAR_PER_STACK = 0.7;
 const OVERCHARGE_BONUS_PER_STACK = 0.4;
@@ -67,7 +67,8 @@ function countStacks(stacks, now) {
   const counts = {
     frenzy: 0,
     overcharge: 0,
-    volley: 0
+    volley: 0,
+    frost: 0
   };
 
   for (const stack of pruneExpiredStacks(stacks, now)) {

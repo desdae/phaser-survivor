@@ -16,6 +16,7 @@ const HEART_HEAL_AMOUNT = 10;
 const POISON_PUDDLE_LIFETIME_MS = 5000;
 const POISON_TICK_INTERVAL_MS = 500;
 const PLAYER_POISON_RADIUS = 14;
+const DEFAULT_SPEED_MULTIPLIER = 1;
 
 export const ENEMY_TYPES = {
   skeleton: {
@@ -225,7 +226,9 @@ export class EnemyManager {
       }
     });
 
-    const livingEnemies = this.getLivingEnemies();
+    const queriedEnemies = this.getLivingEnemies?.();
+    const livingEnemies = queriedEnemies ?? this.lastLivingEnemies ?? [];
+    this.lastLivingEnemies = livingEnemies;
     const animationStepDue = shouldAdvanceAnimation(now, this.nextAnimationStepAt);
 
     if (animationStepDue) {
@@ -245,6 +248,11 @@ export class EnemyManager {
         enemy.cachedMoveX !== undefined &&
         enemy.cachedMoveY !== undefined &&
         enemy.cachedWantsToShoot !== undefined;
+      const canRefreshIntent =
+        enemy.type !== undefined ||
+        enemy.contactDamage !== undefined ||
+        enemy.attackRange > 0 ||
+        enemy.preferredRange !== undefined;
 
       if (animationStepDue && (enemy.lodTier === 'near' || this.frameIndex % 2 === 0)) {
         const nextFrame = advanceVisualFrame(enemy);
@@ -254,7 +262,10 @@ export class EnemyManager {
         }
       }
 
-      if (!hasCachedIntent || shouldRefreshEnemyLogic(enemy.lodTier, this.frameIndex)) {
+      if (
+        !hasCachedIntent ||
+        (canRefreshIntent && shouldRefreshEnemyLogic(enemy.lodTier, this.frameIndex))
+      ) {
         const baseIntent = getEnemyIntent(enemy, enemy, playerSprite);
         const intent =
           enemy.lodTier === 'near'
@@ -266,7 +277,18 @@ export class EnemyManager {
         enemy.cachedWantsToShoot = intent.wantsToShoot;
       }
 
-      enemy.setVelocity((enemy.cachedMoveX ?? 0) * enemy.speed, (enemy.cachedMoveY ?? 0) * enemy.speed);
+      const speedMultiplier =
+        enemy.slowedUntil && enemy.slowedUntil > now
+          ? enemy.speedMultiplier ?? DEFAULT_SPEED_MULTIPLIER
+          : DEFAULT_SPEED_MULTIPLIER;
+      if (enemy.slowedUntil && enemy.slowedUntil <= now) {
+        enemy.slowedUntil = 0;
+        enemy.speedMultiplier = DEFAULT_SPEED_MULTIPLIER;
+      }
+      enemy.setVelocity(
+        (enemy.cachedMoveX ?? 0) * enemy.speed * speedMultiplier,
+        (enemy.cachedMoveY ?? 0) * enemy.speed * speedMultiplier
+      );
       this.updateEliteHealthBar(enemy);
 
       if (enemy.poisonTickDamage && enemy.trailDropIntervalMs) {
@@ -355,6 +377,8 @@ export class EnemyManager {
     enemy.projectileSpeed = type.projectileSpeed ?? 0;
     enemy.projectileDamage = type.projectileDamage ?? 0;
     enemy.nextShotAt = 0;
+    enemy.slowedUntil = 0;
+    enemy.speedMultiplier = DEFAULT_SPEED_MULTIPLIER;
     enemy.hitRadius = type.hitRadius;
     enemy.poisonTickDamage = type.poisonTickDamage ?? 0;
     enemy.trailDropIntervalMs = type.trailDropIntervalMs ?? 0;
@@ -566,6 +590,39 @@ export class EnemyManager {
       this.playerPoisonDamaged = true;
       this.playerKilledByPoison ||= died;
     });
+  }
+
+  applyAreaSlow(centerX, centerY, radius, now, durationMs, slowMultiplier) {
+    const radiusSquared = radius * radius;
+    let affectedCount = 0;
+    const groupedEnemies = this.group?.getChildren?.() ?? [];
+    const enemies =
+      groupedEnemies.length > 0
+        ? groupedEnemies
+        : this.getLivingEnemies?.() ?? this.lastLivingEnemies ?? [];
+    this.lastLivingEnemies = enemies;
+
+    enemies.forEach((enemy) => {
+      if (!enemy?.active) {
+        return;
+      }
+
+      const dx = enemy.x - centerX;
+      const dy = enemy.y - centerY;
+
+      if (dx * dx + dy * dy > radiusSquared) {
+        return;
+      }
+
+      enemy.slowedUntil = Math.max(enemy.slowedUntil ?? 0, now + durationMs);
+      enemy.speedMultiplier = Math.min(
+        enemy.speedMultiplier ?? DEFAULT_SPEED_MULTIPLIER,
+        slowMultiplier
+      );
+      affectedCount += 1;
+    });
+
+    return affectedCount;
   }
 
   canDamagePlayer(enemy, now) {
