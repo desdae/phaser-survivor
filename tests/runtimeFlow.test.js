@@ -24,7 +24,7 @@ import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
 
 describe('GameScene createTextures', () => {
-  it('generates the projectile, burst rifle bullet, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, poison blob, poison puddle, and flamethrower textures', () => {
+  it('generates the projectile, burst rifle bullet, boss bolt, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, poison blob, poison puddle, and flamethrower textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -58,6 +58,7 @@ describe('GameScene createTextures', () => {
 
     expect(generateTexture).toHaveBeenCalledWith('projectile', 10, 10);
     expect(generateTexture).toHaveBeenCalledWith('burst-rifle-projectile', 16, 10);
+    expect(generateTexture).toHaveBeenCalledWith('boss-dark-bolt', 20, 20);
     expect(generateTexture).toHaveBeenCalledWith('meteor-fall', 40, 80);
     expect(generateTexture).toHaveBeenCalledWith('meteor-explosion', 96, 96);
     expect(generateTexture).toHaveBeenCalledWith('arc-mine', 36, 36);
@@ -260,7 +261,14 @@ describe('GameScene refreshHud', () => {
         }
       },
       enemyManager: {
+        getActiveBoss: vi.fn().mockReturnValue(null),
         getLivingEnemies: () => []
+      },
+      bossOverlay: {
+        update: vi.fn()
+      },
+      bossSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false)
       },
       hud: {
         update: vi.fn()
@@ -288,6 +296,12 @@ describe('GameScene refreshHud', () => {
       [{ key: 'projectile', label: 'Auto Shot', totalDamage: 40, dps: 8 }],
       buildWeaponTooltipMap(sceneLike.player.stats)
     );
+    expect(sceneLike.bossOverlay.update).toHaveBeenCalledWith({
+      healthRatio: 0,
+      label: '',
+      visible: false,
+      warning: ''
+    });
   });
 });
 
@@ -540,6 +554,61 @@ describe('GameScene handlePickupCollected', () => {
     expect(sceneLike.enemyManager.applyAreaSlow).toHaveBeenCalledWith(120, 80, 200, 9000, 20000, 0.5);
     expect(sceneLike.playSlowBurstVfx).toHaveBeenCalledWith(120, 80);
     expect(sceneLike.temporaryBuffSystem.addStack).not.toHaveBeenCalled();
+    expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
+  });
+
+  it('triggers the boss warning, then spawns the necromancer after the warning window ends', () => {
+    const sceneLike = {
+      audioManager: {
+        playEliteWarning: vi.fn()
+      },
+      bossSystem: {
+        consumeSpawn: vi.fn(),
+        isWarningActive: vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false),
+        update: vi
+          .fn()
+          .mockReturnValueOnce({ pendingBoss: true })
+          .mockReturnValueOnce({ pendingBoss: true })
+      },
+      bossWarningPlayed: false,
+      elapsedMs: 240000,
+      enemyManager: {
+        spawnEnemy: vi.fn()
+      },
+      getBossSpawnPosition: vi.fn().mockReturnValue({ x: 640, y: 220 })
+    };
+
+    GameScene.prototype.updateBossEncounter.call(sceneLike);
+    GameScene.prototype.updateBossEncounter.call(sceneLike);
+
+    expect(sceneLike.audioManager.playEliteWarning).toHaveBeenCalledOnce();
+    expect(sceneLike.enemyManager.spawnEnemy).toHaveBeenCalledWith('necromancerBoss', {
+      boss: true,
+      position: { x: 640, y: 220 }
+    });
+    expect(sceneLike.bossSystem.consumeSpawn).toHaveBeenCalledOnce();
+  });
+
+  it('marks the boss defeated and spawns a guaranteed chest reward on boss death', () => {
+    const sceneLike = {
+      bossSystem: {
+        markDefeated: vi.fn()
+      },
+      pickupManager: {
+        spawnChest: vi.fn()
+      },
+      refreshHud: vi.fn()
+    };
+
+    GameScene.prototype.handleBossDefeated.call(sceneLike, {
+      bossName: 'Necromancer',
+      type: 'necromancerBoss',
+      x: 300,
+      y: 180
+    });
+
+    expect(sceneLike.bossSystem.markDefeated).toHaveBeenCalledOnce();
+    expect(sceneLike.pickupManager.spawnChest).toHaveBeenCalledWith(300, 180, 'necromancerBoss');
     expect(sceneLike.refreshHud).toHaveBeenCalledOnce();
   });
 });

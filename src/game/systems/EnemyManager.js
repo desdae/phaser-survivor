@@ -64,6 +64,24 @@ export const ENEMY_TYPES = {
     attackCooldownMs: 1600,
     hitRadius: 14
   },
+  necromancerBoss: {
+    texture: 'enemy-necromancerBoss',
+    speed: 52,
+    maxHealth: 1600,
+    xpValue: 40,
+    contactDamage: 10,
+    preferredRange: 260,
+    attackRange: 360,
+    projectileSpeed: 220,
+    projectileDamage: 16,
+    attackCooldownMs: 1400,
+    summonCooldownMs: 5000,
+    gravePulseCooldownMs: 3200,
+    gravePulseRadius: 82,
+    gravePulseDamage: 14,
+    hitRadius: 24,
+    isBoss: true
+  },
   poisonBlob: {
     texture: 'enemy-poisonBlob',
     speed: 42,
@@ -129,6 +147,7 @@ export class EnemyManager {
       bat: 0,
       tough: 0,
       spitter: 0,
+      necromancerBoss: 0,
       poisonBlob: 0,
       miniPoisonBlob: 0
     };
@@ -151,6 +170,51 @@ export class EnemyManager {
       .setDepth(6.2)
       .setVisible(true);
     this.updateEliteHealthBar(enemy);
+  }
+
+  createBossHealthBar(enemy) {
+    if (!this.scene?.add?.rectangle) {
+      return;
+    }
+
+    enemy.bossHealthBarFrame = this.scene.add
+      .rectangle(0, 0, 0, 0, 0x110b08, 0.94)
+      .setOrigin(0.5, 0.5)
+      .setStrokeStyle(2, 0xd8b57a, 0.95)
+      .setDepth(6.3)
+      .setVisible(true);
+    enemy.bossHealthBarFill = this.scene.add
+      .rectangle(0, 0, 0, 0, 0xa63d63, 0.98)
+      .setOrigin(0, 0.5)
+      .setDepth(6.4)
+      .setVisible(true);
+    this.updateBossHealthBar(enemy);
+  }
+
+  updateBossHealthBar(enemy) {
+    if (!enemy?.isBoss || !enemy?.bossHealthBarFrame || !enemy?.bossHealthBarFill) {
+      return;
+    }
+
+    const width = Math.max(46, (enemy.hitRadius ?? 24) * 2.8);
+    const height = 6;
+    const x = enemy.x;
+    const y = enemy.y - (enemy.hitRadius ?? 24) - 18;
+    const healthRatio = Math.max(0, Math.min(1, enemy.health / enemy.maxHealth));
+
+    enemy.bossHealthBarFrame.setPosition?.(x, y);
+    enemy.bossHealthBarFrame.setSize?.(width, height);
+    enemy.bossHealthBarFill.setPosition?.(x - width / 2 + 1, y);
+    enemy.bossHealthBarFill.setSize?.(Math.max(0, (width - 2) * healthRatio), height - 2);
+    enemy.bossHealthBarFrame.setVisible?.(enemy.active !== false);
+    enemy.bossHealthBarFill.setVisible?.(enemy.active !== false && healthRatio > 0);
+  }
+
+  destroyBossHealthBar(enemy) {
+    enemy?.bossHealthBarFrame?.destroy?.();
+    enemy?.bossHealthBarFill?.destroy?.();
+    enemy.bossHealthBarFrame = null;
+    enemy.bossHealthBarFill = null;
   }
 
   updateEliteHealthBar(enemy) {
@@ -290,6 +354,7 @@ export class EnemyManager {
         (enemy.cachedMoveY ?? 0) * enemy.speed * speedMultiplier
       );
       this.updateEliteHealthBar(enemy);
+      this.updateBossHealthBar(enemy);
 
       if (enemy.poisonTickDamage && enemy.trailDropIntervalMs) {
         if (enemy.nextTrailDropAt === undefined) {
@@ -303,6 +368,48 @@ export class EnemyManager {
       if (enemy.cachedWantsToShoot && shouldEnemyShoot(enemy, now, distance)) {
         this.fireEnemyProjectile(enemy, dx / distance, dy / distance, now);
         enemy.nextShotAt = now + enemy.attackCooldownMs;
+      }
+
+      if (enemy.isBoss) {
+        if (now >= enemy.nextShotAt) {
+          const spreadAngles = [-0.18, 0, 0.18];
+          spreadAngles.forEach((spread) => {
+            const cos = Math.cos(spread);
+            const sin = Math.sin(spread);
+            const shotX = (dx / distance) * cos - (dy / distance) * sin;
+            const shotY = (dx / distance) * sin + (dy / distance) * cos;
+            this.fireEnemyProjectile(enemy, shotX, shotY, now);
+          });
+          enemy.nextShotAt = now + enemy.attackCooldownMs;
+        }
+
+        if (now >= enemy.nextSummonAt) {
+          const summonType = this.dropRoll() < 0.5 ? 'skeleton' : 'zombie';
+          this.spawnEnemy(summonType, {
+            discover: false,
+            position: {
+              x: enemy.x + 32,
+              y: enemy.y + 18
+            },
+            summonedByBoss: true
+          });
+          this.spawnEnemy(summonType === 'skeleton' ? 'zombie' : 'skeleton', {
+            discover: false,
+            position: {
+              x: enemy.x - 28,
+              y: enemy.y - 20
+            },
+            summonedByBoss: true
+          });
+          enemy.nextSummonAt = now + enemy.summonCooldownMs;
+        }
+
+        if (distance <= enemy.gravePulseRadius && now >= enemy.nextGravePulseAt) {
+          const died = this.player.takeDamage?.(enemy.gravePulseDamage) ?? false;
+          this.playerPoisonDamaged = true;
+          this.playerKilledByPoison ||= died;
+          enemy.nextGravePulseAt = now + enemy.gravePulseCooldownMs;
+        }
       }
     });
 
@@ -377,6 +484,12 @@ export class EnemyManager {
     enemy.projectileSpeed = type.projectileSpeed ?? 0;
     enemy.projectileDamage = type.projectileDamage ?? 0;
     enemy.nextShotAt = 0;
+    enemy.nextSummonAt = 0;
+    enemy.nextGravePulseAt = 0;
+    enemy.gravePulseCooldownMs = type.gravePulseCooldownMs ?? 0;
+    enemy.gravePulseDamage = type.gravePulseDamage ?? 0;
+    enemy.gravePulseRadius = type.gravePulseRadius ?? 0;
+    enemy.summonCooldownMs = type.summonCooldownMs ?? 0;
     enemy.slowedUntil = 0;
     enemy.speedMultiplier = DEFAULT_SPEED_MULTIPLIER;
     enemy.hitRadius = type.hitRadius;
@@ -388,7 +501,7 @@ export class EnemyManager {
     enemy.visualFrameDurationMs = visual.frameDurationMs;
     enemy.setDepth(4);
     enemy.setCircle(type.hitRadius);
-    enemy.setScale((visual.scale ?? 1) * (eliteModifiers?.scaleMultiplier ?? 1));
+    enemy.setScale((visual.scale ?? 1) * (eliteModifiers?.scaleMultiplier ?? 1) * (type.isBoss ? 1.4 : 1));
 
     if (eliteModifiers) {
       enemy.isElite = true;
@@ -400,6 +513,13 @@ export class EnemyManager {
       enemy.hitRadius *= eliteModifiers.scaleMultiplier ?? 1;
       enemy.setTintFill(eliteModifiers.tint);
       this.createEliteHealthBar(enemy);
+    }
+
+    if (type.isBoss || options.boss) {
+      enemy.isBoss = true;
+      enemy.bossName = 'Necromancer';
+      enemy.setTintFill?.(0xa46ad6);
+      this.createBossHealthBar(enemy);
     }
 
     if (options.discover !== false) {
@@ -418,7 +538,8 @@ export class EnemyManager {
     projectile.expiresAt = now + 3000;
     projectile.setDepth(3);
     projectile.setCircle(5);
-    projectile.setTintFill(0xffa2a2);
+    projectile.setTintFill(enemy.isBoss ? 0xd4b8ff : 0xffa2a2);
+    projectile.setTexture?.(enemy.isBoss ? 'boss-dark-bolt' : 'projectile');
     projectile.setVelocity(directionX * speed, directionY * speed);
 
     return projectile;
@@ -435,6 +556,7 @@ export class EnemyManager {
 
     if (enemy.health > 0) {
       this.updateEliteHealthBar(enemy);
+      this.updateBossHealthBar(enemy);
       this.effects?.spawnHitSplash?.(enemy, false);
       this.audioManager?.playEnemyHit?.();
       enemy.setTintFill(0xfff0f0);
@@ -459,6 +581,15 @@ export class EnemyManager {
       this.pickupManager.spawnChest(enemy.x, enemy.y, enemy.type);
     } else {
       this.audioManager?.playEnemyDeath?.();
+    }
+
+    if (enemy.isBoss) {
+      this.lastBossDeath = {
+        bossName: enemy.bossName,
+        type: enemy.type,
+        x: enemy.x,
+        y: enemy.y
+      };
     }
 
     const powerupKey = this.powerupDropRoll?.({ isElite: Boolean(enemy.isElite) });
@@ -490,6 +621,7 @@ export class EnemyManager {
     }
 
     this.destroyEliteHealthBar(enemy);
+    this.destroyBossHealthBar(enemy);
     enemy.destroy();
     return true;
   }
@@ -644,6 +776,16 @@ export class EnemyManager {
 
   getNearEnemyQuery() {
     return this.nearEnemyQuery;
+  }
+
+  getActiveBoss() {
+    return this.getLivingEnemies().find((enemy) => enemy.isBoss) ?? null;
+  }
+
+  consumeBossDeath() {
+    const death = this.lastBossDeath ?? null;
+    this.lastBossDeath = null;
+    return death;
   }
 
   stopAll() {

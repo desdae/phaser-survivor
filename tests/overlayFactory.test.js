@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  createBossOverlay,
   createJournalOverlay,
   createHud,
   createPowerupHud,
@@ -219,6 +220,39 @@ describe('createFpsCounter', () => {
     expect(scene.texts.at(-1)?.x).toBe(1262);
     expect(scene.texts.at(-1)?.y).toBe(18);
     expect(scene.texts.at(-1)?.text).toBe('FPS 58');
+  });
+});
+
+describe('createBossOverlay', () => {
+  it('pins a boss warning and hp bar to the top center and swaps between warning and boss states', () => {
+    const scene = createFakeScene();
+    const overlay = createBossOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.update({
+      visible: true,
+      warning: 'Necromancer approaching'
+    });
+
+    expect(scene.containers.at(-1)?.x).toBe(640);
+    expect(scene.containers.at(-1)?.y).toBe(18);
+    expect(overlay.getState()).toMatchObject({
+      visible: true,
+      warning: 'Necromancer approaching'
+    });
+
+    overlay.update({
+      healthRatio: 0.5,
+      label: 'Necromancer',
+      visible: true
+    });
+
+    expect(overlay.getState()).toMatchObject({
+      healthRatio: 0.5,
+      label: 'Necromancer',
+      visible: true,
+      warning: ''
+    });
   });
 });
 

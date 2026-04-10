@@ -45,6 +45,14 @@ const ENEMY_VISUAL_VARIANTS = {
       scale: 1.04
     }
   ],
+  necromancerBoss: [
+    {
+      key: 'necromancerBoss',
+      frames: ['mob-necromancer-0', 'mob-necromancer-1', 'mob-necromancer-2'],
+      frameDurationMs: 170,
+      scale: 0.98
+    }
+  ],
   poisonBlob: [
     {
       key: 'poisonBlob',
