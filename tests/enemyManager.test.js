@@ -503,6 +503,70 @@ describe('EnemyManager', () => {
     expect(eliteHealthBarFill.destroy).toHaveBeenCalledOnce();
   });
 
+  it('spawns a necromancer boss with boss markers and large health', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const scene = {
+      cameras: {
+        main: {
+          height: 600,
+          scrollX: 0,
+          scrollY: 0,
+          width: 800
+        }
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      }
+    };
+    enemyGroup.create = vi.fn(() => createdBoss);
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    const boss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    expect(boss.isBoss).toBe(true);
+    expect(boss.bossName).toBe('Necromancer');
+    expect(boss.health).toBeGreaterThanOrEqual(1400);
+    expect(boss.maxHealth).toBe(boss.health);
+    expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.4);
+  });
+
+  it('marks boss death separately from normal elite cleanup', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = {
+      active: true,
+      bossName: 'Necromancer',
+      destroy: vi.fn(),
+      health: 10,
+      isBoss: true,
+      setTintFill: vi.fn(),
+      type: 'necromancerBoss',
+      x: 64,
+      xpValue: 20,
+      y: 96
+    };
+
+    manager.damageEnemy(boss, 12, 'meteor');
+
+    expect(manager.lastBossDeath).toMatchObject({ type: 'necromancerBoss', x: 64, y: 96 });
+  });
+
   it('splits a poison blob into two mini poison blobs on death', () => {
     const manager = new EnemyManager(
       createEnemySceneHarness(),
@@ -975,5 +1039,35 @@ describe('EnemyManager update', () => {
     expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(1, 100, 0);
     expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(2, 100, 0);
     expect(farEnemy.setVelocity).toHaveBeenNthCalledWith(3, 100, 0);
+  });
+
+  it('fires dark bolt volleys and summons minions on cadence', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    boss.attackCooldownMs = 1400;
+    boss.contactDamage = 10;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextGravePulseAt = 0;
+    boss.nextShotAt = 0;
+    boss.nextSummonAt = 0;
+    boss.preferredRange = 260;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'necromancerBoss';
+    manager.fireEnemyProjectile = vi.fn();
+    manager.spawnEnemy = vi.fn();
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 241000);
+
+    expect(manager.fireEnemyProjectile).toHaveBeenCalled();
+    expect(manager.spawnEnemy).toHaveBeenCalledWith(
+      expect.stringMatching(/skeleton|zombie/),
+      expect.objectContaining({ discover: false, summonedByBoss: true })
+    );
   });
 });
