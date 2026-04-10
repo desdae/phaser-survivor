@@ -70,6 +70,19 @@ describe('buildEnemyJournalDetail', () => {
     expect(detail.rows).toContainEqual({ label: 'Attack', value: 'Ranged spit' });
   });
 
+  it('builds boss journal details for the discovered necromancer', () => {
+    const state = createJournalDiscoveryState();
+    discoverEnemy(state, 'necromancerBoss');
+
+    const detail = buildEnemyJournalDetail('necromancerBoss', state);
+
+    expect(detail.title).toBe('Necromancer');
+    expect(detail.rows).toContainEqual({ label: 'HP', value: '1600' });
+    expect(detail.rows).toContainEqual({ label: 'Damage', value: '16 projectile' });
+    expect(detail.rows).toContainEqual({ label: 'Range', value: '360' });
+    expect(detail.specialAbilities).toContain('Summons undead minions');
+  });
+
   it('hides undiscovered enemy details behind placeholders', () => {
     const detail = buildEnemyJournalDetail('tough', createJournalDiscoveryState());
 

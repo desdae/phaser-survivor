@@ -2,7 +2,15 @@ import { ENEMY_TYPES } from '../systems/EnemyManager.js';
 import { UPGRADE_DEFINITIONS } from './progression.js';
 import { isAbilityDiscovered, isEnemyDiscovered } from './journalDiscovery.js';
 
-export const ENEMY_JOURNAL_ORDER = ['skeleton', 'zombie', 'bat', 'tough', 'spitter', 'poisonBlob'];
+export const ENEMY_JOURNAL_ORDER = [
+  'skeleton',
+  'zombie',
+  'bat',
+  'tough',
+  'spitter',
+  'necromancerBoss',
+  'poisonBlob'
+];
 
 export const ABILITY_JOURNAL_ORDER = [
   'projectile',
@@ -54,6 +62,14 @@ const ENEMY_REGISTRY = {
     attackType: 'Ranged spit',
     specialAbilities: 'Maintains standoff range and fires cursed projectiles.',
     description: 'A ranged grave caster that kites and spits from a safe distance.'
+  },
+  necromancerBoss: {
+    name: 'Necromancer',
+    textureKey: 'mob-necromancer-1',
+    attackType: 'Dark bolt volley',
+    specialAbilities: 'Summons undead minions and emits a grave pulse at close range.',
+    description:
+      'A named grave lord that bombards the player with dark bolts while raising fresh dead around the arena.'
   },
   poisonBlob: {
     name: 'Blight Ooze',

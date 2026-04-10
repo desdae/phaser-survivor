@@ -221,6 +221,95 @@ export function createFpsCounter(scene) {
   };
 }
 
+export function createBossOverlay(scene) {
+  const panel = scene.add.rectangle(0, 0, 460, 58, 0x08121c, 0.92).setOrigin(0.5, 0);
+  panel.setStrokeStyle(2, 0xa46ad6, 0.42);
+  const title = scene.add.text(0, 10, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '22px',
+    color: '#f6eaff',
+    fontStyle: 'bold'
+  });
+  title.setOrigin(0.5, 0);
+  const warning = scene.add.text(0, 12, '', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '20px',
+    color: '#f4bf63',
+    fontStyle: 'bold'
+  });
+  warning.setOrigin(0.5, 0);
+  const healthBarFrame = scene.add.rectangle(0, 38, 388, 12, 0x120d1d, 0.98).setOrigin(0.5, 0);
+  healthBarFrame.setStrokeStyle(1, 0xd7b5ff, 0.55);
+  const healthBarFill = scene.add.rectangle(-194, 40, 388, 8, 0xc96cff, 0.92).setOrigin(0, 0);
+  const container = scene.add.container(0, 0, [panel, healthBarFrame, healthBarFill, title, warning]);
+
+  container.setDepth(57);
+  container.setScrollFactor(0);
+  container.setVisible(false);
+
+  let state = {
+    healthRatio: 0,
+    label: '',
+    visible: false,
+    warning: ''
+  };
+
+  return {
+    hide() {
+      container.setVisible(false);
+      state = {
+        healthRatio: 0,
+        label: '',
+        visible: false,
+        warning: ''
+      };
+    },
+    layout(width) {
+      container.setPosition(width / 2, 18);
+    },
+    update(model = {}) {
+      const visible = Boolean(model.visible);
+      const warningText = model.warning ?? '';
+      const label = model.label ?? '';
+      const healthRatio = Math.max(0, Math.min(1, model.healthRatio ?? 0));
+
+      container.setVisible(visible);
+
+      if (!visible) {
+        state = {
+          healthRatio: 0,
+          label: '',
+          visible: false,
+          warning: ''
+        };
+        return;
+      }
+
+      const showingWarning = Boolean(warningText);
+      warning.setVisible(showingWarning);
+      warning.setText(warningText);
+      title.setVisible(!showingWarning);
+      title.setText(label);
+      healthBarFrame.setVisible(!showingWarning);
+      healthBarFill.setVisible(!showingWarning);
+
+      if (!showingWarning) {
+        healthBarFill.setSize(Math.round(388 * healthRatio), 8);
+      }
+
+      state = {
+        healthRatio,
+        label,
+        visible,
+        warning: warningText
+      };
+    },
+    getState() {
+      return state;
+    }
+  };
+}
+
 export function createPowerupHud(scene) {
   const ICON_SIZE = 34;
   const FRAME_SIZE = 40;

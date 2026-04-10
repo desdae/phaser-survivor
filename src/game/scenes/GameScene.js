@@ -16,6 +16,7 @@ import { NovaManager } from '../systems/NovaManager.js';
 import { RuneTrapManager } from '../systems/RuneTrapManager.js';
 import { SpearBarrageManager } from '../systems/SpearBarrageManager.js';
 import { EliteWaveSystem } from '../systems/EliteWaveSystem.js';
+import { BossSystem } from '../systems/BossSystem.js';
 import { ChestRewardSystem } from '../systems/ChestRewardSystem.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { PickupManager } from '../systems/PickupManager.js';
@@ -48,6 +49,7 @@ import { getCobbleWallTextureSpec } from '../logic/wallVisuals.js';
 import { buildWeaponTooltipMap } from '../logic/weaponTooltips.js';
 import {
   createChestOverlay,
+  createBossOverlay,
   createDamageStatsOverlay,
   createFpsCounter,
   createGameOverOverlay,
@@ -56,6 +58,34 @@ import {
   createLevelUpOverlay,
   createPowerupHud
 } from '../ui/overlayFactory.js';
+
+function buildBossOverlayState({ activeBoss = null, elapsedMs = 0, bossSystem = null } = {}) {
+  if (activeBoss) {
+    const maxHealth = Math.max(1, activeBoss.maxHealth ?? activeBoss.health ?? 1);
+    return {
+      healthRatio: Math.max(0, Math.min(1, (activeBoss.health ?? 0) / maxHealth)),
+      label: activeBoss.bossName ?? 'Boss',
+      visible: true,
+      warning: ''
+    };
+  }
+
+  if (bossSystem?.isWarningActive?.(elapsedMs) && bossSystem?.state?.pendingBoss) {
+    return {
+      healthRatio: 0,
+      label: '',
+      visible: true,
+      warning: 'Necromancer approaching'
+    };
+  }
+
+  return {
+    healthRatio: 0,
+    label: '',
+    visible: false,
+    warning: ''
+  };
+}
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -118,7 +148,9 @@ export class GameScene extends Phaser.Scene {
     this.temporaryBuffSystem = new TemporaryBuffSystem();
     this.chestRewardSystem = new ChestRewardSystem();
     this.eliteWaveSystem = new EliteWaveSystem();
+    this.bossSystem = new BossSystem();
     this.eliteWarningPlayed = false;
+    this.bossWarningPlayed = false;
 
     this.keys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -145,6 +177,7 @@ export class GameScene extends Phaser.Scene {
     this.hud = createHud(this);
     this.fpsCounter = createFpsCounter(this);
     this.powerupHud = createPowerupHud(this);
+    this.bossOverlay = createBossOverlay(this);
     this.syncPowerupCompassIndicators?.();
     this.damageStatsOverlay = createDamageStatsOverlay(this);
     this.journalOverlay = createJournalOverlay(this);
@@ -228,6 +261,7 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += delta;
     this.player.updateMovement(this.keys);
     this.updateEliteWave();
+    GameScene.prototype.updateBossEncounter.call(this);
     this.temporaryBuffSystem?.update?.(this.elapsedMs);
     const effectiveStats =
       this.temporaryBuffSystem?.getEffectiveStats?.(this.player.stats, this.elapsedMs) ?? this.player.stats;
@@ -311,6 +345,7 @@ export class GameScene extends Phaser.Scene {
       this.enemyManager
     );
     this.pickupManager.update(this.player.sprite, effectiveStats.pickupRadius);
+    GameScene.prototype.handleBossDefeated.call(this, this.enemyManager.consumeBossDeath?.());
     this.updatePowerupCompassIndicators?.();
     this.refreshHud(livingEnemies.length);
     GameScene.prototype.refreshDamageStatsHover.call(this, pointer);
@@ -491,6 +526,59 @@ export class GameScene extends Phaser.Scene {
     this.eliteWarningPlayed = false;
   }
 
+  getBossSpawnPosition() {
+    const camera = this.cameras?.main;
+    const playerSprite = this.player?.sprite;
+
+    if (!camera || !playerSprite) {
+      return { x: 0, y: 0 };
+    }
+
+    return {
+      x: camera.scrollX + camera.width + 72,
+      y: playerSprite.y - 36
+    };
+  }
+
+  updateBossEncounter() {
+    const bossState = this.bossSystem?.update?.(this.elapsedMs);
+
+    if (!bossState?.pendingBoss) {
+      this.bossWarningPlayed = false;
+      return;
+    }
+
+    if (this.bossSystem.isWarningActive(this.elapsedMs)) {
+      if (!this.bossWarningPlayed) {
+        this.audioManager?.playEliteWarning?.();
+        this.bossWarningPlayed = true;
+      }
+
+      return;
+    }
+
+    if (this.enemyManager?.getActiveBoss?.()) {
+      return;
+    }
+
+    this.enemyManager?.spawnEnemy?.('necromancerBoss', {
+      boss: true,
+      position: this.getBossSpawnPosition()
+    });
+    this.bossSystem?.consumeSpawn?.();
+    this.bossWarningPlayed = false;
+  }
+
+  handleBossDefeated(bossDeath) {
+    if (!bossDeath) {
+      return;
+    }
+
+    this.bossSystem?.markDefeated?.();
+    this.pickupManager?.spawnChest?.(bossDeath.x, bossDeath.y, bossDeath.type);
+    this.refreshHud();
+  }
+
   handlePickupCollected(pickup) {
     if (this.isGameOver || this.isGameplayPaused || this.activePauseOverlay) {
       return false;
@@ -647,6 +735,7 @@ export class GameScene extends Phaser.Scene {
     this.projectileManager.stopAll();
     this.levelUpOverlay.hide();
     this.chestOverlay.hide();
+    this.bossOverlay?.hide?.();
     this.journalOverlay?.hide?.();
     this.gameOverOverlay.show({
       timeMs: this.elapsedMs,
@@ -658,6 +747,7 @@ export class GameScene extends Phaser.Scene {
     this.levelUpOverlay?.hide?.();
     this.chestOverlay?.hide?.();
     this.gameOverOverlay?.hide?.();
+    this.bossOverlay?.hide?.();
     this.journalOverlay?.hide?.();
     this.physics?.world?.resume?.();
     this.activePauseOverlay = null;
@@ -689,6 +779,13 @@ export class GameScene extends Phaser.Scene {
       activeWeapons: countLearnedAbilities(this.player.stats),
       eliteWarning: this.eliteWaveSystem.isWarningActive(this.elapsedMs) ? 'Elite wave incoming' : ''
     });
+    this.bossOverlay?.update?.(
+      buildBossOverlayState({
+        activeBoss: this.enemyManager.getActiveBoss?.() ?? null,
+        elapsedMs: this.elapsedMs,
+        bossSystem: this.bossSystem
+      })
+    );
     this.powerupHud?.update(this.temporaryBuffSystem?.getSummaryRows?.(this.elapsedMs) ?? []);
     this.damageStatsOverlay.update(damageRows, tooltipMap);
     if (this.journalOverlay?.isVisible?.()) {
@@ -721,6 +818,10 @@ export class GameScene extends Phaser.Scene {
 
     if (this.powerupHud) {
       this.powerupHud.layout(width, height, this.currentXpBarBounds);
+    }
+
+    if (this.bossOverlay) {
+      this.bossOverlay.layout(width, height);
     }
 
     this.layoutPowerupCompassIndicators?.();
@@ -980,6 +1081,20 @@ export class GameScene extends Phaser.Scene {
     graphics.lineStyle(1, 0x9f6336, 0.75);
     graphics.lineBetween(9.8, 2.2, 9.8, 7.8);
     graphics.generateTexture('burst-rifle-projectile', 16, 10);
+
+    graphics.clear();
+    graphics.fillStyle(0x432060, 0.34);
+    graphics.fillCircle(10, 10, 9);
+    graphics.fillStyle(0x8a52d6, 0.9);
+    graphics.fillCircle(10, 10, 6.3);
+    graphics.fillStyle(0xf0ddff, 0.92);
+    graphics.fillCircle(10, 10, 3.2);
+    graphics.lineStyle(2, 0xd1aaff, 0.86);
+    graphics.lineBetween(10, 2, 10, 18);
+    graphics.lineBetween(2, 10, 18, 10);
+    graphics.lineBetween(4, 4, 16, 16);
+    graphics.lineBetween(16, 4, 4, 16);
+    graphics.generateTexture('boss-dark-bolt', 20, 20);
 
     graphics.clear();
     graphics.fillStyle(0xd9f2ff, 1);
