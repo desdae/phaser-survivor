@@ -636,7 +636,7 @@ export class EnemyManager {
   }
 
   isNecromancerBoss(enemy) {
-    return enemy?.type === 'necromancerBoss' || enemy?.bossName === 'Necromancer';
+    return enemy?.type === 'necromancerBoss';
   }
 
   resolveSceneTextureKey(preferredKey, fallbackKey = preferredKey) {

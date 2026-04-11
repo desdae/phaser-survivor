@@ -53,10 +53,22 @@ const BOSS_VISUAL_DURATIONS_MS = {
   death: 700
 };
 
+const BOSS_VISUAL_PRIORITIES = {
+  idle: 0,
+  cast: 1,
+  summon: 2,
+  pulse: 3,
+  death: 4
+};
+
 function normalizeMode(mode) {
   return mode === 'cast' || mode === 'summon' || mode === 'pulse' || mode === 'death'
     ? mode
     : 'idle';
+}
+
+function isVisualModeActive(mode, untilMs, nowMs) {
+  return mode !== 'idle' && nowMs < (untilMs ?? nowMs);
 }
 
 export function createBossVisualState(bossType, nowMs) {
@@ -70,6 +82,22 @@ export function createBossVisualState(bossType, nowMs) {
 
 export function updateBossVisualState(state, mode, nowMs) {
   const normalizedMode = normalizeMode(mode);
+  const currentMode = normalizeMode(state?.mode);
+  const currentUntilMs = state?.untilMs ?? nowMs;
+  const currentModeActive = isVisualModeActive(currentMode, currentUntilMs, nowMs);
+
+  if (currentModeActive) {
+    if (normalizedMode === 'idle') {
+      return state;
+    }
+
+    const currentPriority = BOSS_VISUAL_PRIORITIES[currentMode] ?? 0;
+    const nextPriority = BOSS_VISUAL_PRIORITIES[normalizedMode] ?? 0;
+
+    if (normalizedMode !== currentMode && nextPriority < currentPriority) {
+      return state;
+    }
+  }
 
   state.mode = normalizedMode;
   state.effect = normalizedMode === 'idle' ? 'idleAura' : normalizedMode;

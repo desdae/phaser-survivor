@@ -643,6 +643,7 @@ describe('EnemyManager', () => {
     const manager = createEnemyManagerHarness();
     const boss = makeEnemy({ x: 320, y: 160, speed: 92, visualFrames: ['mob-skeleton-0'] });
     boss.attackCooldownMs = 1400;
+    boss.bossName = 'Necromancer';
     boss.cachedWantsToShoot = false;
     boss.gravePulseCooldownMs = 3200;
     boss.gravePulseDamage = 14;
@@ -1275,6 +1276,7 @@ describe('EnemyManager', () => {
     );
     manager.fireEnemyProjectile(
       {
+        bossName: 'Necromancer',
         isBoss: true,
         projectileDamage: 10,
         projectileSpeed: 180,
@@ -2136,5 +2138,83 @@ describe('EnemyManager update', () => {
     expect(manager.spawnEnemy).toHaveBeenCalledTimes(2);
     expect(boss.visualState.mode).toBe('summon');
     expect(boss.visualState.untilMs).toBe(820);
+  });
+
+  it('keeps an active pulse visual sticky when lower-priority cast and summon triggers fire later', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    const actionModes = [];
+    boss.attackCooldownMs = 1400;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextShotAt = 400;
+    boss.nextSummonAt = 400;
+    boss.nextGravePulseAt = 400;
+    boss.preferredRange = 260;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'necromancerBoss';
+    manager.fireEnemyProjectile = vi.fn(() => {
+      actionModes.push(boss.visualState?.mode);
+    });
+    manager.spawnEnemy = vi.fn(() => {
+      actionModes.push(boss.visualState?.mode);
+    });
+    manager.player.sprite = { x: 320, y: 160 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 400);
+
+    boss.nextShotAt = 500;
+    boss.nextSummonAt = 500;
+    boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    actionModes.length = 0;
+
+    manager.update(16, 240, 500);
+
+    expect(actionModes).toEqual(['pulse', 'pulse', 'pulse', 'pulse', 'pulse']);
+    expect(boss.visualState.mode).toBe('pulse');
+    expect(boss.visualState.untilMs).toBe(620);
+  });
+
+  it('lets a later higher-priority pulse override an active summon visual', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    boss.attackCooldownMs = 1400;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextShotAt = Number.POSITIVE_INFINITY;
+    boss.nextSummonAt = 400;
+    boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    boss.preferredRange = 260;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'necromancerBoss';
+    manager.fireEnemyProjectile = vi.fn();
+    manager.spawnEnemy = vi.fn();
+    manager.player.sprite = { x: 320, y: 160 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 400);
+
+    expect(boss.visualState.mode).toBe('summon');
+    expect(boss.visualState.untilMs).toBe(820);
+
+    boss.nextSummonAt = Number.POSITIVE_INFINITY;
+    boss.nextGravePulseAt = 500;
+
+    manager.update(16, 240, 500);
+
+    expect(manager.player.takeDamage).toHaveBeenCalledWith(14);
+    expect(boss.visualState.mode).toBe('pulse');
+    expect(boss.visualState.untilMs).toBe(720);
   });
 });
