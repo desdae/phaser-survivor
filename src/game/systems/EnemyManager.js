@@ -276,6 +276,17 @@ export class EnemyManager {
     projectile?.setVisible?.(false);
   }
 
+  finalizeEnemyDeath(enemy) {
+    if (!enemy || enemy.deathCleanupComplete) {
+      return;
+    }
+
+    enemy.deathCleanupComplete = true;
+    enemy.active = false;
+    destroyBossVisualLayers(enemy);
+    enemy.destroy?.();
+  }
+
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
     this.playerPoisonDamaged = false;
     this.playerKilledByPoison = false;
@@ -680,14 +691,15 @@ export class EnemyManager {
   fireEnemyProjectile(enemy, directionX, directionY, now) {
     const projectile = this.getReusableEnemyProjectile();
     const speed = enemy.projectileSpeed ?? 0;
+    const usesNecromancerProjectileArt = this.isNecromancerBoss(enemy);
 
     projectile.setPosition?.(enemy.x, enemy.y);
     projectile.damage = enemy.projectileDamage ?? 0;
     projectile.expiresAt = now + 3000;
     projectile.setDepth(3);
     projectile.setCircle(5);
-    projectile.setTintFill(enemy.isBoss ? 0xd4b8ff : 0xffa2a2);
-    projectile.setTexture?.(enemy.isBoss ? 'boss-dark-bolt' : 'projectile');
+    projectile.setTintFill(usesNecromancerProjectileArt ? 0xd4b8ff : 0xffa2a2);
+    projectile.setTexture?.(usesNecromancerProjectileArt ? 'boss-dark-bolt' : 'projectile');
     projectile.setVelocity(directionX * speed, directionY * speed);
 
     return projectile;
@@ -764,7 +776,7 @@ export class EnemyManager {
   }
 
   damageEnemy(enemy, damage, sourceKey = null) {
-    if (!enemy?.active) {
+    if (!enemy?.active || enemy?.isDying) {
       return false;
     }
 
@@ -855,8 +867,33 @@ export class EnemyManager {
 
     this.destroyEliteHealthBar(enemy);
     this.destroyBossHealthBar(enemy);
-    destroyBossVisualLayers(enemy);
-    enemy.destroy();
+
+    if (isNecromancerBoss) {
+      const now = this.scene.time?.now ?? 0;
+      const deathCleanupDelayMs = Math.max(0, (enemy.visualState?.untilMs ?? now) - now);
+
+      enemy.isDying = true;
+      enemy.cachedWantsToShoot = false;
+      enemy.contactDamage = 0;
+      enemy.nextGravePulseAt = Number.POSITIVE_INFINITY;
+      enemy.nextShotAt = Number.POSITIVE_INFINITY;
+      enemy.nextSummonAt = Number.POSITIVE_INFINITY;
+      enemy.setVelocity?.(0, 0);
+
+      if (enemy.body) {
+        enemy.body.enable = false;
+      }
+
+      if (deathCleanupDelayMs > 0 && this.scene.time?.delayedCall) {
+        this.scene.time.delayedCall(deathCleanupDelayMs, () => this.finalizeEnemyDeath(enemy));
+      } else {
+        this.finalizeEnemyDeath(enemy);
+      }
+
+      return true;
+    }
+
+    this.finalizeEnemyDeath(enemy);
     return true;
   }
 
@@ -1001,7 +1038,7 @@ export class EnemyManager {
   }
 
   getLivingEnemies() {
-    return this.group.getChildren().filter((enemy) => enemy.active);
+    return this.group.getChildren().filter((enemy) => enemy.active && !enemy.isDying);
   }
 
   getEnemyQuery() {

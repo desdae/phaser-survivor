@@ -867,6 +867,7 @@ describe('EnemyManager', () => {
   it('destroys necromancer boss visual layers on death', () => {
     const enemyGroup = { id: 'enemies' };
     const projectileGroup = { id: 'enemy-projectiles' };
+    const scheduledCalls = [];
     const createdBoss = {
       clearTint: vi.fn(),
       setCircle: vi.fn(),
@@ -890,7 +891,9 @@ describe('EnemyManager', () => {
         }
       },
       time: {
-        delayedCall: vi.fn()
+        delayedCall: vi.fn((delay, callback) => {
+          scheduledCalls.push({ callback, delay });
+        })
       }
     };
     enemyGroup.create = vi.fn(() => createdBoss);
@@ -912,6 +915,15 @@ describe('EnemyManager', () => {
     expect(auraSprite).toBeTruthy();
     expect(eyeGlowSprite).toBeTruthy();
     expect(chestGlowSprite).toBeTruthy();
+    const deathCleanup = scheduledCalls.find((entry) => entry.delay === 700);
+
+    expect(deathCleanup).toBeTruthy();
+    expect(auraSprite.destroy).not.toHaveBeenCalled();
+    expect(eyeGlowSprite.destroy).not.toHaveBeenCalled();
+    expect(chestGlowSprite.destroy).not.toHaveBeenCalled();
+
+    deathCleanup.callback();
+
     expect(auraSprite.destroy).toHaveBeenCalledOnce();
     expect(eyeGlowSprite.destroy).toHaveBeenCalledOnce();
     expect(chestGlowSprite.destroy).toHaveBeenCalledOnce();
@@ -1181,6 +1193,189 @@ describe('EnemyManager', () => {
     expect(recycled.visible).toBe(true);
     expect(recycled.x).toBe(12);
     expect(recycled.y).toBe(16);
+  });
+
+  it('uses boss-dark-bolt only for the necromancer boss projectile art', () => {
+    const manager = createEnemyManagerHarness();
+    const necromancerProjectile = {
+      setCircle: vi.fn(function setCircle() {
+        return this;
+      }),
+      setDepth: vi.fn(function setDepth() {
+        return this;
+      }),
+      setPosition: vi.fn(function setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+      }),
+      setTexture: vi.fn(function setTexture(textureKey) {
+        this.texture = { key: textureKey };
+        return this;
+      }),
+      setTintFill: vi.fn(function setTintFill(value) {
+        this.tint = value;
+        return this;
+      }),
+      setVelocity: vi.fn(function setVelocity(x, y) {
+        this.velocity = { x, y };
+        return this;
+      })
+    };
+    const genericBossProjectile = {
+      setCircle: vi.fn(function setCircle() {
+        return this;
+      }),
+      setDepth: vi.fn(function setDepth() {
+        return this;
+      }),
+      setPosition: vi.fn(function setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+      }),
+      setTexture: vi.fn(function setTexture(textureKey) {
+        this.texture = { key: textureKey };
+        return this;
+      }),
+      setTintFill: vi.fn(function setTintFill(value) {
+        this.tint = value;
+        return this;
+      }),
+      setVelocity: vi.fn(function setVelocity(x, y) {
+        this.velocity = { x, y };
+        return this;
+      })
+    };
+    manager.getReusableEnemyProjectile = vi
+      .fn()
+      .mockReturnValueOnce(necromancerProjectile)
+      .mockReturnValueOnce(genericBossProjectile);
+
+    manager.fireEnemyProjectile(
+      {
+        bossName: 'Necromancer',
+        isBoss: true,
+        projectileDamage: 16,
+        projectileSpeed: 220,
+        type: 'necromancerBoss',
+        x: 40,
+        y: 50
+      },
+      1,
+      0,
+      1000
+    );
+    manager.fireEnemyProjectile(
+      {
+        isBoss: true,
+        projectileDamage: 10,
+        projectileSpeed: 180,
+        type: 'skeleton',
+        x: 60,
+        y: 70
+      },
+      0,
+      1,
+      1000
+    );
+
+    expect(necromancerProjectile.setTexture).toHaveBeenCalledWith('boss-dark-bolt');
+    expect(necromancerProjectile.setTintFill).toHaveBeenCalledWith(0xd4b8ff);
+    expect(genericBossProjectile.setTexture).toHaveBeenCalledWith('projectile');
+    expect(genericBossProjectile.setTintFill).toHaveBeenCalledWith(0xffa2a2);
+  });
+
+  it('keeps necromancer death visuals active until the death presentation window ends before cleanup', () => {
+    const now = 1500;
+    const scheduledCalls = [];
+    const auraSprite = { destroy: vi.fn() };
+    const eyeGlowSprite = { destroy: vi.fn() };
+    const chestGlowSprite = { destroy: vi.fn() };
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+        }
+      },
+      time: {
+        now,
+        delayedCall: vi.fn((delay, callback) => {
+          scheduledCalls.push({ callback, delay });
+        })
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnChest: vi.fn(), spawnPowerup: vi.fn(), spawnHeart: vi.fn() },
+      {
+        spawnDeathSplash: vi.fn(),
+        spawnHitSplash: vi.fn(),
+        spawnPuddle: vi.fn()
+      },
+      () => 1
+    );
+    manager.playBossBurst = vi.fn();
+    const enemy = {
+      active: true,
+      auraSprite,
+      bossHealthBarFill: { destroy: vi.fn() },
+      bossHealthBarFrame: { destroy: vi.fn() },
+      bossName: 'Necromancer',
+      chestGlowSprite,
+      destroy: vi.fn(function destroy() {
+        this.active = false;
+      }),
+      eyeGlowSprite,
+      health: 8,
+      isBoss: true,
+      setTexture: vi.fn(function setTexture(textureKey) {
+        this.texture = { key: textureKey };
+        return this;
+      }),
+      setTintFill: vi.fn(),
+      texture: { key: 'boss-necromancer-idle' },
+      type: 'necromancerBoss',
+      visualFrames: ['boss-necromancer-idle', 'boss-necromancer-idle-1'],
+      visualFrameIndex: 0,
+      visualState: createBossVisualState('necromancerBoss', now),
+      x: 320,
+      xpValue: 40,
+      y: 160
+    };
+
+    const died = manager.damageEnemy(enemy, 8);
+
+    expect(died).toBe(true);
+    expect(enemy.active).toBe(true);
+    expect(enemy.setTexture).toHaveBeenCalledWith('boss-necromancer-death');
+    expect(enemy.visualState.mode).toBe('death');
+    expect(enemy.visualState.untilMs).toBe(now + 700);
+    expect(enemy.destroy).not.toHaveBeenCalled();
+    expect(auraSprite.destroy).not.toHaveBeenCalled();
+    expect(eyeGlowSprite.destroy).not.toHaveBeenCalled();
+    expect(chestGlowSprite.destroy).not.toHaveBeenCalled();
+    expect(scheduledCalls).toHaveLength(1);
+    expect(scheduledCalls[0].delay).toBe(700);
+
+    scheduledCalls[0].callback();
+
+    expect(enemy.destroy).toHaveBeenCalledOnce();
+    expect(enemy.active).toBe(false);
+    expect(auraSprite.destroy).toHaveBeenCalledOnce();
+    expect(eyeGlowSprite.destroy).toHaveBeenCalledOnce();
+    expect(chestGlowSprite.destroy).toHaveBeenCalledOnce();
   });
 
   it('destroys boss burst layers when tween completion fires', () => {
