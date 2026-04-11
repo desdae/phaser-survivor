@@ -59,6 +59,37 @@ import {
   createPowerupHud
 } from '../ui/overlayFactory.js';
 
+const NECROMANCER_BOSS_TEXTURE_KEYS = new Set([
+  'boss-necromancer-idle',
+  'boss-necromancer-idle-1',
+  'boss-necromancer-idle-2',
+  'boss-necromancer-cast',
+  'boss-necromancer-summon',
+  'boss-necromancer-pulse',
+  'boss-necromancer-death',
+  'boss-necromancer-portrait'
+]);
+
+const NECROMANCER_BOSS_ART_IMPORTS = import.meta.glob(
+  '../../assets/bosses/necromancer/*.{png,jpg,jpeg,webp,avif}',
+  {
+    eager: true,
+    import: 'default'
+  }
+);
+
+function getNecromancerBossArtEntries() {
+  return Object.entries(NECROMANCER_BOSS_ART_IMPORTS).flatMap(([path, url]) => {
+    const fileName = path.split('/').pop()?.replace(/\.[^.]+$/, '');
+
+    if (!fileName || !NECROMANCER_BOSS_TEXTURE_KEYS.has(fileName)) {
+      return [];
+    }
+
+    return [{ key: fileName, url }];
+  });
+}
+
 function buildBossOverlayState({ activeBoss = null, elapsedMs = 0, bossSystem = null } = {}) {
   if (activeBoss) {
     const maxHealth = Math.max(1, activeBoss.maxHealth ?? activeBoss.health ?? 1);
@@ -93,6 +124,12 @@ export class GameScene extends Phaser.Scene {
     this.backgroundTiles = [];
     this.structureTiles = [];
     this.powerupCompassIndicators = [];
+  }
+
+  preload() {
+    getNecromancerBossArtEntries().forEach(({ key, url }) => {
+      this.load.image(key, url);
+    });
   }
 
   create() {

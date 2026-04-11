@@ -122,6 +122,8 @@ describe('GameScene createTextures', () => {
     expect(readme).toContain('boss-necro-death-burst');
     expect(readme).toContain('procedural fallback');
     expect(readme).toContain('GameScene.createTextures()');
+    expect(readme).toContain('GameScene.preload()');
+    expect(readme).toContain('import.meta.glob');
   });
 });
 

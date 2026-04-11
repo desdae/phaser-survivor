@@ -1,6 +1,6 @@
 # Necromancer Boss Asset Contract
 
-This folder documents the imported necromancer boss art keys and the procedural fallback keys that are generated in `GameScene.createTextures()` when a required boss texture is missing.
+This folder documents the imported necromancer boss art keys and the procedural fallback keys that are generated in `GameScene.createTextures()` when a required boss texture is missing. Any bitmap art dropped into this folder with one of the supported texture-key file names is auto-discovered by `GameScene.preload()` via Vite's `import.meta.glob(...)`.
 
 ## Imported texture keys
 
@@ -33,6 +33,7 @@ This folder documents the imported necromancer boss art keys and the procedural 
 
 ## Contract notes
 
+- Imported override art can be provided by placing bitmap files in this folder whose basenames match the texture keys above, for example `boss-necromancer-idle.png` or `boss-necromancer-cast.webp`.
 - The main boss sprite always targets the `boss-necromancer-*` mode keys. If imported art is absent, `GameScene.createTextures()` generates procedural fallback art into those same keys so the runtime contract still resolves.
 - `boss-necromancer-fallback-idle` remains the last-resort idle fallback key for presentation lookup and tests, but the main sprite should normally resolve one of the mode keys above.
 - `boss-necro-eyes` and `boss-necro-chest` are dedicated overlay layers for the boss eyes and chest glow. They should not silently degrade to `boss-necro-aura`.
