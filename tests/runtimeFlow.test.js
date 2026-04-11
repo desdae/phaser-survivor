@@ -31,7 +31,7 @@ const readmePath = new URL(
 );
 
 describe('GameScene createTextures', () => {
-  it('generates the projectile, burst rifle bullet, boss bolt, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, poison blob, poison puddle, and flamethrower textures', () => {
+  it('generates the projectile, burst rifle bullet, boss bolt, necromancer burst vfx, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, poison blob, poison puddle, and flamethrower textures', () => {
     const generateTexture = vi.fn();
     const graphics = {
       clear: vi.fn(),
@@ -66,6 +66,9 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('projectile', 10, 10);
     expect(generateTexture).toHaveBeenCalledWith('burst-rifle-projectile', 16, 10);
     expect(generateTexture).toHaveBeenCalledWith('boss-dark-bolt', 20, 20);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-summon-burst', 96, 96);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-pulse-ring', 128, 128);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-death-burst', 96, 96);
     expect(generateTexture).toHaveBeenCalledWith('meteor-fall', 40, 80);
     expect(generateTexture).toHaveBeenCalledWith('meteor-explosion', 96, 96);
     expect(generateTexture).toHaveBeenCalledWith('arc-mine', 36, 36);

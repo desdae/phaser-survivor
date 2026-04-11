@@ -1165,6 +1165,71 @@ export class GameScene extends Phaser.Scene {
     graphics.lineBetween(16, 4, 4, 16);
     graphics.generateTexture('boss-dark-bolt', 20, 20);
 
+    const drawBossBurstTexture = (
+      key,
+      {
+        coreAlpha = 0.92,
+        coreColor,
+        coreRadius,
+        glowAlpha = 0.18,
+        glowColor,
+        glowRadius,
+        lineWidth = 2,
+        outerRadius,
+        ringAlpha = 0.9,
+        ringColor,
+        ringRadius,
+        size,
+        spikeAlpha = 0.82,
+        spikeColor = ringColor,
+        spikeCount = 8,
+        spikeInset = 0.62,
+        spikeLength = 12
+      }
+    ) => {
+      const center = size / 2;
+
+      graphics.clear();
+      graphics.fillStyle(glowColor, glowAlpha);
+      graphics.fillCircle(center, center, glowRadius);
+      graphics.fillStyle(coreColor, coreAlpha);
+      graphics.fillCircle(center, center, coreRadius);
+      graphics.lineStyle(lineWidth, ringColor, ringAlpha);
+      graphics.strokeCircle(center, center, ringRadius);
+      graphics.lineStyle(lineWidth, spikeColor, spikeAlpha);
+
+      for (let index = 0; index < spikeCount; index += 1) {
+        const angle = (Math.PI * 2 * index) / spikeCount;
+        const innerX = center + Math.cos(angle) * (outerRadius * spikeInset);
+        const innerY = center + Math.sin(angle) * (outerRadius * spikeInset);
+        const outerX = center + Math.cos(angle) * (ringRadius + spikeLength);
+        const outerY = center + Math.sin(angle) * (ringRadius + spikeLength);
+
+        graphics.lineBetween(innerX, innerY, outerX, outerY);
+      }
+
+      graphics.generateTexture(key, size, size);
+    };
+
+    drawBossBurstTexture('boss-necro-death-burst', {
+      coreAlpha: 0.88,
+      coreColor: 0x4b0d2b,
+      coreRadius: 14,
+      glowAlpha: 0.2,
+      glowColor: 0xc34b87,
+      glowRadius: 30,
+      outerRadius: 20,
+      ringAlpha: 0.92,
+      ringColor: 0xff9fd0,
+      ringRadius: 28,
+      size: 96,
+      spikeAlpha: 0.9,
+      spikeColor: 0xffd4ea,
+      spikeCount: 6,
+      spikeInset: 0.58,
+      spikeLength: 16
+    });
+
     graphics.clear();
     graphics.fillStyle(0xd9f2ff, 1);
     graphics.fillTriangle(6, 20, 14, 0, 22, 20);

@@ -835,6 +835,7 @@ describe('EnemyManager', () => {
 
   it('marks boss death separately from normal elite cleanup', () => {
     const manager = createEnemyManagerHarness();
+    manager.playBossBurst = vi.fn();
     const boss = {
       active: true,
       bossName: 'Necromancer',
@@ -851,6 +852,14 @@ describe('EnemyManager', () => {
     manager.damageEnemy(boss, 12, 'meteor');
 
     expect(manager.lastBossDeath).toMatchObject({ type: 'necromancerBoss', x: 64, y: 96 });
+    expect(manager.playBossBurst).toHaveBeenCalledWith(
+      'boss-necro-death-burst',
+      64,
+      96,
+      expect.objectContaining({
+        tint: 0xffb1d8
+      })
+    );
   });
 
   it('splits a poison blob into two mini poison blobs on death', () => {
@@ -1058,6 +1067,113 @@ describe('EnemyManager', () => {
     expect(recycled.visible).toBe(true);
     expect(recycled.x).toBe(12);
     expect(recycled.y).toBe(16);
+  });
+
+  it('destroys boss burst layers when tween completion fires', () => {
+    const outerBurst = {
+      destroy: vi.fn(),
+      setAlpha: vi.fn().mockReturnThis(),
+      setDepth: vi.fn().mockReturnThis(),
+      setScale: vi.fn().mockReturnThis(),
+      setTint: vi.fn().mockReturnThis()
+    };
+    const innerBurst = {
+      destroy: vi.fn(),
+      setAlpha: vi.fn().mockReturnThis(),
+      setDepth: vi.fn().mockReturnThis(),
+      setScale: vi.fn().mockReturnThis(),
+      setTint: vi.fn().mockReturnThis()
+    };
+    const tweensAdd = vi.fn((config) => {
+      config.onComplete?.();
+      return config;
+    });
+    const scene = {
+      add: {
+        image: vi
+          .fn()
+          .mockReturnValueOnce(outerBurst)
+          .mockReturnValueOnce(innerBurst)
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+        }
+      },
+      tweens: {
+        add: tweensAdd
+      }
+    };
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    manager.playBossBurst('boss-necro-summon-burst', 100, 120);
+
+    expect(scene.add.image).toHaveBeenCalledTimes(2);
+    expect(tweensAdd).toHaveBeenCalledTimes(2);
+    expect(outerBurst.destroy).toHaveBeenCalledOnce();
+    expect(innerBurst.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to delayed cleanup when tweens are unavailable', () => {
+    const outerBurst = {
+      destroy: vi.fn(),
+      setAlpha: vi.fn().mockReturnThis(),
+      setDepth: vi.fn().mockReturnThis(),
+      setScale: vi.fn().mockReturnThis(),
+      setTint: vi.fn().mockReturnThis()
+    };
+    const innerBurst = {
+      destroy: vi.fn(),
+      setAlpha: vi.fn().mockReturnThis(),
+      setDepth: vi.fn().mockReturnThis(),
+      setScale: vi.fn().mockReturnThis(),
+      setTint: vi.fn().mockReturnThis()
+    };
+    const delayedCall = vi.fn((_, callback) => callback());
+    const scene = {
+      add: {
+        image: vi
+          .fn()
+          .mockReturnValueOnce(outerBurst)
+          .mockReturnValueOnce(innerBurst)
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+        }
+      },
+      time: {
+        delayedCall
+      }
+    };
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    manager.playBossBurst('boss-necro-pulse-ring', 80, 90);
+
+    expect(scene.add.image).toHaveBeenCalledTimes(2);
+    expect(delayedCall).toHaveBeenCalledTimes(2);
+    expect(outerBurst.destroy).toHaveBeenCalledOnce();
+    expect(innerBurst.destroy).toHaveBeenCalledOnce();
   });
 });
 
@@ -1329,7 +1445,9 @@ describe('EnemyManager update', () => {
 
   it('fires dark bolt volleys and summons minions on cadence', () => {
     const manager = createEnemyManagerHarness();
-    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    manager.playBossBurst = vi.fn();
+    manager.player.takeDamage = vi.fn(() => false);
+    const boss = makeEnemy({ x: 0, y: 0, speed: 52, visualFrames: ['mob-necromancer-0'] });
     boss.attackCooldownMs = 1400;
     boss.contactDamage = 10;
     boss.gravePulseCooldownMs = 3200;
@@ -1351,6 +1469,22 @@ describe('EnemyManager update', () => {
     manager.update(16, 240, 241000);
 
     expect(manager.fireEnemyProjectile).toHaveBeenCalled();
+    expect(manager.playBossBurst).toHaveBeenCalledWith(
+      'boss-necro-summon-burst',
+      0,
+      0,
+      expect.objectContaining({
+        tint: 0xbe8bff
+      })
+    );
+    expect(manager.playBossBurst).toHaveBeenCalledWith(
+      'boss-necro-pulse-ring',
+      0,
+      0,
+      expect.objectContaining({
+        tint: 0xdcb8ff
+      })
+    );
     expect(manager.spawnEnemy).toHaveBeenCalledWith(
       expect.stringMatching(/skeleton|zombie/),
       expect.objectContaining({ discover: false, summonedByBoss: true })

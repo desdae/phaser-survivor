@@ -398,6 +398,15 @@ export class EnemyManager {
         }
 
         if (now >= enemy.nextSummonAt) {
+          this.playBossBurst('boss-necro-summon-burst', enemy.x, enemy.y, {
+            duration: 220,
+            innerAlpha: 0.78,
+            innerScale: 0.18,
+            outerAlpha: 0.9,
+            outerScale: 1.8,
+            scale: 0.45,
+            tint: 0xbe8bff
+          });
           const summonType = this.dropRoll() < 0.5 ? 'skeleton' : 'zombie';
           this.spawnEnemy(summonType, {
             discover: false,
@@ -419,6 +428,15 @@ export class EnemyManager {
         }
 
         if (distance <= enemy.gravePulseRadius && now >= enemy.nextGravePulseAt) {
+          this.playBossBurst('boss-necro-pulse-ring', enemy.x, enemy.y, {
+            duration: 260,
+            innerAlpha: 0.62,
+            innerScale: 0.22,
+            outerAlpha: 0.8,
+            outerScale: 2.2,
+            scale: Math.max(0.5, enemy.gravePulseRadius / 100),
+            tint: 0xdcb8ff
+          });
           const died = this.player.takeDamage?.(enemy.gravePulseDamage) ?? false;
           this.playerPoisonDamaged = true;
           this.playerKilledByPoison ||= died;
@@ -588,6 +606,76 @@ export class EnemyManager {
     return projectile;
   }
 
+  playBossBurst(textureKey, x, y, opts = {}) {
+    const add = this.scene?.add;
+    const tweens = this.scene?.tweens;
+    const duration = opts.duration ?? 260;
+    const scale = opts.scale ?? 0.48;
+    const depth = opts.depth ?? 5.45;
+
+    if (!add?.image) {
+      return null;
+    }
+
+    const buildLayer = (layerOpts = {}) => {
+      const effect = add.image(x, y, textureKey);
+      const layerScale = layerOpts.scale ?? scale;
+      const layerAlpha = layerOpts.alpha ?? 0.9;
+      const layerDepth = layerOpts.depth ?? depth;
+
+      effect.setDepth?.(layerDepth);
+      effect.setAlpha?.(layerAlpha);
+      effect.setScale?.(layerScale);
+
+      if (layerOpts.tint !== undefined) {
+        effect.setTint?.(layerOpts.tint);
+      }
+
+      const tweenDuration = layerOpts.duration ?? duration;
+
+      if (tweens?.add) {
+        tweens.add({
+          targets: effect,
+          alpha: 0,
+          duration: tweenDuration,
+          ease: layerOpts.ease ?? 'Quad.Out',
+          scale: layerOpts.outScale ?? layerScale * 1.8,
+          onComplete: () => effect.destroy?.()
+        });
+      } else if (this.scene?.time?.delayedCall) {
+        this.scene.time.delayedCall(tweenDuration, () => effect.destroy?.());
+      } else {
+        effect.destroy?.();
+      }
+
+      return effect;
+    };
+
+    const outerLayer = buildLayer({
+      alpha: opts.outerAlpha ?? 0.86,
+      depth,
+      duration,
+      ease: opts.outerEase,
+      outScale: opts.outerScale,
+      scale: opts.outerScaleStart ?? scale
+    });
+    const innerLayer = buildLayer({
+      alpha: opts.innerAlpha ?? 0.7,
+      depth: depth + 0.01,
+      duration: Math.max(120, Math.round(duration * 0.78)),
+      ease: opts.innerEase ?? 'Sine.Out',
+      outScale: opts.innerOutScale ?? scale * 1.25,
+      scale: opts.innerScale ?? scale * 0.62,
+      tint: opts.innerTint ?? opts.tint
+    });
+
+    if (opts.tint !== undefined) {
+      outerLayer?.setTint?.(opts.tint);
+    }
+
+    return { innerLayer, outerLayer };
+  }
+
   damageEnemy(enemy, damage, sourceKey = null) {
     if (!enemy?.active) {
       return false;
@@ -617,6 +705,17 @@ export class EnemyManager {
 
     this.effects?.spawnDeathSplash?.(enemy);
     this.effects?.spawnPuddle?.(enemy);
+    if (enemy.isBoss) {
+      this.playBossBurst('boss-necro-death-burst', enemy.x, enemy.y, {
+        duration: 340,
+        innerAlpha: 0.76,
+        innerScale: 0.22,
+        outerAlpha: 0.92,
+        outerScale: 2.35,
+        scale: 0.62,
+        tint: 0xffb1d8
+      });
+    }
     this.pickupManager.spawnOrb(enemy.x, enemy.y, enemy.xpValue);
 
     if (enemy.isElite) {
