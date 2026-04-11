@@ -208,7 +208,10 @@ export class EnemyManager {
     const width = Math.max(46, (enemy.hitRadius ?? 24) * 2.8);
     const height = 6;
     const x = enemy.x;
-    const y = enemy.y - (enemy.hitRadius ?? 24) - 18;
+    const displayHeight = Number.isFinite(enemy.displayHeight) ? enemy.displayHeight : 0;
+    const originY = Number.isFinite(enemy.originY) ? enemy.originY : 0.5;
+    const topOffset = Math.max(enemy.hitRadius ?? 24, displayHeight * originY);
+    const y = enemy.y - topOffset - 18;
     const healthRatio = Math.max(0, Math.min(1, enemy.health / enemy.maxHealth));
 
     enemy.bossHealthBarFrame.setPosition?.(x, y);

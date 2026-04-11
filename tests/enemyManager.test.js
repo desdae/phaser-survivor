@@ -126,6 +126,25 @@ function makeBossLayerSprite() {
   };
 }
 
+function makeBarSprite() {
+  return {
+    setPosition: vi.fn(function setPosition(x, y) {
+      this.x = x;
+      this.y = y;
+      return this;
+    }),
+    setSize: vi.fn(function setSize(width, height) {
+      this.width = width;
+      this.height = height;
+      return this;
+    }),
+    setVisible: vi.fn(function setVisible(value) {
+      this.visible = value;
+      return this;
+    })
+  };
+}
+
 function createEnemySceneHarness() {
   const enemyGroup = {
     children: {
@@ -586,6 +605,29 @@ describe('EnemyManager', () => {
     expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.5);
     expect(boss.setScale.mock.calls.at(-1)?.[0]).toBeGreaterThan(1.4);
     expect(boss.setTintFill).not.toHaveBeenCalled();
+  });
+
+  it('positions a boss health bar above the full sprite height for tall bosses', () => {
+    const manager = createEnemyManagerHarness();
+    const bossHealthBarFrame = makeBarSprite();
+    const bossHealthBarFill = makeBarSprite();
+    const enemy = {
+      active: true,
+      bossHealthBarFill,
+      bossHealthBarFrame,
+      displayHeight: 164,
+      health: 1200,
+      hitRadius: 24,
+      isBoss: true,
+      maxHealth: 1600,
+      x: 320,
+      y: 160
+    };
+
+    manager.updateBossHealthBar(enemy);
+
+    expect(bossHealthBarFrame.setPosition).toHaveBeenCalledWith(320, 60);
+    expect(bossHealthBarFill.setPosition).toHaveBeenCalledWith(320 - 67.2 / 2 + 1, 60);
   });
 
   it('does not apply the necromancer scale boost to a different boss-shaped spawn', () => {
