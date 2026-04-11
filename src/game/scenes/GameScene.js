@@ -1046,6 +1046,75 @@ export class GameScene extends Phaser.Scene {
       createPoisonBlobFrame(frame);
     }
 
+    generateMobTexture('boss-necromancer-fallback-idle', 72, 92, () => {
+      graphics.fillStyle(0x120d1d, 0.34);
+      graphics.fillEllipse(36, 81, 34, 14);
+      graphics.fillStyle(0x281b36, 1);
+      graphics.fillTriangle(36, 16, 12, 72, 60, 72);
+      graphics.fillStyle(0x3c2754, 1);
+      graphics.fillRect(27, 14, 18, 22);
+      graphics.fillStyle(0xeee7dc, 1);
+      graphics.fillCircle(36, 18, 10);
+      graphics.fillStyle(0x23172e, 1);
+      graphics.fillCircle(32, 16, 2.3);
+      graphics.fillCircle(40, 16, 2.3);
+      graphics.fillStyle(0x79e1ff, 1);
+      graphics.fillCircle(36, 31, 4);
+      drawLimb(24, 34, 14, 54, 0x281b36, 1, 5);
+      drawLimb(48, 34, 58, 54, 0x281b36, 1, 5);
+    });
+
+    generateMobTexture('boss-necromancer-portrait', 92, 120, () => {
+      graphics.fillStyle(0x1a1028, 1);
+      graphics.fillEllipse(46, 102, 32, 12);
+      graphics.fillStyle(0x2a173f, 1);
+      graphics.fillCircle(46, 36, 28);
+      graphics.fillStyle(0x4d2d69, 1);
+      graphics.fillEllipse(46, 60, 38, 54);
+      graphics.fillStyle(0xeee7dc, 1);
+      graphics.fillCircle(46, 40, 18);
+      graphics.fillStyle(0x23172e, 1);
+      graphics.fillCircle(40, 38, 3.5);
+      graphics.fillCircle(52, 38, 3.5);
+      graphics.fillStyle(0x79e1ff, 1);
+      graphics.fillCircle(46, 58, 7);
+    });
+
+    generateMobTexture('boss-necro-aura', 96, 96, () => {
+      graphics.fillStyle(0x4f2a83, 0.16);
+      graphics.fillCircle(48, 48, 40);
+      graphics.fillStyle(0x7b4bd3, 0.28);
+      graphics.fillCircle(48, 48, 30);
+      graphics.fillStyle(0xb58bff, 0.42);
+      graphics.fillCircle(48, 48, 18);
+      graphics.lineStyle(4, 0xe7d5ff, 0.5);
+      graphics.strokeCircle(48, 48, 38);
+    });
+
+    generateMobTexture('boss-necro-summon-burst', 96, 96, () => {
+      graphics.fillStyle(0x1a1028, 0.12);
+      graphics.fillCircle(48, 54, 18);
+      graphics.fillStyle(0x6c35ad, 0.9);
+      graphics.fillTriangle(48, 12, 20, 72, 76, 72);
+      graphics.fillStyle(0xf0d7ff, 0.8);
+      graphics.fillTriangle(48, 22, 30, 70, 66, 70);
+      graphics.fillStyle(0x79e1ff, 0.74);
+      graphics.fillCircle(48, 44, 8);
+      graphics.lineStyle(4, 0xb78dff, 0.82);
+      graphics.strokeCircle(48, 48, 30);
+    });
+
+    generateMobTexture('boss-necro-pulse-ring', 128, 128, () => {
+      graphics.fillStyle(0x1a1028, 0.08);
+      graphics.fillCircle(64, 64, 22);
+      graphics.lineStyle(8, 0x7b4bd3, 0.3);
+      graphics.strokeCircle(64, 64, 48);
+      graphics.lineStyle(4, 0xe7d5ff, 0.72);
+      graphics.strokeCircle(64, 64, 34);
+      graphics.lineStyle(2, 0x79e1ff, 0.9);
+      graphics.strokeCircle(64, 64, 18);
+    });
+
     const magicMissileSpec = getMagicMissileTextureSpec();
     graphics.clear();
     magicMissileSpec.glows.forEach((glow) => {

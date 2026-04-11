@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('phaser', () => ({
@@ -23,6 +24,11 @@ import { createJournalDiscoveryState } from '../src/game/logic/journalDiscovery.
 import { buildWeaponTooltipMap } from '../src/game/logic/weaponTooltips.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { ELITE_WAVE_INTERVAL_MS } from '../src/game/logic/eliteWaves.js';
+
+const readmePath = new URL(
+  '../src/assets/bosses/necromancer/README.md',
+  import.meta.url
+);
 
 describe('GameScene createTextures', () => {
   it('generates the projectile, burst rifle bullet, boss bolt, meteor vfx, reward chest, temporary powerup, grass background, wall, blood puddle, poison blob, poison puddle, and flamethrower textures', () => {
@@ -80,6 +86,23 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-0', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-2', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-smoke-0', 28, 28);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necromancer-fallback-idle', 72, 92);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necromancer-portrait', 92, 120);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-aura', 96, 96);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-summon-burst', 96, 96);
+    expect(generateTexture).toHaveBeenCalledWith('boss-necro-pulse-ring', 128, 128);
+  });
+
+  it('documents the necromancer boss texture contract in the asset README', () => {
+    const readme = readFileSync(readmePath, 'utf8');
+
+    expect(readme).toContain('boss-necromancer-fallback-idle');
+    expect(readme).toContain('boss-necromancer-idle');
+    expect(readme).toContain('boss-necromancer-idle-1');
+    expect(readme).toContain('boss-necromancer-idle-2');
+    expect(readme).toContain('boss-necro-aura');
+    expect(readme).toContain('procedural fallback');
+    expect(readme).toContain('GameScene.createTextures()');
   });
 });
 
