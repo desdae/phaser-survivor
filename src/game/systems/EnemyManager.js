@@ -597,7 +597,6 @@ export class EnemyManager {
 
     if (typeKey === 'necromancerBoss') {
       enemy.bossName = 'Necromancer';
-      enemy.setTintFill?.(0xa46ad6);
       createBossVisualLayers(enemy, this.scene, this.scene.time?.now ?? 0);
     }
 

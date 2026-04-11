@@ -585,6 +585,7 @@ describe('EnemyManager', () => {
     expect(boss.maxHealth).toBe(boss.health);
     expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.5);
     expect(boss.setScale.mock.calls.at(-1)?.[0]).toBeGreaterThan(1.4);
+    expect(boss.setTintFill).not.toHaveBeenCalled();
   });
 
   it('does not apply the necromancer scale boost to a different boss-shaped spawn', () => {
