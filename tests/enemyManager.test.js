@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createBossVisualState } from '../src/game/logic/bossVisuals.js';
 import { getEliteModifiers } from '../src/game/logic/eliteWaves.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
 import { EnemyManager } from '../src/game/systems/EnemyManager.js';
@@ -90,6 +91,38 @@ function makeEnemy({ x = 0, y = 0, speed = 100, visualFrames = ['idle-0'] } = {}
     visualFrames,
     x,
     y
+  };
+}
+
+function makeBossLayerSprite() {
+  return {
+    destroy: vi.fn(),
+    setAlpha: vi.fn(function setAlpha(value) {
+      this.alpha = value;
+      return this;
+    }),
+    setDepth: vi.fn(function setDepth(value) {
+      this.depth = value;
+      return this;
+    }),
+    setOrigin: vi.fn(function setOrigin(x, y) {
+      this.origin = { x, y };
+      return this;
+    }),
+    setPosition: vi.fn(function setPosition(x, y) {
+      this.x = x;
+      this.y = y;
+      return this;
+    }),
+    setScale: vi.fn(function setScale(value) {
+      this.scale = value;
+      return this;
+    }),
+    setVisible: vi.fn(function setVisible(value) {
+      this.visible = value;
+      return this;
+    }),
+    visible: false
   };
 }
 
@@ -511,6 +544,8 @@ describe('EnemyManager', () => {
       setCircle: vi.fn(),
       setDepth: vi.fn(),
       setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setVelocity: vi.fn(),
       setTintFill: vi.fn()
     };
     const scene = {
@@ -532,7 +567,11 @@ describe('EnemyManager', () => {
         }
       }
     };
-    enemyGroup.create = vi.fn(() => createdBoss);
+    enemyGroup.create = vi.fn((x, y) => {
+      createdBoss.x = x;
+      createdBoss.y = y;
+      return createdBoss;
+    });
     const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
 
     const boss = manager.spawnEnemy('necromancerBoss', {
@@ -545,6 +584,253 @@ describe('EnemyManager', () => {
     expect(boss.health).toBeGreaterThanOrEqual(1400);
     expect(boss.maxHealth).toBe(boss.health);
     expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.4);
+  });
+
+  it('creates necromancer boss visual layers in idle state when spawning', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setVelocity: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const imageSprites = [];
+    const scene = {
+      add: {
+        image: vi.fn((x, y, key) => {
+          const sprite = makeBossLayerSprite();
+          sprite.key = key;
+          sprite.setPosition(x, y);
+          imageSprites.push(sprite);
+          return sprite;
+        })
+      },
+      cameras: {
+        main: {
+          height: 600,
+          scrollX: 0,
+          scrollY: 0,
+          width: 800
+        }
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        now: 1234
+      }
+    };
+    enemyGroup.create = vi.fn((x, y) => {
+      createdBoss.x = x;
+      createdBoss.y = y;
+      return createdBoss;
+    });
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    const boss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    expect(boss.visualState).toEqual(createBossVisualState('necromancerBoss', 1234));
+    expect(scene.add.image).toHaveBeenCalledTimes(3);
+    expect(boss.auraSprite).toBe(imageSprites[0]);
+    expect(boss.eyeGlowSprite).toBe(imageSprites[1]);
+    expect(boss.chestGlowSprite).toBe(imageSprites[2]);
+    expect(boss.auraSprite.visible).toBe(true);
+    expect(boss.eyeGlowSprite.visible).toBe(true);
+    expect(boss.chestGlowSprite.visible).toBe(true);
+  });
+
+  it('falls back to the aura texture when boss glow overlays are unavailable', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setVelocity: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const scene = {
+      add: {
+        image: vi.fn(() => makeBossLayerSprite())
+      },
+      cameras: {
+        main: {
+          height: 600,
+          scrollX: 0,
+          scrollY: 0,
+          width: 800
+        }
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      textures: {
+        exists: vi.fn((key) => key === 'boss-necro-aura')
+      },
+      time: {
+        now: 1234
+      }
+    };
+    enemyGroup.create = vi.fn((x, y) => {
+      createdBoss.x = x;
+      createdBoss.y = y;
+      return createdBoss;
+    });
+
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    expect(scene.add.image).toHaveBeenNthCalledWith(1, 320, 160, 'boss-necro-aura');
+    expect(scene.add.image).toHaveBeenNthCalledWith(2, 320, 160, 'boss-necro-aura');
+    expect(scene.add.image).toHaveBeenNthCalledWith(3, 320, 160, 'boss-necro-aura');
+  });
+
+  it('updates necromancer boss visual layers with the boss position and a light pulse', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setTintFill: vi.fn(),
+      setVelocity: vi.fn()
+    };
+    const manager = new EnemyManager(
+      {
+        add: {
+          image: vi.fn(() => makeBossLayerSprite())
+        },
+        physics: {
+          add: {
+            collider: vi.fn(),
+            group: vi
+              .fn()
+              .mockReturnValueOnce(enemyGroup)
+              .mockReturnValueOnce(projectileGroup)
+          }
+        },
+        time: {
+          now: 0
+        }
+      },
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn() }
+    );
+    manager.enemyProjectileGroup.children = {
+      iterate: vi.fn()
+    };
+    enemyGroup.create = vi.fn((x, y) => {
+      createdBoss.x = x;
+      createdBoss.y = y;
+      return createdBoss;
+    });
+    const boss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 100, y: 120 }
+    });
+
+    boss.active = true;
+    boss.x = 132;
+    boss.y = 144;
+    boss.nextShotAt = Number.POSITIVE_INFINITY;
+    boss.nextSummonAt = Number.POSITIVE_INFINITY;
+    boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 60, 1800);
+
+    expect(boss.auraSprite).toBeTruthy();
+    expect(boss.eyeGlowSprite).toBeTruthy();
+    expect(boss.chestGlowSprite).toBeTruthy();
+    expect(boss.auraSprite.setPosition).toHaveBeenLastCalledWith(132, 144);
+    expect(boss.eyeGlowSprite.setPosition).toHaveBeenLastCalledWith(132, 144);
+    expect(boss.chestGlowSprite.setPosition).toHaveBeenLastCalledWith(132, 144);
+    expect(boss.auraSprite.setAlpha).toHaveBeenCalled();
+    expect(boss.eyeGlowSprite.setScale).toHaveBeenCalled();
+    expect(boss.chestGlowSprite.setAlpha).toHaveBeenCalled();
+  });
+
+  it('destroys necromancer boss visual layers on death', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      destroy: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const scene = {
+      add: {
+        image: vi.fn(() => makeBossLayerSprite())
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      },
+      time: {
+        delayedCall: vi.fn()
+      }
+    };
+    enemyGroup.create = vi.fn(() => createdBoss);
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+    const boss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    const auraSprite = boss.auraSprite;
+    const eyeGlowSprite = boss.eyeGlowSprite;
+    const chestGlowSprite = boss.chestGlowSprite;
+    boss.active = true;
+    boss.health = 1;
+
+    const died = manager.damageEnemy(boss, 10);
+
+    expect(died).toBe(true);
+    expect(auraSprite).toBeTruthy();
+    expect(eyeGlowSprite).toBeTruthy();
+    expect(chestGlowSprite).toBeTruthy();
+    expect(auraSprite.destroy).toHaveBeenCalledOnce();
+    expect(eyeGlowSprite.destroy).toHaveBeenCalledOnce();
+    expect(chestGlowSprite.destroy).toHaveBeenCalledOnce();
+    expect(boss.auraSprite).toBeNull();
+    expect(boss.eyeGlowSprite).toBeNull();
+    expect(boss.chestGlowSprite).toBeNull();
   });
 
   it('marks boss death separately from normal elite cleanup', () => {

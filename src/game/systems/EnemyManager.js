@@ -1,6 +1,11 @@
 import { createEnemyQuery } from '../logic/combat.js';
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import {
+  createBossVisualLayers,
+  destroyBossVisualLayers,
+  updateBossVisualLayers
+} from '../logic/bossVisuals.js';
+import {
   ANIMATION_STEP_MS,
   classifyEnemyTier,
   shouldAdvanceAnimation,
@@ -371,6 +376,8 @@ export class EnemyManager {
       }
 
       if (enemy.isBoss) {
+        updateBossVisualLayers(enemy, now);
+
         if (now >= enemy.nextShotAt) {
           const spreadAngles = [-0.18, 0, 0.18];
           spreadAngles.forEach((spread) => {
@@ -519,6 +526,7 @@ export class EnemyManager {
       enemy.isBoss = true;
       enemy.bossName = 'Necromancer';
       enemy.setTintFill?.(0xa46ad6);
+      createBossVisualLayers(enemy, this.scene, this.scene.time?.now ?? 0);
       this.createBossHealthBar(enemy);
     }
 
@@ -622,6 +630,7 @@ export class EnemyManager {
 
     this.destroyEliteHealthBar(enemy);
     this.destroyBossHealthBar(enemy);
+    destroyBossVisualLayers(enemy);
     enemy.destroy();
     return true;
   }

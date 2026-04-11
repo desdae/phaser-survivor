@@ -1,5 +1,35 @@
 const NECROMANCER_OVERLAY_KEYS = ['boss-necro-aura', 'boss-necro-eyes', 'boss-necro-chest'];
 
+const BOSS_LAYER_DEFS = {
+  aura: {
+    alpha: 0.34,
+    depth: 4.45,
+    key: 'boss-necro-aura',
+    phase: 0,
+    pulseAlpha: 0.09,
+    pulseScale: 0.035,
+    scale: 1.34
+  },
+  eyes: {
+    alpha: 0.82,
+    depth: 4.6,
+    key: 'boss-necro-eyes',
+    phase: 1.7,
+    pulseAlpha: 0.08,
+    pulseScale: 0.02,
+    scale: 1
+  },
+  chest: {
+    alpha: 0.58,
+    depth: 4.55,
+    key: 'boss-necro-chest',
+    phase: 3.1,
+    pulseAlpha: 0.06,
+    pulseScale: 0.02,
+    scale: 0.98
+  }
+};
+
 export const NECROMANCER_BOSS_ART_KEYS = {
   idle: 'boss-necromancer-idle',
   cast: 'boss-necromancer-cast',
@@ -41,6 +71,109 @@ export function updateBossVisualState(state, mode, nowMs) {
     normalizedMode === 'idle' ? nowMs : nowMs + (BOSS_VISUAL_DURATIONS_MS[normalizedMode] ?? 0);
 
   return state;
+}
+
+function getBossLayerState(definition, nowMs) {
+  const pulse = Math.sin((nowMs ?? 0) / 220 + definition.phase);
+
+  return {
+    alpha: Math.max(0, Math.min(1, definition.alpha + pulse * definition.pulseAlpha)),
+    scale: Math.max(0.01, definition.scale + pulse * definition.pulseScale)
+  };
+}
+
+function applyBossLayer(enemy, sprite, definition, nowMs) {
+  if (!sprite) {
+    return;
+  }
+
+  const layerState = getBossLayerState(definition, nowMs);
+
+  sprite.setPosition?.(enemy.x, enemy.y);
+  sprite.setAlpha?.(layerState.alpha);
+  sprite.setScale?.(layerState.scale);
+  sprite.setVisible?.(enemy.active !== false);
+}
+
+function getBossLayerTextureKey(scene, key) {
+  if (!scene?.textures?.exists) {
+    return key;
+  }
+
+  return scene.textures.exists(key) ? key : BOSS_LAYER_DEFS.aura.key;
+}
+
+export function createBossVisualLayers(enemy, scene, nowMs = scene?.time?.now ?? 0) {
+  if (!enemy) {
+    return null;
+  }
+
+  enemy.visualState = updateBossVisualState(
+    createBossVisualState(enemy.type ?? 'necromancerBoss', nowMs),
+    'idle',
+    nowMs
+  );
+
+  if (!scene?.add?.image) {
+    return enemy.visualState;
+  }
+
+  enemy.auraSprite = scene.add.image(
+    enemy.x,
+    enemy.y,
+    getBossLayerTextureKey(scene, BOSS_LAYER_DEFS.aura.key)
+  );
+  enemy.eyeGlowSprite = scene.add.image(
+    enemy.x,
+    enemy.y,
+    getBossLayerTextureKey(scene, BOSS_LAYER_DEFS.eyes.key)
+  );
+  enemy.chestGlowSprite = scene.add.image(
+    enemy.x,
+    enemy.y,
+    getBossLayerTextureKey(scene, BOSS_LAYER_DEFS.chest.key)
+  );
+
+  [
+    [enemy.auraSprite, BOSS_LAYER_DEFS.aura],
+    [enemy.eyeGlowSprite, BOSS_LAYER_DEFS.eyes],
+    [enemy.chestGlowSprite, BOSS_LAYER_DEFS.chest]
+  ].forEach(([sprite, definition]) => {
+    sprite?.setOrigin?.(0.5, 0.5);
+    sprite?.setDepth?.(definition.depth);
+    sprite?.setVisible?.(enemy.active !== false);
+    applyBossLayer(enemy, sprite, definition, nowMs);
+  });
+
+  return enemy.visualState;
+}
+
+export function updateBossVisualLayers(enemy, nowMs) {
+  if (!enemy?.isBoss) {
+    return;
+  }
+
+  enemy.visualState = updateBossVisualState(
+    enemy.visualState ?? createBossVisualState(enemy.type ?? 'necromancerBoss', nowMs),
+    'idle',
+    nowMs
+  );
+
+  applyBossLayer(enemy, enemy.auraSprite, BOSS_LAYER_DEFS.aura, nowMs);
+  applyBossLayer(enemy, enemy.eyeGlowSprite, BOSS_LAYER_DEFS.eyes, nowMs);
+  applyBossLayer(enemy, enemy.chestGlowSprite, BOSS_LAYER_DEFS.chest, nowMs);
+}
+
+export function destroyBossVisualLayers(enemy) {
+  enemy?.auraSprite?.destroy?.();
+  enemy?.eyeGlowSprite?.destroy?.();
+  enemy?.chestGlowSprite?.destroy?.();
+  if (enemy) {
+    enemy.auraSprite = null;
+    enemy.eyeGlowSprite = null;
+    enemy.chestGlowSprite = null;
+    enemy.visualState = null;
+  }
 }
 
 export function getBossVisualPresentation({ artAvailable, bossType, mode }) {
