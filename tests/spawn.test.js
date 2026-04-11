@@ -23,6 +23,11 @@ describe('getSpawnProfile', () => {
     expect(getSpawnProfile(90).weights.spitter).toBeGreaterThan(0);
   });
 
+  it('cuts the regular ranged spitter spawn weight in half', () => {
+    expect(getSpawnProfile(55).weights.spitter).toBeCloseTo(0.085);
+    expect(getSpawnProfile(90).weights.spitter).toBeCloseTo(0.11);
+  });
+
   it('adds poison blobs to later waves after the early game', () => {
     expect(getSpawnProfile(45).weights.poisonBlob ?? 0).toBe(0);
     expect(getSpawnProfile(95).weights.poisonBlob ?? 0).toBeGreaterThan(0);

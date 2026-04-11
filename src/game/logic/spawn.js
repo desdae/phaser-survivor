@@ -34,7 +34,7 @@ export function getSpawnProfile(elapsedSeconds) {
     zombie: elapsedSeconds < 22 ? 0.18 : 0.26,
     bat: elapsedSeconds < 16 ? 0.12 : 0.24,
     tough: elapsedSeconds < 35 ? 0 : 0.28,
-    spitter: elapsedSeconds < 55 ? 0 : Math.min(0.22, 0.06 + elapsedSeconds / 500),
+    spitter: elapsedSeconds < 55 ? 0 : Math.min(0.22, 0.06 + elapsedSeconds / 500) * 0.5,
     poisonBlob: elapsedSeconds < 80 ? 0 : Math.min(0.16, 0.03 + (elapsedSeconds - 80) / 420)
   };
 
