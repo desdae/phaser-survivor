@@ -665,6 +665,158 @@ describe('GameScene handlePickupCollected', () => {
 });
 
 describe('GameScene update', () => {
+  it('keeps the boss encounter active until the delayed death handoff is consumed', () => {
+    const dyingBoss = {
+      bossName: 'Necromancer',
+      health: 0,
+      isBoss: true,
+      maxHealth: 1600
+    };
+    const sceneLike = {
+      activePauseOverlay: null,
+      applyPassiveRegen: vi.fn(),
+      arcMineManager: { update: vi.fn() },
+      bladeManager: {
+        syncToPlayer: vi.fn(),
+        update: vi.fn()
+      },
+      boomerangManager: {
+        update: vi.fn()
+      },
+      bossOverlay: {
+        update: vi.fn()
+      },
+      bossSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false),
+        markDefeated: vi.fn(),
+        update: vi.fn().mockReturnValue({ pendingBoss: false })
+      },
+      bossWarningPlayed: false,
+      burstRifleManager: { update: vi.fn() },
+      cameras: {
+        main: {
+          scrollX: 0,
+          scrollY: 0
+        }
+      },
+      chainManager: {
+        update: vi.fn()
+      },
+      damageStatsManager: {
+        getRows: vi.fn().mockReturnValue([])
+      },
+      damageStatsOverlay: {
+        isVisible: vi.fn().mockReturnValue(false),
+        update: vi.fn()
+      },
+      elapsedMs: 0,
+      eliteWaveSystem: {
+        isWarningActive: vi.fn().mockReturnValue(false)
+      },
+      enemyManager: {
+        consumeBossDeath: vi.fn().mockReturnValueOnce(null).mockReturnValueOnce({
+          bossName: 'Necromancer',
+          type: 'necromancerBoss',
+          x: 420,
+          y: 220
+        }),
+        getActiveBoss: vi.fn().mockReturnValueOnce(dyingBoss).mockReturnValueOnce(null).mockReturnValueOnce(null),
+        getLivingEnemies: vi.fn().mockReturnValue([]),
+        getNearEnemyQuery: vi.fn().mockReturnValue([]),
+        playerPoisonDamaged: false,
+        update: vi.fn().mockReturnValue([])
+      },
+      flamethrowerManager: { update: vi.fn() },
+      handleStatsToggle: vi.fn(),
+      hud: {
+        update: vi.fn()
+      },
+      input: {
+        activePointer: { worldX: 280, worldY: 140, x: 280, y: 140 }
+      },
+      isGameOver: false,
+      isGameplayPaused: false,
+      keys: {},
+      lanceManager: { update: vi.fn() },
+      meteorManager: {
+        update: vi.fn()
+      },
+      mouseWorld: { x: 0, y: 0 },
+      novaManager: {
+        update: vi.fn()
+      },
+      pickupManager: {
+        spawnChest: vi.fn(),
+        update: vi.fn()
+      },
+      player: {
+        sprite: { x: 0, y: 0 },
+        stats: {
+          bladeCount: 1,
+          bladeUnlocked: true,
+          boomerangUnlocked: false,
+          chainUnlocked: false,
+          health: 100,
+          level: 4,
+          maxHealth: 100,
+          meteorUnlocked: false,
+          novaUnlocked: false,
+          pickupRadius: 48,
+          projectileCount: 2,
+          xp: 3,
+          xpToNext: 12
+        },
+        updateMovement: vi.fn()
+      },
+      powerupHud: {
+        update: vi.fn()
+      },
+      projectileManager: {
+        tryFire: vi.fn(),
+        update: vi.fn()
+      },
+      refreshHud: GameScene.prototype.refreshHud,
+      runeTrapManager: { update: vi.fn() },
+      spearBarrageManager: { update: vi.fn() },
+      syncBackgroundTiles: vi.fn(),
+      syncStructureTiles: vi.fn(),
+      temporaryBuffSystem: {
+        getEffectiveStats: vi.fn().mockImplementation((stats) => stats),
+        getSummaryRows: vi.fn().mockReturnValue([]),
+        update: vi.fn()
+      },
+      time: {
+        now: 16
+      },
+      updateEliteWave: vi.fn(),
+      updateFpsCounter: vi.fn(),
+      updatePowerupCompassIndicators: vi.fn(),
+      upgradeKeys: []
+    };
+
+    GameScene.prototype.update.call(sceneLike, 16, 16);
+
+    expect(sceneLike.bossSystem.markDefeated).not.toHaveBeenCalled();
+    expect(sceneLike.pickupManager.spawnChest).not.toHaveBeenCalled();
+    expect(sceneLike.bossOverlay.update).toHaveBeenCalledWith({
+      healthRatio: 0,
+      label: 'Necromancer',
+      visible: true,
+      warning: ''
+    });
+
+    GameScene.prototype.update.call(sceneLike, 32, 16);
+
+    expect(sceneLike.bossSystem.markDefeated).toHaveBeenCalledOnce();
+    expect(sceneLike.pickupManager.spawnChest).toHaveBeenCalledWith(420, 220, 'necromancerBoss');
+    expect(sceneLike.bossOverlay.update).toHaveBeenLastCalledWith({
+      healthRatio: 0,
+      label: '',
+      visible: false,
+      warning: ''
+    });
+  });
+
   it('routes game-over restart hotkeys through the explicit restart helper', () => {
     const justDownSpy = vi.spyOn(Phaser.Input.Keyboard, 'JustDown').mockReturnValue(true);
     const sceneLike = {

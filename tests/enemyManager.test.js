@@ -950,7 +950,7 @@ describe('EnemyManager', () => {
 
     manager.damageEnemy(boss, 12, 'meteor');
 
-    expect(manager.lastBossDeath).toMatchObject({ type: 'necromancerBoss', x: 64, y: 96 });
+    expect(manager.lastBossDeath).toBeUndefined();
     expect(manager.playBossBurst).toHaveBeenCalledWith(
       'boss-necro-death-burst',
       64,
@@ -959,6 +959,12 @@ describe('EnemyManager', () => {
         tint: 0xffb1d8
       })
     );
+    expect(manager.scene.time.delayedCall).toHaveBeenCalledOnce();
+
+    const [, deathCleanupCallback] = manager.scene.time.delayedCall.mock.calls[0];
+    deathCleanupCallback();
+
+    expect(manager.lastBossDeath).toMatchObject({ type: 'necromancerBoss', x: 64, y: 96 });
   });
 
   it('does not play the necromancer death burst for a generic boss-shaped spawn', () => {
@@ -1376,6 +1382,96 @@ describe('EnemyManager', () => {
     expect(auraSprite.destroy).toHaveBeenCalledOnce();
     expect(eyeGlowSprite.destroy).toHaveBeenCalledOnce();
     expect(chestGlowSprite.destroy).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the dying necromancer as the active boss until the delayed death handoff fires', () => {
+    const now = 2400;
+    const scheduledCalls = [];
+    const scene = {
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+            .mockReturnValueOnce({
+              children: { iterate: vi.fn() },
+              getChildren: vi.fn().mockReturnValue([])
+            })
+        }
+      },
+      time: {
+        now,
+        delayedCall: vi.fn((delay, callback) => {
+          scheduledCalls.push({ callback, delay });
+        })
+      }
+    };
+    const manager = new EnemyManager(
+      scene,
+      { sprite: { x: 0, y: 0 } },
+      { spawnOrb: vi.fn(), spawnChest: vi.fn(), spawnPowerup: vi.fn(), spawnHeart: vi.fn() },
+      {
+        spawnDeathSplash: vi.fn(),
+        spawnHitSplash: vi.fn(),
+        spawnPuddle: vi.fn()
+      },
+      () => 1
+    );
+    const boss = {
+      active: true,
+      body: { enable: true },
+      bossName: 'Necromancer',
+      destroy: vi.fn(function destroy() {
+        this.active = false;
+      }),
+      health: 8,
+      isBoss: true,
+      nextGravePulseAt: 0,
+      nextShotAt: 0,
+      nextSummonAt: 0,
+      setTexture: vi.fn(function setTexture(textureKey) {
+        this.texture = { key: textureKey };
+        return this;
+      }),
+      setTintFill: vi.fn(),
+      setVelocity: vi.fn(),
+      texture: { key: 'boss-necromancer-idle' },
+      type: 'necromancerBoss',
+      visualFrames: ['boss-necromancer-idle', 'boss-necromancer-idle-1'],
+      visualFrameIndex: 0,
+      visualState: createBossVisualState('necromancerBoss', now),
+      x: 320,
+      xpValue: 40,
+      y: 160
+    };
+    manager.group.getChildren.mockReturnValue([boss]);
+
+    manager.damageEnemy(boss, 8);
+
+    expect(boss.isDying).toBe(true);
+    expect(boss.contactDamage).toBe(0);
+    expect(boss.nextShotAt).toBe(Number.POSITIVE_INFINITY);
+    expect(boss.nextSummonAt).toBe(Number.POSITIVE_INFINITY);
+    expect(boss.nextGravePulseAt).toBe(Number.POSITIVE_INFINITY);
+    expect(boss.body.enable).toBe(false);
+    expect(boss.setVelocity).toHaveBeenCalledWith(0, 0);
+    expect(manager.getLivingEnemies()).toEqual([]);
+    expect(manager.getActiveBoss()).toBe(boss);
+    expect(manager.consumeBossDeath()).toBeNull();
+
+    scheduledCalls[0].callback();
+
+    expect(manager.getActiveBoss()).toBeNull();
+    expect(manager.consumeBossDeath()).toMatchObject({
+      bossName: 'Necromancer',
+      type: 'necromancerBoss',
+      x: 320,
+      y: 160
+    });
   });
 
   it('destroys boss burst layers when tween completion fires', () => {

@@ -287,6 +287,20 @@ export class EnemyManager {
     enemy.destroy?.();
   }
 
+  publishBossDeath(enemy) {
+    if (!enemy?.isBoss || enemy.bossDeathPublished) {
+      return;
+    }
+
+    enemy.bossDeathPublished = true;
+    this.lastBossDeath = {
+      bossName: enemy.bossName,
+      type: enemy.type,
+      x: enemy.x,
+      y: enemy.y
+    };
+  }
+
   update(deltaMs, elapsedSeconds, now = this.scene.time?.now ?? 0) {
     this.playerPoisonDamaged = false;
     this.playerKilledByPoison = false;
@@ -828,15 +842,6 @@ export class EnemyManager {
       this.audioManager?.playEnemyDeath?.();
     }
 
-    if (enemy.isBoss) {
-      this.lastBossDeath = {
-        bossName: enemy.bossName,
-        type: enemy.type,
-        x: enemy.x,
-        y: enemy.y
-      };
-    }
-
     const powerupKey = this.powerupDropRoll?.({ isElite: Boolean(enemy.isElite) });
 
     if (powerupKey) {
@@ -885,14 +890,19 @@ export class EnemyManager {
       }
 
       if (deathCleanupDelayMs > 0 && this.scene.time?.delayedCall) {
-        this.scene.time.delayedCall(deathCleanupDelayMs, () => this.finalizeEnemyDeath(enemy));
+        this.scene.time.delayedCall(deathCleanupDelayMs, () => {
+          this.publishBossDeath(enemy);
+          this.finalizeEnemyDeath(enemy);
+        });
       } else {
+        this.publishBossDeath(enemy);
         this.finalizeEnemyDeath(enemy);
       }
 
       return true;
     }
 
+    this.publishBossDeath(enemy);
     this.finalizeEnemyDeath(enemy);
     return true;
   }
@@ -1050,7 +1060,7 @@ export class EnemyManager {
   }
 
   getActiveBoss() {
-    return this.getLivingEnemies().find((enemy) => enemy.isBoss) ?? null;
+    return this.group.getChildren().find((enemy) => enemy?.active && enemy.isBoss) ?? null;
   }
 
   consumeBossDeath() {
