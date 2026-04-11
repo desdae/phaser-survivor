@@ -119,6 +119,7 @@ describe('GameScene createTextures', () => {
     expect(readme).toContain('boss-necro-aura');
     expect(readme).toContain('boss-necro-eyes');
     expect(readme).toContain('boss-necro-chest');
+    expect(readme).toContain('boss-necro-death-burst');
     expect(readme).toContain('procedural fallback');
     expect(readme).toContain('GameScene.createTextures()');
   });

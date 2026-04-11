@@ -29,6 +29,7 @@ This folder documents the imported necromancer boss art keys and the procedural 
 - `boss-necro-chest`
 - `boss-necro-summon-burst`
 - `boss-necro-pulse-ring`
+- `boss-necro-death-burst`
 
 ## Contract notes
 
