@@ -1,9 +1,11 @@
 import { createEnemyQuery } from '../logic/combat.js';
 import { applySwarmSpacing, getEnemyIntent, shouldEnemyShoot } from '../logic/enemyBehavior.js';
 import {
+  createBossVisualState,
   createBossVisualLayers,
   destroyBossVisualLayers,
-  updateBossVisualLayers
+  updateBossVisualLayers,
+  updateBossVisualState
 } from '../logic/bossVisuals.js';
 import {
   ANIMATION_STEP_MS,
@@ -377,6 +379,11 @@ export class EnemyManager {
 
       if (enemy.isBoss) {
         updateBossVisualLayers(enemy, now);
+        const bossVisualMode = this.getBossVisualModeForTick(enemy, now, distance);
+
+        if (bossVisualMode) {
+          this.updateBossVisualMode(enemy, bossVisualMode, now);
+        }
 
         if (now >= enemy.nextShotAt) {
           const spreadAngles = [-0.18, 0, 0.18];
@@ -535,6 +542,34 @@ export class EnemyManager {
     }
 
     return enemy;
+  }
+
+  updateBossVisualMode(enemy, mode, now) {
+    if (!enemy?.isBoss) {
+      return;
+    }
+
+    enemy.visualState = updateBossVisualState(
+      enemy.visualState ?? createBossVisualState(enemy.type ?? 'necromancerBoss', now),
+      mode,
+      now
+    );
+  }
+
+  getBossVisualModeForTick(enemy, now, distance) {
+    if (distance <= enemy.gravePulseRadius && now >= enemy.nextGravePulseAt) {
+      return 'pulse';
+    }
+
+    if (now >= enemy.nextSummonAt) {
+      return 'summon';
+    }
+
+    if (now >= enemy.nextShotAt) {
+      return 'cast';
+    }
+
+    return null;
   }
 
   fireEnemyProjectile(enemy, directionX, directionY, now) {

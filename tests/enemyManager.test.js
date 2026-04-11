@@ -1356,4 +1356,221 @@ describe('EnemyManager update', () => {
       expect.objectContaining({ discover: false, summonedByBoss: true })
     );
   });
+
+  it('switches the necromancer into cast mode before firing dark bolts and returns to idle after the cast window', () => {
+    const manager = createEnemyManagerHarness();
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setTintFill: vi.fn(),
+      setVelocity: vi.fn()
+    };
+    manager.scene.add = {
+      image: vi.fn((x, y, key) => {
+        const sprite = makeBossLayerSprite();
+        sprite.key = key;
+        sprite.setPosition(x, y);
+        return sprite;
+      })
+    };
+    manager.group.create = vi.fn(() => createdBoss);
+    manager.scene.time.now = 100;
+    const fireModes = [];
+    manager.fireEnemyProjectile = vi.fn(() => {
+      fireModes.push(boss.visualState?.mode);
+    });
+    manager.getLivingEnemies = vi.fn().mockReturnValue([]);
+    const boss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    boss.active = true;
+    boss.nextShotAt = 100;
+    boss.nextSummonAt = Number.POSITIVE_INFINITY;
+    boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 100);
+
+    expect(manager.fireEnemyProjectile).toHaveBeenCalledTimes(3);
+    expect(fireModes).toEqual(['cast', 'cast', 'cast']);
+    expect(boss.visualState.mode).toBe('cast');
+    expect(boss.visualState.untilMs).toBe(360);
+
+    manager.update(16, 240, 361);
+
+    expect(boss.visualState.mode).toBe('idle');
+    expect(boss.visualState.effect).toBe('idleAura');
+  });
+
+  it('switches the necromancer into summon mode when summoning and returns to idle after the summon window', () => {
+    const manager = createEnemyManagerHarness();
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setTintFill: vi.fn(),
+      setVelocity: vi.fn()
+    };
+    manager.scene.add = {
+      image: vi.fn(() => makeBossLayerSprite())
+    };
+    manager.group.create = vi.fn(() => createdBoss);
+    manager.scene.time.now = 200;
+    const originalSpawnEnemy = manager.spawnEnemy.bind(manager);
+    manager.spawnEnemy = vi.fn((...args) => originalSpawnEnemy(...args));
+    manager.fireEnemyProjectile = vi.fn();
+    const spawnedBoss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    spawnedBoss.active = true;
+    spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
+    spawnedBoss.nextSummonAt = 200;
+    spawnedBoss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    manager.getLivingEnemies = vi.fn().mockReturnValue([spawnedBoss]);
+
+    manager.update(16, 240, 200);
+
+    expect(manager.spawnEnemy).toHaveBeenCalledTimes(3);
+    expect(spawnedBoss.visualState.mode).toBe('summon');
+    expect(spawnedBoss.visualState.untilMs).toBe(620);
+
+    spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
+    spawnedBoss.nextSummonAt = Number.POSITIVE_INFINITY;
+    spawnedBoss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    manager.update(16, 240, 621);
+
+    expect(spawnedBoss.visualState.mode).toBe('idle');
+    expect(spawnedBoss.visualState.effect).toBe('idleAura');
+  });
+
+  it('switches the necromancer into pulse mode when grave pulse triggers and returns to idle after the pulse window', () => {
+    const manager = createEnemyManagerHarness();
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setTintFill: vi.fn(),
+      setVelocity: vi.fn()
+    };
+    manager.scene.add = {
+      image: vi.fn(() => makeBossLayerSprite())
+    };
+    manager.group.create = vi.fn(() => createdBoss);
+    manager.scene.time.now = 300;
+    manager.fireEnemyProjectile = vi.fn();
+    const spawnedBoss = manager.spawnEnemy('necromancerBoss', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    spawnedBoss.active = true;
+    spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
+    spawnedBoss.nextSummonAt = Number.POSITIVE_INFINITY;
+    spawnedBoss.nextGravePulseAt = 300;
+    spawnedBoss.gravePulseRadius = 82;
+    spawnedBoss.gravePulseDamage = 14;
+    manager.player.sprite = { x: 320, y: 160 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([spawnedBoss]);
+
+    manager.update(16, 240, 300);
+
+    expect(manager.player.takeDamage).toHaveBeenCalledWith(14);
+    expect(spawnedBoss.visualState.mode).toBe('pulse');
+    expect(spawnedBoss.visualState.untilMs).toBe(520);
+
+    manager.update(16, 240, 521);
+
+    expect(spawnedBoss.visualState.mode).toBe('idle');
+    expect(spawnedBoss.visualState.effect).toBe('idleAura');
+  });
+
+  it('keeps overlapped boss actions on the pulse visual priority when multiple abilities are due together', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    const fireModes = [];
+    const summonModes = [];
+    boss.attackCooldownMs = 1400;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextShotAt = 400;
+    boss.nextSummonAt = 400;
+    boss.nextGravePulseAt = 400;
+    boss.preferredRange = 260;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'necromancerBoss';
+    manager.fireEnemyProjectile = vi.fn(() => {
+      fireModes.push(boss.visualState?.mode);
+    });
+    manager.spawnEnemy = vi.fn(() => {
+      summonModes.push(boss.visualState?.mode);
+    });
+    manager.player.sprite = { x: 320, y: 160 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 400);
+
+    expect(fireModes).toEqual(['pulse', 'pulse', 'pulse']);
+    expect(summonModes).toEqual(['pulse', 'pulse']);
+    expect(manager.player.takeDamage).toHaveBeenCalledWith(14);
+    expect(manager.fireEnemyProjectile).toHaveBeenCalledTimes(3);
+    expect(manager.spawnEnemy).toHaveBeenCalledTimes(2);
+    expect(boss.visualState.mode).toBe('pulse');
+    expect(boss.visualState.untilMs).toBe(620);
+  });
+
+  it('keeps overlapped cast and summon actions on summon visual priority when pulse is not due', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 52, visualFrames: ['mob-necromancer-0'] });
+    const fireModes = [];
+    const summonModes = [];
+    boss.attackCooldownMs = 1400;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextShotAt = 400;
+    boss.nextSummonAt = 400;
+    boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
+    boss.preferredRange = 260;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'necromancerBoss';
+    manager.fireEnemyProjectile = vi.fn(() => {
+      fireModes.push(boss.visualState?.mode);
+    });
+    manager.spawnEnemy = vi.fn(() => {
+      summonModes.push(boss.visualState?.mode);
+    });
+    manager.player.sprite = { x: 1000, y: 1000 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 400);
+
+    expect(fireModes).toEqual(['summon', 'summon', 'summon']);
+    expect(summonModes).toEqual(['summon', 'summon']);
+    expect(manager.player.takeDamage).not.toHaveBeenCalled();
+    expect(manager.fireEnemyProjectile).toHaveBeenCalledTimes(3);
+    expect(manager.spawnEnemy).toHaveBeenCalledTimes(2);
+    expect(boss.visualState.mode).toBe('summon');
+    expect(boss.visualState.untilMs).toBe(820);
+  });
 });

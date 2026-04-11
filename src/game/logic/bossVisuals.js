@@ -153,11 +153,14 @@ export function updateBossVisualLayers(enemy, nowMs) {
     return;
   }
 
-  enemy.visualState = updateBossVisualState(
-    enemy.visualState ?? createBossVisualState(enemy.type ?? 'necromancerBoss', nowMs),
-    'idle',
-    nowMs
-  );
+  const visualState =
+    enemy.visualState ?? createBossVisualState(enemy.type ?? 'necromancerBoss', nowMs);
+
+  if (visualState.mode !== 'idle' && nowMs >= visualState.untilMs) {
+    enemy.visualState = updateBossVisualState(visualState, 'idle', nowMs);
+  } else {
+    enemy.visualState = visualState;
+  }
 
   applyBossLayer(enemy, enemy.auraSprite, BOSS_LAYER_DEFS.aura, nowMs);
   applyBossLayer(enemy, enemy.eyeGlowSprite, BOSS_LAYER_DEFS.eyes, nowMs);
