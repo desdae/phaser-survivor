@@ -46,7 +46,7 @@ describe('bossVisuals', () => {
     expect(deathState.untilMs).toBe(2600);
   });
 
-  it('uses the boss art when available and falls back to the idle sprite when not', () => {
+  it('maps the necromancer modes to usable main-sprite and layer keys', () => {
     const presentation = getBossVisualPresentation({
       artAvailable: true,
       bossType: 'necromancerBoss',
@@ -67,7 +67,13 @@ describe('bossVisuals', () => {
       artAvailable: true,
       bossType: 'necromancerBoss',
       mode: 'cast',
+      layerTextureKeys: {
+        aura: 'boss-necro-aura',
+        chest: 'boss-necro-chest',
+        eyes: 'boss-necro-eyes'
+      },
       overlayKeys: ['boss-necro-aura', 'boss-necro-eyes', 'boss-necro-chest'],
+      fallbackSpriteKey: NECROMANCER_BOSS_ART_KEYS.idleFallback,
       spriteKey: NECROMANCER_BOSS_ART_KEYS.cast
     });
 
@@ -83,8 +89,14 @@ describe('bossVisuals', () => {
       artAvailable: false,
       bossType: 'necromancerBoss',
       mode: 'summon',
+      layerTextureKeys: {
+        aura: 'boss-necro-aura',
+        chest: 'boss-necro-chest',
+        eyes: 'boss-necro-eyes'
+      },
       overlayKeys: ['boss-necro-aura', 'boss-necro-eyes', 'boss-necro-chest'],
-      spriteKey: NECROMANCER_BOSS_ART_KEYS.idleFallback
+      fallbackSpriteKey: NECROMANCER_BOSS_ART_KEYS.idleFallback,
+      spriteKey: NECROMANCER_BOSS_ART_KEYS.summon
     });
   });
 });

@@ -854,6 +854,10 @@ export class GameScene extends Phaser.Scene {
 
     const graphics = this.add.graphics();
     const generateMobTexture = (key, width, height, drawFrame) => {
+      if (this.textures?.exists?.(key)) {
+        return;
+      }
+
       graphics.clear();
       drawFrame(graphics);
       graphics.generateTexture(key, width, height);
@@ -1028,6 +1032,66 @@ export class GameScene extends Phaser.Scene {
         graphics.fillEllipse(26 + wobbleX, 14 - wobbleY, 3.2, 1.8);
       });
     };
+    const drawNecromancerBossFrame = ({
+      auraAlpha = 0.14,
+      auraColor = 0x6c35ad,
+      auraRadius = 24,
+      bob = 0,
+      chestColor = 0x79e1ff,
+      chestRadius = 4.6,
+      handColor = 0xb58bff,
+      hoodLift = 0,
+      leftHandX = 14,
+      leftHandY = 54,
+      outerRingAlpha = 0,
+      outerRingRadius = 0,
+      rightHandX = 58,
+      rightHandY = 54,
+      robeColor = 0x281b36,
+      shadowAlpha = 0.34,
+      trimColor = 0x4c3070
+    } = {}) => {
+      const faceY = 18 + hoodLift + bob;
+      const bodyY = 15 + hoodLift + bob;
+      const auraY = 42 + bob;
+
+      graphics.fillStyle(0x120d1d, shadowAlpha);
+      graphics.fillEllipse(36, 81 + bob, 34, 14);
+
+      if (auraAlpha > 0) {
+        graphics.fillStyle(auraColor, auraAlpha);
+        graphics.fillCircle(36, auraY, auraRadius);
+      }
+
+      if (outerRingAlpha > 0) {
+        graphics.lineStyle(3, 0xe7d5ff, outerRingAlpha);
+        graphics.strokeCircle(36, auraY, outerRingRadius);
+      }
+
+      graphics.fillStyle(robeColor, 1);
+      graphics.fillTriangle(36, 16 + hoodLift + bob, 12, 72 + bob, 60, 72 + bob);
+      graphics.fillStyle(trimColor, 0.96);
+      graphics.fillTriangle(36, 24 + hoodLift + bob, 22, 68 + bob, 50, 68 + bob);
+      graphics.fillStyle(0x38234e, 1);
+      graphics.fillRect(26, bodyY, 20, 22);
+      graphics.fillStyle(0xeee7dc, 1);
+      graphics.fillCircle(36, faceY, 10);
+      graphics.fillStyle(0x23172e, 1);
+      graphics.fillCircle(32, faceY - 2, 2.3);
+      graphics.fillCircle(40, faceY - 2, 2.3);
+      graphics.fillStyle(0x79e1ff, 0.98);
+      graphics.fillCircle(32, faceY - 2, 1.15);
+      graphics.fillCircle(40, faceY - 2, 1.15);
+      graphics.fillStyle(chestColor, 0.92);
+      graphics.fillCircle(36, 31 + bob, chestRadius);
+      graphics.fillStyle(0xffffff, 0.62);
+      graphics.fillCircle(34.4, 29.6 + bob, Math.max(1.1, chestRadius * 0.24));
+      drawLimb(24, 34 + bob, leftHandX, leftHandY, robeColor, 1, 5);
+      drawLimb(48, 34 + bob, rightHandX, rightHandY, robeColor, 1, 5);
+      graphics.fillStyle(handColor, 0.82);
+      graphics.fillCircle(leftHandX, leftHandY, 3.1);
+      graphics.fillCircle(rightHandX, rightHandY, 3.1);
+    };
 
     graphics.clear();
     graphics.fillStyle(0x1d4f7a, 1);
@@ -1046,22 +1110,123 @@ export class GameScene extends Phaser.Scene {
       createPoisonBlobFrame(frame);
     }
 
+    generateMobTexture('boss-necromancer-idle', 72, 92, () => {
+      drawNecromancerBossFrame();
+    });
+
+    generateMobTexture('boss-necromancer-idle-1', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.16,
+        bob: -1,
+        chestRadius: 4.2,
+        leftHandX: 12,
+        leftHandY: 55,
+        rightHandX: 56,
+        rightHandY: 53
+      });
+    });
+
+    generateMobTexture('boss-necromancer-idle-2', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.18,
+        bob: 1,
+        chestRadius: 4.9,
+        leftHandX: 16,
+        leftHandY: 53,
+        rightHandX: 60,
+        rightHandY: 55
+      });
+    });
+
+    generateMobTexture('boss-necromancer-cast', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.2,
+        auraRadius: 27,
+        chestColor: 0xa8ebff,
+        chestRadius: 6.6,
+        handColor: 0xdcc5ff,
+        leftHandX: 9,
+        leftHandY: 38,
+        outerRingAlpha: 0.48,
+        outerRingRadius: 26,
+        rightHandX: 63,
+        rightHandY: 38,
+        trimColor: 0x6f49a2
+      });
+    });
+
+    generateMobTexture('boss-necromancer-summon', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.24,
+        auraRadius: 29,
+        chestColor: 0xc4a1ff,
+        chestRadius: 7,
+        handColor: 0xf2d8ff,
+        hoodLift: -1,
+        leftHandX: 6,
+        leftHandY: 41,
+        outerRingAlpha: 0.54,
+        outerRingRadius: 28,
+        rightHandX: 66,
+        rightHandY: 41,
+        trimColor: 0x8b5ad0
+      });
+      graphics.lineStyle(3, 0xd5b3ff, 0.82);
+      graphics.lineBetween(36, 35, 36, 56);
+      graphics.lineBetween(25, 46, 47, 46);
+    });
+
+    generateMobTexture('boss-necromancer-pulse', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.3,
+        auraColor: 0x7b4bd3,
+        auraRadius: 31,
+        chestColor: 0xe6cbff,
+        chestRadius: 7.4,
+        handColor: 0xe6cbff,
+        leftHandX: 12,
+        leftHandY: 48,
+        outerRingAlpha: 0.72,
+        outerRingRadius: 31,
+        rightHandX: 60,
+        rightHandY: 48,
+        trimColor: 0x9a6de2
+      });
+      graphics.lineStyle(2, 0x79e1ff, 0.9);
+      graphics.strokeCircle(36, 42, 18);
+    });
+
+    generateMobTexture('boss-necromancer-death', 72, 92, () => {
+      drawNecromancerBossFrame({
+        auraAlpha: 0.08,
+        auraColor: 0xa63d63,
+        auraRadius: 22,
+        bob: 2,
+        chestColor: 0xffb1d8,
+        chestRadius: 5.6,
+        handColor: 0xffd4ea,
+        leftHandX: 19,
+        leftHandY: 60,
+        outerRingAlpha: 0.36,
+        outerRingRadius: 23,
+        rightHandX: 53,
+        rightHandY: 60,
+        robeColor: 0x37213c,
+        shadowAlpha: 0.42,
+        trimColor: 0x7d4562
+      });
+      graphics.lineStyle(3, 0xffc4de, 0.62);
+      graphics.lineBetween(28, 46, 44, 62);
+      graphics.lineBetween(44, 46, 28, 62);
+    });
+
     generateMobTexture('boss-necromancer-fallback-idle', 72, 92, () => {
-      graphics.fillStyle(0x120d1d, 0.34);
-      graphics.fillEllipse(36, 81, 34, 14);
-      graphics.fillStyle(0x281b36, 1);
-      graphics.fillTriangle(36, 16, 12, 72, 60, 72);
-      graphics.fillStyle(0x3c2754, 1);
-      graphics.fillRect(27, 14, 18, 22);
-      graphics.fillStyle(0xeee7dc, 1);
-      graphics.fillCircle(36, 18, 10);
-      graphics.fillStyle(0x23172e, 1);
-      graphics.fillCircle(32, 16, 2.3);
-      graphics.fillCircle(40, 16, 2.3);
-      graphics.fillStyle(0x79e1ff, 1);
-      graphics.fillCircle(36, 31, 4);
-      drawLimb(24, 34, 14, 54, 0x281b36, 1, 5);
-      drawLimb(48, 34, 58, 54, 0x281b36, 1, 5);
+      drawNecromancerBossFrame({
+        auraAlpha: 0.12,
+        auraRadius: 22,
+        chestRadius: 4.2,
+        trimColor: 0x5a3c7a
+      });
     });
 
     generateMobTexture('boss-necromancer-portrait', 92, 120, () => {
@@ -1089,6 +1254,33 @@ export class GameScene extends Phaser.Scene {
       graphics.fillCircle(48, 48, 18);
       graphics.lineStyle(4, 0xe7d5ff, 0.5);
       graphics.strokeCircle(48, 48, 38);
+    });
+
+    generateMobTexture('boss-necro-eyes', 96, 96, () => {
+      graphics.fillStyle(0x4f2a83, 0.08);
+      graphics.fillCircle(48, 40, 22);
+      graphics.fillStyle(0x79e1ff, 0.96);
+      graphics.fillEllipse(39, 39, 11, 6);
+      graphics.fillEllipse(57, 39, 11, 6);
+      graphics.fillStyle(0xffffff, 0.76);
+      graphics.fillCircle(36, 38, 1.7);
+      graphics.fillCircle(54, 38, 1.7);
+      graphics.lineStyle(2, 0xcdefff, 0.64);
+      graphics.strokeCircle(48, 40, 17);
+    });
+
+    generateMobTexture('boss-necro-chest', 96, 96, () => {
+      graphics.fillStyle(0x30184b, 0.1);
+      graphics.fillCircle(48, 56, 26);
+      graphics.fillStyle(0x79e1ff, 0.88);
+      graphics.fillCircle(48, 56, 10);
+      graphics.fillStyle(0xffffff, 0.62);
+      graphics.fillCircle(45, 52, 2.2);
+      graphics.lineStyle(3, 0xd8c3ff, 0.72);
+      graphics.strokeCircle(48, 56, 16);
+      graphics.lineStyle(2, 0x9ce8ff, 0.78);
+      graphics.lineBetween(48, 39, 48, 73);
+      graphics.lineBetween(36, 56, 60, 56);
     });
 
     generateMobTexture('boss-necro-summon-burst', 96, 96, () => {

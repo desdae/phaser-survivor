@@ -737,7 +737,7 @@ describe('EnemyManager', () => {
     expect(boss.chestGlowSprite.visible).toBe(true);
   });
 
-  it('falls back to the aura texture when boss glow overlays are unavailable', () => {
+  it('keeps dedicated eye and chest glow layer keys for the necromancer overlays', () => {
     const enemyGroup = { id: 'enemies' };
     const projectileGroup = { id: 'enemy-projectiles' };
     const createdBoss = {
@@ -771,7 +771,9 @@ describe('EnemyManager', () => {
         }
       },
       textures: {
-        exists: vi.fn((key) => key === 'boss-necro-aura')
+        exists: vi.fn((key) =>
+          ['boss-necro-aura', 'boss-necro-eyes', 'boss-necro-chest'].includes(key)
+        )
       },
       time: {
         now: 1234
@@ -791,8 +793,8 @@ describe('EnemyManager', () => {
     });
 
     expect(scene.add.image).toHaveBeenNthCalledWith(1, 320, 160, 'boss-necro-aura');
-    expect(scene.add.image).toHaveBeenNthCalledWith(2, 320, 160, 'boss-necro-aura');
-    expect(scene.add.image).toHaveBeenNthCalledWith(3, 320, 160, 'boss-necro-aura');
+    expect(scene.add.image).toHaveBeenNthCalledWith(2, 320, 160, 'boss-necro-eyes');
+    expect(scene.add.image).toHaveBeenNthCalledWith(3, 320, 160, 'boss-necro-chest');
   });
 
   it('updates necromancer boss visual layers with the boss position and a light pulse', () => {
@@ -1635,6 +1637,7 @@ describe('EnemyManager update', () => {
     });
 
     boss.active = true;
+    boss.visualFrames = ['boss-necromancer-idle', 'boss-necromancer-idle-1', 'boss-necromancer-idle-2'];
     boss.nextShotAt = 100;
     boss.nextSummonAt = Number.POSITIVE_INFINITY;
     boss.nextGravePulseAt = Number.POSITIVE_INFINITY;
@@ -1646,11 +1649,13 @@ describe('EnemyManager update', () => {
     expect(fireModes).toEqual(['cast', 'cast', 'cast']);
     expect(boss.visualState.mode).toBe('cast');
     expect(boss.visualState.untilMs).toBe(360);
+    expect(boss.setTexture).toHaveBeenCalledWith('boss-necromancer-cast');
 
     manager.update(16, 240, 361);
 
     expect(boss.visualState.mode).toBe('idle');
     expect(boss.visualState.effect).toBe('idleAura');
+    expect(boss.setTexture).toHaveBeenCalledWith('boss-necromancer-idle');
   });
 
   it('switches the necromancer into summon mode when summoning and returns to idle after the summon window', () => {
@@ -1667,7 +1672,22 @@ describe('EnemyManager update', () => {
     manager.scene.add = {
       image: vi.fn(() => makeBossLayerSprite())
     };
-    manager.group.create = vi.fn(() => createdBoss);
+    let createCount = 0;
+    manager.group.create = vi.fn(() => {
+      createCount += 1;
+
+      if (createCount === 1) {
+        return createdBoss;
+      }
+
+      return {
+        setCircle: vi.fn(),
+        setDepth: vi.fn(),
+        setScale: vi.fn(),
+        setTexture: vi.fn(),
+        setVelocity: vi.fn()
+      };
+    });
     manager.scene.time.now = 200;
     const originalSpawnEnemy = manager.spawnEnemy.bind(manager);
     manager.spawnEnemy = vi.fn((...args) => originalSpawnEnemy(...args));
@@ -1678,6 +1698,7 @@ describe('EnemyManager update', () => {
     });
 
     spawnedBoss.active = true;
+    spawnedBoss.visualFrames = ['boss-necromancer-idle', 'boss-necromancer-idle-1', 'boss-necromancer-idle-2'];
     spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
     spawnedBoss.nextSummonAt = 200;
     spawnedBoss.nextGravePulseAt = Number.POSITIVE_INFINITY;
@@ -1688,6 +1709,7 @@ describe('EnemyManager update', () => {
     expect(manager.spawnEnemy).toHaveBeenCalledTimes(3);
     expect(spawnedBoss.visualState.mode).toBe('summon');
     expect(spawnedBoss.visualState.untilMs).toBe(620);
+    expect(spawnedBoss.setTexture).toHaveBeenCalledWith('boss-necromancer-summon');
 
     spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
     spawnedBoss.nextSummonAt = Number.POSITIVE_INFINITY;
@@ -1696,6 +1718,7 @@ describe('EnemyManager update', () => {
 
     expect(spawnedBoss.visualState.mode).toBe('idle');
     expect(spawnedBoss.visualState.effect).toBe('idleAura');
+    expect(spawnedBoss.setTexture).toHaveBeenCalledWith('boss-necromancer-idle');
   });
 
   it('switches the necromancer into pulse mode when grave pulse triggers and returns to idle after the pulse window', () => {
@@ -1721,6 +1744,7 @@ describe('EnemyManager update', () => {
     });
 
     spawnedBoss.active = true;
+    spawnedBoss.visualFrames = ['boss-necromancer-idle', 'boss-necromancer-idle-1', 'boss-necromancer-idle-2'];
     spawnedBoss.nextShotAt = Number.POSITIVE_INFINITY;
     spawnedBoss.nextSummonAt = Number.POSITIVE_INFINITY;
     spawnedBoss.nextGravePulseAt = 300;
@@ -1735,11 +1759,13 @@ describe('EnemyManager update', () => {
     expect(manager.player.takeDamage).toHaveBeenCalledWith(14);
     expect(spawnedBoss.visualState.mode).toBe('pulse');
     expect(spawnedBoss.visualState.untilMs).toBe(520);
+    expect(spawnedBoss.setTexture).toHaveBeenCalledWith('boss-necromancer-pulse');
 
     manager.update(16, 240, 521);
 
     expect(spawnedBoss.visualState.mode).toBe('idle');
     expect(spawnedBoss.visualState.effect).toBe('idleAura');
+    expect(spawnedBoss.setTexture).toHaveBeenCalledWith('boss-necromancer-idle');
   });
 
   it('keeps overlapped boss actions on the pulse visual priority when multiple abilities are due together', () => {

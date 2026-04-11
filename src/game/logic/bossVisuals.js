@@ -1,10 +1,16 @@
-const NECROMANCER_OVERLAY_KEYS = ['boss-necro-aura', 'boss-necro-eyes', 'boss-necro-chest'];
+const NECROMANCER_LAYER_TEXTURE_KEYS = {
+  aura: 'boss-necro-aura',
+  eyes: 'boss-necro-eyes',
+  chest: 'boss-necro-chest'
+};
+
+const NECROMANCER_OVERLAY_KEYS = Object.freeze(Object.values(NECROMANCER_LAYER_TEXTURE_KEYS));
 
 const BOSS_LAYER_DEFS = {
   aura: {
     alpha: 0.34,
     depth: 4.45,
-    key: 'boss-necro-aura',
+    key: NECROMANCER_LAYER_TEXTURE_KEYS.aura,
     phase: 0,
     pulseAlpha: 0.09,
     pulseScale: 0.035,
@@ -13,7 +19,7 @@ const BOSS_LAYER_DEFS = {
   eyes: {
     alpha: 0.82,
     depth: 4.6,
-    key: 'boss-necro-eyes',
+    key: NECROMANCER_LAYER_TEXTURE_KEYS.eyes,
     phase: 1.7,
     pulseAlpha: 0.08,
     pulseScale: 0.02,
@@ -22,7 +28,7 @@ const BOSS_LAYER_DEFS = {
   chest: {
     alpha: 0.58,
     depth: 4.55,
-    key: 'boss-necro-chest',
+    key: NECROMANCER_LAYER_TEXTURE_KEYS.chest,
     phase: 3.1,
     pulseAlpha: 0.06,
     pulseScale: 0.02,
@@ -100,7 +106,7 @@ function getBossLayerTextureKey(scene, key) {
     return key;
   }
 
-  return scene.textures.exists(key) ? key : BOSS_LAYER_DEFS.aura.key;
+  return scene.textures.exists(key) ? key : key;
 }
 
 export function createBossVisualLayers(enemy, scene, nowMs = scene?.time?.now ?? 0) {
@@ -181,16 +187,19 @@ export function destroyBossVisualLayers(enemy) {
 
 export function getBossVisualPresentation({ artAvailable, bossType, mode }) {
   const normalizedMode = normalizeMode(mode);
-  const spriteKey =
-    artAvailable && bossType === 'necromancerBoss'
-      ? NECROMANCER_BOSS_ART_KEYS[normalizedMode]
-      : NECROMANCER_BOSS_ART_KEYS.idleFallback;
+  const isNecromancerBoss = bossType === 'necromancerBoss';
 
   return {
     artAvailable: Boolean(artAvailable),
     bossType,
+    fallbackSpriteKey: NECROMANCER_BOSS_ART_KEYS.idleFallback,
+    layerTextureKeys: {
+      ...NECROMANCER_LAYER_TEXTURE_KEYS
+    },
     mode: normalizedMode,
     overlayKeys: [...NECROMANCER_OVERLAY_KEYS],
-    spriteKey
+    spriteKey: isNecromancerBoss
+      ? NECROMANCER_BOSS_ART_KEYS[normalizedMode]
+      : NECROMANCER_BOSS_ART_KEYS.idleFallback
   };
 }

@@ -4,6 +4,7 @@ import {
   createBossVisualState,
   createBossVisualLayers,
   destroyBossVisualLayers,
+  getBossVisualPresentation,
   updateBossVisualLayers,
   updateBossVisualState
 } from '../logic/bossVisuals.js';
@@ -312,6 +313,7 @@ export class EnemyManager {
         return;
       }
 
+      const isNecromancerBoss = this.isNecromancerBoss(enemy);
       enemy.lodTier = classifyEnemyTier(enemy, playerSprite);
       const dx = playerSprite.x - enemy.x;
       const dy = playerSprite.y - enemy.y;
@@ -326,7 +328,11 @@ export class EnemyManager {
         enemy.attackRange > 0 ||
         enemy.preferredRange !== undefined;
 
-      if (animationStepDue && (enemy.lodTier === 'near' || this.frameIndex % 2 === 0)) {
+      if (
+        !isNecromancerBoss &&
+        animationStepDue &&
+        (enemy.lodTier === 'near' || this.frameIndex % 2 === 0)
+      ) {
         const nextFrame = advanceVisualFrame(enemy);
 
         if (nextFrame && enemy.texture?.key !== nextFrame) {
@@ -378,15 +384,19 @@ export class EnemyManager {
         enemy.nextShotAt = now + enemy.attackCooldownMs;
       }
 
-      const isNecromancerBoss = enemy.type === 'necromancerBoss' || enemy.bossName === 'Necromancer';
-
       if (isNecromancerBoss) {
+        const previousBossMode = enemy.visualState?.mode ?? 'idle';
         updateBossVisualLayers(enemy, now);
         const bossVisualMode = this.getBossVisualModeForTick(enemy, now, distance);
 
         if (bossVisualMode) {
           this.updateBossVisualMode(enemy, bossVisualMode, now);
         }
+
+        this.syncBossSpritePresentation(enemy, {
+          animationStepDue,
+          resetIdleFrame: previousBossMode !== 'idle' && enemy.visualState?.mode === 'idle'
+        });
 
         if (now >= enemy.nextShotAt) {
           const spreadAngles = [-0.18, 0, 0.18];
@@ -533,6 +543,7 @@ export class EnemyManager {
     enemy.canSplit = type.canSplit ?? false;
     enemy.visualKey = visual.key;
     enemy.visualFrames = visual.frames;
+    enemy.visualFrameIndex = 0;
     enemy.visualFrameDurationMs = visual.frameDurationMs;
     enemy.setDepth(4);
     enemy.setCircle(type.hitRadius);
@@ -598,6 +609,72 @@ export class EnemyManager {
     }
 
     return null;
+  }
+
+  isNecromancerBoss(enemy) {
+    return enemy?.type === 'necromancerBoss' || enemy?.bossName === 'Necromancer';
+  }
+
+  resolveSceneTextureKey(preferredKey, fallbackKey = preferredKey) {
+    const textureManager = this.scene?.textures;
+
+    if (!textureManager?.exists) {
+      return preferredKey ?? fallbackKey ?? null;
+    }
+
+    if (preferredKey && textureManager.exists(preferredKey)) {
+      return preferredKey;
+    }
+
+    if (fallbackKey && textureManager.exists(fallbackKey)) {
+      return fallbackKey;
+    }
+
+    return preferredKey ?? fallbackKey ?? null;
+  }
+
+  syncBossSpritePresentation(enemy, { animationStepDue = false, resetIdleFrame = false } = {}) {
+    if (!this.isNecromancerBoss(enemy)) {
+      return;
+    }
+
+    const visualState =
+      enemy.visualState ?? createBossVisualState(enemy.type ?? 'necromancerBoss', this.scene.time?.now ?? 0);
+    const presentation = getBossVisualPresentation({
+      artAvailable: this.scene?.textures?.exists?.(visualState.mode === 'idle'
+        ? enemy.visualFrames?.[enemy.visualFrameIndex ?? 0] ?? enemy.visualFrames?.[0] ?? null
+        : enemy.texture?.key ?? null
+      ),
+      bossType: enemy.type ?? 'necromancerBoss',
+      mode: visualState.mode
+    });
+
+    let preferredTextureKey = presentation.spriteKey;
+
+    if (visualState.mode === 'idle') {
+      if (resetIdleFrame) {
+        enemy.visualFrameIndex = 0;
+        preferredTextureKey =
+          enemy.visualFrames?.[0] ??
+          preferredTextureKey;
+      } else if (animationStepDue) {
+        preferredTextureKey = advanceVisualFrame(enemy) ?? preferredTextureKey;
+      } else {
+        preferredTextureKey =
+          enemy.visualFrames?.[enemy.visualFrameIndex ?? 0] ??
+          enemy.visualFrames?.[0] ??
+          preferredTextureKey;
+      }
+    }
+
+    const nextTextureKey = this.resolveSceneTextureKey(
+      preferredTextureKey,
+      presentation.fallbackSpriteKey
+    );
+
+    if (nextTextureKey && enemy.texture?.key !== nextTextureKey) {
+      enemy.setTexture?.(nextTextureKey);
+    }
   }
 
   fireEnemyProjectile(enemy, directionX, directionY, now) {
@@ -715,9 +792,11 @@ export class EnemyManager {
 
     this.effects?.spawnDeathSplash?.(enemy);
     this.effects?.spawnPuddle?.(enemy);
-    const isNecromancerBoss = enemy.type === 'necromancerBoss' || enemy.bossName === 'Necromancer';
+    const isNecromancerBoss = this.isNecromancerBoss(enemy);
 
     if (isNecromancerBoss) {
+      this.updateBossVisualMode(enemy, 'death', this.scene.time?.now ?? 0);
+      this.syncBossSpritePresentation(enemy);
       this.playBossBurst('boss-necro-death-burst', enemy.x, enemy.y, {
         duration: 340,
         innerAlpha: 0.76,
