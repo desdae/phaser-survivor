@@ -17,6 +17,7 @@ vi.mock('phaser', () => ({
 }));
 
 import Phaser from 'phaser';
+import { getEnemyVisualConfig } from '../src/game/logic/enemyVisuals.js';
 import { GameScene } from '../src/game/scenes/GameScene.js';
 import { createJournalDiscoveryState } from '../src/game/logic/journalDiscovery.js';
 import { buildWeaponTooltipMap } from '../src/game/logic/weaponTooltips.js';
@@ -79,6 +80,15 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-0', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-puff-2', 28, 28);
     expect(generateTexture).toHaveBeenCalledWith('flame-smoke-0', 28, 28);
+  });
+});
+
+describe('enemyVisuals', () => {
+  it('points the necromancer boss at the dedicated boss art frame keys', () => {
+    expect(getEnemyVisualConfig('necromancerBoss')).toMatchObject({
+      key: 'necromancerBoss',
+      frames: ['boss-necromancer-idle', 'boss-necromancer-idle-1', 'boss-necromancer-idle-2']
+    });
   });
 });
 

@@ -77,6 +77,7 @@ describe('buildEnemyJournalDetail', () => {
     const detail = buildEnemyJournalDetail('necromancerBoss', state);
 
     expect(detail.title).toBe('Necromancer');
+    expect(detail.textureKey).toBe('boss-necromancer-portrait');
     expect(detail.rows).toContainEqual({ label: 'HP', value: '1600' });
     expect(detail.rows).toContainEqual({ label: 'Damage', value: '16 projectile' });
     expect(detail.rows).toContainEqual({ label: 'Range', value: '360' });

@@ -65,7 +65,7 @@ const ENEMY_REGISTRY = {
   },
   necromancerBoss: {
     name: 'Necromancer',
-    textureKey: 'mob-necromancer-1',
+    textureKey: 'boss-necromancer-portrait',
     attackType: 'Dark bolt volley',
     specialAbilities: 'Summons undead minions and emits a grave pulse at close range.',
     description:
