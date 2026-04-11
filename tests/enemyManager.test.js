@@ -583,7 +583,92 @@ describe('EnemyManager', () => {
     expect(boss.bossName).toBe('Necromancer');
     expect(boss.health).toBeGreaterThanOrEqual(1400);
     expect(boss.maxHealth).toBe(boss.health);
-    expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.4);
+    expect(boss.setScale).toHaveBeenCalledWith(0.98 * 1.5);
+    expect(boss.setScale.mock.calls.at(-1)?.[0]).toBeGreaterThan(1.4);
+  });
+
+  it('does not apply the necromancer scale boost to a different boss-shaped spawn', () => {
+    const enemyGroup = { id: 'enemies' };
+    const projectileGroup = { id: 'enemy-projectiles' };
+    const createdBoss = {
+      clearTint: vi.fn(),
+      setCircle: vi.fn(),
+      setDepth: vi.fn(),
+      setScale: vi.fn(),
+      setTexture: vi.fn(),
+      setVelocity: vi.fn(),
+      setTintFill: vi.fn()
+    };
+    const scene = {
+      cameras: {
+        main: {
+          height: 600,
+          scrollX: 0,
+          scrollY: 0,
+          width: 800
+        }
+      },
+      physics: {
+        add: {
+          collider: vi.fn(),
+          group: vi
+            .fn()
+            .mockReturnValueOnce(enemyGroup)
+            .mockReturnValueOnce(projectileGroup)
+        }
+      }
+    };
+    enemyGroup.create = vi.fn((x, y) => {
+      createdBoss.x = x;
+      createdBoss.y = y;
+      return createdBoss;
+    });
+    const manager = new EnemyManager(scene, { sprite: { x: 0, y: 0 } }, { spawnOrb: vi.fn() });
+
+    manager.spawnEnemy('skeleton', {
+      boss: true,
+      position: { x: 320, y: 160 }
+    });
+
+    expect(createdBoss.setScale).toHaveBeenCalledWith(0.98);
+    expect(createdBoss.setScale.mock.calls.at(-1)?.[0]).toBeLessThan(1.4);
+    expect(createdBoss.bossName).toBeUndefined();
+    expect(createdBoss.setTintFill).not.toHaveBeenCalled();
+    expect(createdBoss.auraSprite).toBeUndefined();
+    expect(createdBoss.visualState).toBeUndefined();
+  });
+
+  it('does not run necromancer boss combat patterns for a generic boss-shaped spawn', () => {
+    const manager = createEnemyManagerHarness();
+    const boss = makeEnemy({ x: 320, y: 160, speed: 92, visualFrames: ['mob-skeleton-0'] });
+    boss.attackCooldownMs = 1400;
+    boss.cachedWantsToShoot = false;
+    boss.gravePulseCooldownMs = 3200;
+    boss.gravePulseDamage = 14;
+    boss.gravePulseRadius = 82;
+    boss.isBoss = true;
+    boss.nextGravePulseAt = 0;
+    boss.nextShotAt = 0;
+    boss.nextSummonAt = 0;
+    boss.preferredRange = undefined;
+    boss.projectileDamage = 16;
+    boss.projectileSpeed = 220;
+    boss.summonCooldownMs = 5000;
+    boss.type = 'skeleton';
+    manager.fireEnemyProjectile = vi.fn();
+    manager.spawnEnemy = vi.fn();
+    manager.playBossBurst = vi.fn();
+    manager.player.sprite = { x: 320, y: 160 };
+    manager.player.takeDamage = vi.fn(() => false);
+    manager.getLivingEnemies = vi.fn().mockReturnValue([boss]);
+
+    manager.update(16, 240, 400);
+
+    expect(manager.fireEnemyProjectile).not.toHaveBeenCalled();
+    expect(manager.spawnEnemy).not.toHaveBeenCalled();
+    expect(manager.playBossBurst).not.toHaveBeenCalled();
+    expect(manager.player.takeDamage).not.toHaveBeenCalled();
+    expect(boss.visualState).toBeUndefined();
   });
 
   it('creates necromancer boss visual layers in idle state when spawning', () => {
@@ -860,6 +945,33 @@ describe('EnemyManager', () => {
         tint: 0xffb1d8
       })
     );
+  });
+
+  it('does not play the necromancer death burst for a generic boss-shaped spawn', () => {
+    const manager = createEnemyManagerHarness();
+    manager.playBossBurst = vi.fn();
+    const boss = {
+      active: true,
+      destroy: vi.fn(),
+      health: 10,
+      isBoss: true,
+      setTintFill: vi.fn(),
+      type: 'skeleton',
+      x: 64,
+      xpValue: 20,
+      y: 96
+    };
+
+    const died = manager.damageEnemy(boss, 12, 'meteor');
+
+    expect(died).toBe(true);
+    expect(manager.playBossBurst).not.toHaveBeenCalledWith(
+      'boss-necro-death-burst',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Object)
+    );
+    expect(manager.lastBossDeath).toMatchObject({ type: 'skeleton', x: 64, y: 96 });
   });
 
   it('splits a poison blob into two mini poison blobs on death', () => {

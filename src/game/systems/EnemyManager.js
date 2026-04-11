@@ -24,6 +24,7 @@ const POISON_PUDDLE_LIFETIME_MS = 5000;
 const POISON_TICK_INTERVAL_MS = 500;
 const PLAYER_POISON_RADIUS = 14;
 const DEFAULT_SPEED_MULTIPLIER = 1;
+const NECROMANCER_BOSS_SCALE_MULTIPLIER = 1.5;
 
 export const ENEMY_TYPES = {
   skeleton: {
@@ -377,7 +378,9 @@ export class EnemyManager {
         enemy.nextShotAt = now + enemy.attackCooldownMs;
       }
 
-      if (enemy.isBoss) {
+      const isNecromancerBoss = enemy.type === 'necromancerBoss' || enemy.bossName === 'Necromancer';
+
+      if (isNecromancerBoss) {
         updateBossVisualLayers(enemy, now);
         const bossVisualMode = this.getBossVisualModeForTick(enemy, now, distance);
 
@@ -533,7 +536,11 @@ export class EnemyManager {
     enemy.visualFrameDurationMs = visual.frameDurationMs;
     enemy.setDepth(4);
     enemy.setCircle(type.hitRadius);
-    enemy.setScale((visual.scale ?? 1) * (eliteModifiers?.scaleMultiplier ?? 1) * (type.isBoss ? 1.4 : 1));
+    enemy.setScale(
+      (visual.scale ?? 1) *
+        (eliteModifiers?.scaleMultiplier ?? 1) *
+        (typeKey === 'necromancerBoss' ? NECROMANCER_BOSS_SCALE_MULTIPLIER : 1)
+    );
 
     if (eliteModifiers) {
       enemy.isElite = true;
@@ -549,10 +556,13 @@ export class EnemyManager {
 
     if (type.isBoss || options.boss) {
       enemy.isBoss = true;
+      this.createBossHealthBar(enemy);
+    }
+
+    if (typeKey === 'necromancerBoss') {
       enemy.bossName = 'Necromancer';
       enemy.setTintFill?.(0xa46ad6);
       createBossVisualLayers(enemy, this.scene, this.scene.time?.now ?? 0);
-      this.createBossHealthBar(enemy);
     }
 
     if (options.discover !== false) {
@@ -705,7 +715,9 @@ export class EnemyManager {
 
     this.effects?.spawnDeathSplash?.(enemy);
     this.effects?.spawnPuddle?.(enemy);
-    if (enemy.isBoss) {
+    const isNecromancerBoss = enemy.type === 'necromancerBoss' || enemy.bossName === 'Necromancer';
+
+    if (isNecromancerBoss) {
       this.playBossBurst('boss-necro-death-burst', enemy.x, enemy.y, {
         duration: 340,
         innerAlpha: 0.76,
