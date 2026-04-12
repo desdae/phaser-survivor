@@ -66,6 +66,7 @@ const ENEMY_REGISTRY = {
   necromancerBoss: {
     name: 'Necromancer',
     textureKey: 'boss-necromancer-portrait',
+    portraitScale: 0.72,
     attackType: 'Dark bolt volley',
     specialAbilities: 'Summons undead minions and emits a grave pulse at close range.',
     description:
@@ -316,6 +317,7 @@ export function buildEnemyJournalDetail(key, discoveryState) {
   return {
     title: entry.name,
     textureKey: entry.textureKey,
+    portraitScale: entry.portraitScale,
     rows,
     specialAbilities: entry.specialAbilities,
     description: entry.description

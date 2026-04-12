@@ -176,6 +176,17 @@ function createDisplayImage(scene, key) {
   return scene.add.rectangle(0, 0, JOURNAL_THEME.portraitWidth - 30, JOURNAL_THEME.portraitHeight - 30, 0x2d201c, 0.9);
 }
 
+function getPortraitDisplaySize(detail = {}) {
+  const baseWidth = JOURNAL_THEME.portraitWidth - 34;
+  const baseHeight = JOURNAL_THEME.portraitHeight - 34;
+  const portraitScale = Math.min(1, Math.max(0.35, detail.portraitScale ?? 1));
+
+  return {
+    width: baseWidth * portraitScale,
+    height: baseHeight * portraitScale
+  };
+}
+
 function pulseFlame(flame, scene, delay = 0) {
   scene.tweens?.add?.({
     targets: flame,
@@ -560,6 +571,8 @@ export function createJournalOverlay(scene) {
     } else {
       portraitImage.setVisible?.(Boolean(portraitKey));
     }
+    const portraitSize = getPortraitDisplaySize(detail);
+    portraitImage.setDisplaySize?.(portraitSize.width, portraitSize.height);
 
     detailRows.forEach((rowText, index) => {
       const row = statRowsData[index];
@@ -698,7 +711,8 @@ export function createJournalOverlay(scene) {
       portraitFrame.setPosition(layout.portraitX, layout.portraitY);
       portraitMat.setPosition(layout.portraitX + 9, layout.portraitY + 9);
       portraitImage.setPosition(layout.portraitX + JOURNAL_THEME.portraitWidth / 2, layout.portraitY + JOURNAL_THEME.portraitHeight / 2);
-      portraitImage.setDisplaySize?.(JOURNAL_THEME.portraitWidth - 34, JOURNAL_THEME.portraitHeight - 34);
+      const portraitSize = getPortraitDisplaySize(currentPayload?.detail);
+      portraitImage.setDisplaySize?.(portraitSize.width, portraitSize.height);
 
       detailTitle.setPosition(layout.detailStartX, layout.detailTitleY);
       detailDescription.setPosition(layout.detailStartX, layout.detailDescriptionY);

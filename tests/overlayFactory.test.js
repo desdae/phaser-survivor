@@ -559,6 +559,30 @@ describe('createJournalOverlay', () => {
     expect(overlay.getState().detailScrollOffset).toBeGreaterThan(0);
   });
 
+  it('renders the necromancer journal portrait with a reduced scale inside the frame', () => {
+    const scene = createFakeScene();
+    const overlay = createJournalOverlay(scene);
+
+    overlay.layout(1280, 720);
+    overlay.show({
+      activeTab: 'enemies',
+      enemies: [{ key: 'necromancerBoss', label: 'Necromancer', discovered: true }],
+      abilities: [],
+      selectedKey: 'necromancerBoss',
+      detail: {
+        key: 'necromancerBoss',
+        title: 'Necromancer',
+        textureKey: 'boss-necromancer-portrait',
+        portraitScale: 0.72,
+        rows: [{ label: 'HP', value: '1600' }],
+        upgradePaths: [],
+        description: 'A named grave lord.'
+      }
+    });
+
+    expect(scene.images[0].setDisplaySize).toHaveBeenLastCalledWith(151.2, 194.4);
+  });
+
   it('keeps the rendered scrollbar inside the left list panel instead of screen-space drifting', () => {
     const scene = createFakeScene();
     const overlay = createJournalOverlay(scene);
