@@ -1512,6 +1512,45 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('meteor-explosion', 96, 96);
 
     graphics.clear();
+    graphics.lineStyle(3, 0xffd3a4, 0.82);
+    graphics.strokeCircle(22, 22, 16);
+    graphics.lineStyle(1, 0xffa36d, 0.42);
+    graphics.strokeCircle(22, 22, 20);
+    graphics.generateTexture('spear-barrage-marker', 44, 44);
+
+    graphics.clear();
+    graphics.fillStyle(0xe2e5ea, 0.98);
+    graphics.fillTriangle(22, 0, 14, 28, 30, 28);
+    graphics.fillStyle(0x9aa0aa, 0.92);
+    graphics.fillTriangle(22, 8, 17, 28, 27, 28);
+    graphics.fillStyle(0x343942, 1);
+    graphics.fillRect(20, 28, 4, 132);
+    graphics.lineStyle(3, 0xd2d5dc, 0.92);
+    graphics.lineBetween(22, 30, 8, 58);
+    graphics.lineBetween(22, 30, 36, 58);
+    graphics.generateTexture('spear-barrage-fall', 44, 180);
+
+    graphics.clear();
+    graphics.fillStyle(0x120a08, 0.12);
+    graphics.fillTriangle(22, 6, 14, 34, 30, 34);
+    graphics.fillRect(19, 34, 6, 118);
+    graphics.fillEllipse(22, 152, 12, 30);
+    graphics.fillStyle(0x2b1c18, 0.08);
+    graphics.fillTriangle(22, 14, 10, 42, 34, 42);
+    graphics.fillRect(17, 38, 10, 112);
+    graphics.generateTexture('spear-barrage-shadow', 44, 180);
+
+    graphics.clear();
+    graphics.fillStyle(0xffcc8d, 0.18);
+    graphics.fillCircle(44, 44, 30);
+    graphics.lineStyle(4, 0xffe2b8, 0.86);
+    graphics.strokeCircle(44, 44, 18);
+    graphics.lineStyle(2, 0xff9e6d, 0.82);
+    graphics.lineBetween(44, 10, 44, 78);
+    graphics.lineBetween(10, 44, 78, 44);
+    graphics.generateTexture('spear-barrage-impact', 88, 88);
+
+    graphics.clear();
     graphics.fillStyle(0x392157, 0.95);
     graphics.fillCircle(16, 16, 11);
     graphics.lineStyle(2, 0xc68bff, 0.9);
