@@ -90,6 +90,7 @@ describe('SpearBarrageManager', () => {
     expect(marker).toBeTruthy();
     expect(fallingSpear).toBeTruthy();
     expect(shadow).toBeTruthy();
+    expect(fallingSpear.rotation).toBeCloseTo(Math.atan2(140, 144) + Math.PI / 2, 5);
     expect(fallingSpear.x).toBe(120);
     expect(fallingSpear.y).toBe(100);
     expect(marker.active).toBe(false);

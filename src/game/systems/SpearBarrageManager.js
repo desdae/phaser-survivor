@@ -1,5 +1,6 @@
 import {
   SPEAR_WARNING_MS,
+  getSpearFlightRotation,
   getSpearSpawnPosition,
   getSpearVisualState
 } from '../logic/spearBarrageVisuals.js';
@@ -82,7 +83,7 @@ export class SpearBarrageManager {
       const [spawnX, spawnY] = getSpearSpawnPosition(x, y, this.scene?.cameras?.main);
       const fallingSpear = this.scene?.add?.image?.(spawnX, spawnY, 'spear-barrage-fall');
       const shadow = this.scene?.add?.image?.(x, y, 'spear-barrage-shadow');
-      const rotation = Math.atan2(y - spawnY, x - spawnX);
+      const rotation = getSpearFlightRotation(spawnX, spawnY, x, y);
 
       marker?.setDepth?.(2);
       marker?.setScale?.(1);
