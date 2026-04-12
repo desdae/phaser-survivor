@@ -54,20 +54,41 @@ export class LanceManager {
   }
 
   render(origin, aimDirection, stats) {
-    const graphics = this.scene?.add?.graphics?.();
+    const add = this.scene?.add;
+    const time = this.scene?.time;
 
-    if (!graphics) {
+    if (!add?.image || !time?.delayedCall) {
       return;
     }
 
-    const endX = origin.x + aimDirection.x * (stats.lanceLength ?? 0);
-    const endY = origin.y + aimDirection.y * (stats.lanceLength ?? 0);
+    const rotation = Math.atan2(aimDirection.y, aimDirection.x);
+    const midX = origin.x + aimDirection.x * ((stats.lanceLength ?? 0) * 0.5);
+    const midY = origin.y + aimDirection.y * ((stats.lanceLength ?? 0) * 0.5);
+    const strike = add.image(midX, midY, 'lance-strike');
+    const trail = add.image(midX - aimDirection.x * 14, midY - aimDirection.y * 14, 'lance-trail');
 
-    graphics.lineStyle(Math.max(2, (stats.lanceWidth ?? 0) * 0.35), 0xb3f6ff, 0.95);
-    graphics.beginPath();
-    graphics.moveTo(origin.x, origin.y);
-    graphics.lineTo(endX, endY);
-    graphics.strokePath();
-    this.scene.time?.delayedCall?.(70, () => graphics.destroy?.());
+    trail.setDepth?.(2.8);
+    trail.setOrigin?.(0.14, 0.5);
+    trail.setRotation?.(rotation);
+    trail.setScale?.(
+      Math.max(0.7, (stats.lanceLength ?? 0) / 180),
+      Math.max(0.8, (stats.lanceWidth ?? 0) / 16)
+    );
+    trail.setAlpha?.(0.52);
+    trail.setTintFill?.(0x8fefff);
+
+    strike.setDepth?.(3);
+    strike.setOrigin?.(0.12, 0.5);
+    strike.setRotation?.(rotation);
+    strike.setScale?.(
+      Math.max(0.8, (stats.lanceLength ?? 0) / 180),
+      Math.max(0.8, (stats.lanceWidth ?? 0) / 18)
+    );
+    strike.setAlpha?.(0.98);
+
+    time.delayedCall(70, () => {
+      strike.destroy?.();
+      trail.destroy?.();
+    });
   }
 }
