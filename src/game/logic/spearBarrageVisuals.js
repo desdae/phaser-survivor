@@ -7,6 +7,10 @@ export function getSpearSpawnPosition(targetX, targetY, camera) {
   return [Math.round(startX), Math.round(startY)];
 }
 
+export function getSpearFlightRotation(startX, startY, targetX, targetY) {
+  return Math.atan2(targetY - startY, targetX - startX) + Math.PI / 2;
+}
+
 export function getSpearVisualState(strike, now) {
   const startAt = strike.landsAt - SPEAR_WARNING_MS;
   const progress = Math.max(0, Math.min(1, (now - startAt) / SPEAR_WARNING_MS));

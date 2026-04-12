@@ -1477,6 +1477,27 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('nova-ring', 40, 40);
 
     graphics.clear();
+    graphics.fillStyle(0x2b313a, 0.96);
+    graphics.fillRect(16, 12, 112, 4);
+    graphics.fillStyle(0x48515d, 0.9);
+    graphics.fillRect(20, 10, 104, 2);
+    graphics.fillStyle(0xc6edf6, 0.98);
+    graphics.fillTriangle(126, 7, 178, 14, 126, 21);
+    graphics.fillStyle(0xeffbff, 0.82);
+    graphics.fillTriangle(132, 10, 170, 14, 132, 18);
+    graphics.lineStyle(2, 0xa9f1ff, 0.82);
+    graphics.lineBetween(118, 14, 138, 4);
+    graphics.lineBetween(118, 14, 138, 24);
+    graphics.generateTexture('lance-strike', 180, 28);
+
+    graphics.clear();
+    graphics.fillStyle(0x7ce4ff, 0.18);
+    graphics.fillEllipse(78, 12, 136, 12);
+    graphics.fillStyle(0xc1f6ff, 0.14);
+    graphics.fillEllipse(96, 12, 96, 8);
+    graphics.generateTexture('lance-trail', 180, 24);
+
+    graphics.clear();
     graphics.fillStyle(0xffe18b, 0.85);
     graphics.fillCircle(16, 16, 10);
     graphics.lineStyle(2, 0xff7d5f, 1);

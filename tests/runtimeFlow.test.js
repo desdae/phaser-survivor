@@ -75,6 +75,8 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-fall', 44, 180);
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-shadow', 44, 180);
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-impact', 88, 88);
+    expect(generateTexture).toHaveBeenCalledWith('lance-strike', 180, 28);
+    expect(generateTexture).toHaveBeenCalledWith('lance-trail', 180, 24);
     expect(generateTexture).toHaveBeenCalledWith('arc-mine', 36, 36);
     expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
     expect(generateTexture).toHaveBeenCalledWith('powerup-frenzy', 22, 22);
