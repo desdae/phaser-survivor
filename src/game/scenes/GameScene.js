@@ -1531,6 +1531,16 @@ export class GameScene extends Phaser.Scene {
     graphics.generateTexture('spear-barrage-fall', 44, 180);
 
     graphics.clear();
+    graphics.fillStyle(0x120a08, 0.12);
+    graphics.fillTriangle(22, 6, 14, 34, 30, 34);
+    graphics.fillRect(19, 34, 6, 118);
+    graphics.fillEllipse(22, 152, 12, 30);
+    graphics.fillStyle(0x2b1c18, 0.08);
+    graphics.fillTriangle(22, 14, 10, 42, 34, 42);
+    graphics.fillRect(17, 38, 10, 112);
+    graphics.generateTexture('spear-barrage-shadow', 44, 180);
+
+    graphics.clear();
     graphics.fillStyle(0xffcc8d, 0.18);
     graphics.fillCircle(44, 44, 30);
     graphics.lineStyle(4, 0xffe2b8, 0.86);

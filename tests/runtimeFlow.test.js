@@ -73,6 +73,7 @@ describe('GameScene createTextures', () => {
     expect(generateTexture).toHaveBeenCalledWith('meteor-explosion', 96, 96);
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-marker', 44, 44);
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-fall', 44, 180);
+    expect(generateTexture).toHaveBeenCalledWith('spear-barrage-shadow', 44, 180);
     expect(generateTexture).toHaveBeenCalledWith('spear-barrage-impact', 88, 88);
     expect(generateTexture).toHaveBeenCalledWith('arc-mine', 36, 36);
     expect(generateTexture).toHaveBeenCalledWith('reward-chest', 28, 22);
