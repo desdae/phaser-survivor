@@ -14,6 +14,8 @@ export const ABILITY_FLAGS = [
   ['spearBarrage', 'spearBarrageUnlocked']
 ];
 
+const META_WEAPON_FLAG_MAP = Object.fromEntries(ABILITY_FLAGS);
+
 export function getOwnedAbilityKeys(player) {
   return [
     'projectile',
@@ -31,4 +33,14 @@ export function canLearnAbility(player, unlockFlag) {
   }
 
   return countLearnedAbilities(player) < ABILITY_CAP;
+}
+
+export function isAbilityUnlockedInMeta(unlockedWeapons = [], key) {
+  return key === 'projectile' || unlockedWeapons.includes(key);
+}
+
+export function getAllowedAbilityFlags(unlockedWeapons = []) {
+  return unlockedWeapons
+    .map((key) => META_WEAPON_FLAG_MAP[key])
+    .filter(Boolean);
 }

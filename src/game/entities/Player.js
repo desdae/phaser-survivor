@@ -81,6 +81,16 @@ const PLAYER_STARTING_STATS = {
   spearBarrageCooldownMs: 0
 };
 
+export function applyMetaBonusesToStats(stats, metaBonuses = {}) {
+  stats.maxHealth += metaBonuses.maxHealthBonus ?? 0;
+  stats.health = Math.min(stats.maxHealth, stats.health + (metaBonuses.maxHealthBonus ?? 0));
+  stats.pickupRadius += metaBonuses.pickupRadiusBonus ?? 0;
+  stats.moveSpeedBonus += metaBonuses.moveSpeedBonus ?? 0;
+  stats.metaRerolls = metaBonuses.rerollCharges ?? 0;
+  stats.metaReviveUnlocked = Boolean(metaBonuses.reviveUnlocked);
+  return stats;
+}
+
 export class Player {
   constructor(scene, x, y) {
     this.scene = scene;

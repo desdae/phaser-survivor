@@ -1,8 +1,8 @@
 import { applyUpgrade, getUpgradePool, rollUpgradeChoices } from '../logic/progression.js';
 
 export class UpgradeSystem {
-  getChoices(playerStats = {}) {
-    return rollUpgradeChoices(getUpgradePool(playerStats));
+  getChoices(playerStats = {}, metaConfig = {}) {
+    return rollUpgradeChoices(getUpgradePool(playerStats, metaConfig));
   }
 
   apply(player, key) {

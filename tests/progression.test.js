@@ -7,6 +7,10 @@ import {
   getXpToNextLevel,
   rollUpgradeChoices
 } from '../src/game/logic/progression.js';
+import {
+  getAllowedAbilityFlags,
+  isAbilityUnlockedInMeta
+} from '../src/game/logic/abilityRoster.js';
 
 describe('getXpToNextLevel', () => {
   it('uses a smoothed early ramp before exponential growth kicks in', () => {
@@ -47,6 +51,14 @@ describe('rollUpgradeChoices', () => {
 });
 
 describe('getUpgradePool', () => {
+  it('maps unlocked weapons to the existing run-time flags', () => {
+    expect(getAllowedAbilityFlags(['projectile', 'blade', 'chain'])).toEqual([
+      'bladeUnlocked',
+      'chainUnlocked'
+    ]);
+    expect(isAbilityUnlockedInMeta(['projectile', 'blade'], 'blade')).toBe(true);
+  });
+
   it('offers blade unlock before the blade exists', () => {
     const pool = getUpgradePool({
       bladeUnlocked: false,
@@ -297,6 +309,35 @@ describe('getUpgradePool', () => {
     expect(pool.some((entry) => entry.key === 'unlockSpearBarrage')).toBe(false);
     expect(pool.some((entry) => entry.key === 'arcMineDamage')).toBe(true);
     expect(pool.some((entry) => entry.key === 'spearBarrageDamage')).toBe(true);
+  });
+
+  it('hides permanently locked weapon families from the run upgrade pool', () => {
+    const pool = getUpgradePool(
+      {
+        bladeUnlocked: false,
+        chainUnlocked: false,
+        novaUnlocked: false,
+        boomerangUnlocked: false,
+        meteorUnlocked: false,
+        burstRifleUnlocked: false,
+        flamethrowerUnlocked: false,
+        runeTrapUnlocked: false,
+        lanceUnlocked: false,
+        arcMineUnlocked: false,
+        spearBarrageUnlocked: false,
+        projectileCount: 1,
+        projectilePierce: 0,
+        projectileRicochet: 0
+      },
+      {
+        unlockedWeapons: ['projectile', 'blade', 'chain']
+      }
+    );
+
+    expect(pool.some((entry) => entry.key === 'unlockBlade')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'unlockChain')).toBe(true);
+    expect(pool.some((entry) => entry.key === 'unlockNova')).toBe(false);
+    expect(pool.some((entry) => entry.key === 'unlockMeteor')).toBe(false);
   });
 });
 

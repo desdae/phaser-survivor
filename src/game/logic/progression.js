@@ -1,4 +1,4 @@
-import { canLearnAbility } from './abilityRoster.js';
+import { canLearnAbility, getAllowedAbilityFlags } from './abilityRoster.js';
 
 export const UPGRADE_DEFINITIONS = [
   {
@@ -638,8 +638,32 @@ export function rollUpgradeChoices(pool, rng = Math.random, count = 3) {
   return picks;
 }
 
-export function getUpgradePool(player) {
-  return UPGRADE_DEFINITIONS.filter((entry) => (entry.isAvailable ? entry.isAvailable(player) : true));
+export function getUpgradePool(player, metaConfig = {}) {
+  const hasMetaUnlockGate = Array.isArray(metaConfig.unlockedWeapons);
+  const allowedUnlockFlags = hasMetaUnlockGate
+    ? new Set(getAllowedAbilityFlags(metaConfig.unlockedWeapons))
+    : null;
+
+  return UPGRADE_DEFINITIONS.filter((entry) => {
+    const available = entry.isAvailable ? entry.isAvailable(player) : true;
+
+    if (!available) {
+      return false;
+    }
+
+    if (!entry.key?.startsWith('unlock')) {
+      return true;
+    }
+
+    if (!hasMetaUnlockGate) {
+      return true;
+    }
+
+    const abilityKey = entry.key.replace(/^unlock/, '');
+    const unlockFlag = `${abilityKey.charAt(0).toLowerCase()}${abilityKey.slice(1)}Unlocked`;
+
+    return allowedUnlockFlags.has(unlockFlag);
+  });
 }
 
 export function applyUpgrade(player, key) {
