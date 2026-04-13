@@ -20,6 +20,7 @@ vi.mock('phaser', () => ({
 import Phaser from 'phaser';
 import { getEnemyVisualConfig } from '../src/game/logic/enemyVisuals.js';
 import { GameScene } from '../src/game/scenes/GameScene.js';
+import { calculateSoulAshReward } from '../src/game/meta/metaRewards.js';
 import { createJournalDiscoveryState } from '../src/game/logic/journalDiscovery.js';
 import { buildWeaponTooltipMap } from '../src/game/logic/weaponTooltips.js';
 import { PickupManager } from '../src/game/systems/PickupManager.js';
@@ -2039,6 +2040,53 @@ describe('GameScene openGameOver', () => {
 
     expect(sceneLike.audioManager.playGameOver).toHaveBeenCalledOnce();
     expect(sceneLike.gameOverOverlay.show).toHaveBeenCalledWith({ level: 4, timeMs: 12000 });
+  });
+});
+
+describe('GameScene meta flow', () => {
+  it('returns the run summary to the home scene on game over', () => {
+    const sceneLike = {
+      elapsedMs: 93000,
+      runStats: {
+        eliteKills: 2,
+        bossKills: 1,
+        chestsOpened: 3,
+        discoverySoulAsh: 10
+      },
+      metaProfile: {
+        version: 1,
+        meta: {
+          soulAsh: 0,
+          lifetimeSoulAshEarned: 0,
+          totalRuns: 0,
+          bestTimeMs: 0,
+          eliteKills: 0,
+          bossKills: 0,
+          chestsOpened: 0
+        },
+        shop: {},
+        unlocks: { weapons: ['projectile', 'blade', 'chain'] },
+        achievements: {}
+      },
+      scene: { start: vi.fn() }
+    };
+
+    GameScene.prototype.finishRun.call(sceneLike);
+
+    expect(sceneLike.scene.start).toHaveBeenCalledWith(
+      'home',
+      expect.objectContaining({
+        lastRunSummary: expect.objectContaining({
+          soulAshEarned: calculateSoulAshReward({
+            timeMs: 93000,
+            eliteKills: 2,
+            bossKills: 1,
+            chestsOpened: 3,
+            discoverySoulAsh: 10
+          }).total
+        })
+      })
+    );
   });
 });
 

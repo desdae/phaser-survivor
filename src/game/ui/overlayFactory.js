@@ -1144,3 +1144,20 @@ export function createGameOverOverlay(scene, onRestart) {
     }
   };
 }
+
+export function createHomePanel(scene) {
+  const title = scene.add?.text?.(0, 0, 'Sanctum', {
+    fontFamily: 'Trebuchet MS',
+    fontSize: '36px',
+    color: '#f4f8ff',
+    fontStyle: 'bold'
+  });
+
+  title?.setScrollFactor?.(0);
+
+  return {
+    update(model) {
+      title?.setText?.(`Sanctum\nSoul Ash ${model.soulAsh}`);
+    }
+  };
+}

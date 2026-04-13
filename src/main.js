@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './styles.css';
+import { HomeScene } from './game/scenes/HomeScene.js';
 import { GameScene } from './game/scenes/GameScene.js';
 
 const config = {
@@ -14,7 +15,7 @@ const config = {
       debug: false
     }
   },
-  scene: [GameScene],
+  scene: [HomeScene, GameScene],
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH

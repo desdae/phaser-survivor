@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
-import { Player } from '../entities/Player.js';
+import { applyMetaBonusesToStats, Player } from '../entities/Player.js';
 import { countLearnedAbilities, getOwnedAbilityKeys } from '../logic/abilityRoster.js';
+import { evaluateAchievements } from '../meta/achievementLedger.js';
+import { calculateSoulAshReward } from '../meta/metaRewards.js';
+import { saveMetaProfile } from '../meta/metaProgression.js';
 import { EnemyManager } from '../systems/EnemyManager.js';
 import { ArcMineManager } from '../systems/ArcMineManager.js';
 import { BladeManager } from '../systems/BladeManager.js';
@@ -126,6 +129,13 @@ export class GameScene extends Phaser.Scene {
     this.powerupCompassIndicators = [];
   }
 
+  init(data = {}) {
+    this.metaProfile = data.metaProfile ?? null;
+    this.runMetaConfig = {
+      unlockedWeapons: this.metaProfile?.unlocks?.weapons
+    };
+  }
+
   preload() {
     getNecromancerBossArtEntries().forEach(({ key, url }) => {
       this.load.image(key, url);
@@ -152,8 +162,16 @@ export class GameScene extends Phaser.Scene {
       }
     };
     this.journalPayload = null;
+    this.runStats = {
+      eliteKills: 0,
+      bossKills: 0,
+      chestsOpened: 0,
+      discoverySoulAsh: 0,
+      learnedAbilityCount: 1
+    };
 
     this.player = new Player(this, 0, 0);
+    this.applyMetaProfile(this.metaProfile ?? {});
     this.pickupManager = new PickupManager(this, (pickup) => this.handlePickupCollected(pickup));
     this.damageStatsManager = new DamageStatsManager();
     this.bloodEffectsManager = new BloodEffectsManager(this);
@@ -266,6 +284,66 @@ export class GameScene extends Phaser.Scene {
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.syncAbilityDiscoveries();
     this.refreshHud();
+  }
+
+  applyMetaProfile(profile = {}) {
+    this.metaProfile = profile;
+    this.runMetaConfig = {
+      unlockedWeapons: profile.unlocks?.weapons ?? ['projectile', 'blade', 'chain']
+    };
+
+    applyMetaBonusesToStats(this.player.stats, {
+      maxHealthBonus: (profile.shop?.maxHealthLevel ?? 0) * 5,
+      pickupRadiusBonus: (profile.shop?.pickupRadiusLevel ?? 0) * 8,
+      moveSpeedBonus: (profile.shop?.moveSpeedLevel ?? 0) * 0.02,
+      rerollCharges: profile.shop?.rerollLevel ?? 0,
+      reviveUnlocked: profile.shop?.reviveUnlocked ?? false
+    });
+  }
+
+  finishRun() {
+    const reward = calculateSoulAshReward({
+      timeMs: this.elapsedMs,
+      ...this.runStats
+    });
+    const baseProfile = this.metaProfile ?? {
+      version: 1,
+      meta: {
+        soulAsh: 0,
+        lifetimeSoulAshEarned: 0,
+        totalRuns: 0,
+        bestTimeMs: 0,
+        eliteKills: 0,
+        bossKills: 0,
+        chestsOpened: 0
+      },
+      shop: {},
+      unlocks: { weapons: ['projectile', 'blade', 'chain'] },
+      achievements: {}
+    };
+    const nextProfile = structuredClone(baseProfile);
+
+    nextProfile.meta.soulAsh += reward.total;
+    nextProfile.meta.lifetimeSoulAshEarned += reward.total;
+    nextProfile.meta.totalRuns += 1;
+    nextProfile.meta.bestTimeMs = Math.max(nextProfile.meta.bestTimeMs, this.elapsedMs ?? 0);
+    nextProfile.meta.eliteKills += this.runStats?.eliteKills ?? 0;
+    nextProfile.meta.bossKills += this.runStats?.bossKills ?? 0;
+    nextProfile.meta.chestsOpened += this.runStats?.chestsOpened ?? 0;
+    nextProfile.achievements = evaluateAchievements(nextProfile.achievements, {
+      timeMs: this.elapsedMs,
+      ...this.runStats
+    });
+
+    this.scene.start('home', {
+      metaProfile: saveMetaProfile(this.storage, nextProfile),
+      lastRunSummary: {
+        ...this.runStats,
+        timeMs: this.elapsedMs,
+        soulAshEarned: reward.total,
+        soulAshRows: reward.rows
+      }
+    });
   }
 
   update(time, delta) {
