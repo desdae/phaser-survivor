@@ -2,6 +2,17 @@ import { createDefaultMetaProfile, migrateMetaProfile } from './defaultProfile.j
 import { getMetaShopDefinition } from './metaShopData.js';
 
 export const META_PROFILE_STORAGE_KEY = 'survivor.metaProfile.v1';
+const META_WEAPON_COSTS = {
+  nova: 60,
+  boomerang: 60,
+  meteor: 90,
+  burstRifle: 100,
+  lance: 100,
+  flamethrower: 100,
+  runeTrap: 100,
+  arcMine: 120,
+  spearBarrage: 120
+};
 
 export function loadMetaProfile(storage = globalThis.localStorage) {
   try {
@@ -54,5 +65,26 @@ export function purchaseShopUpgrade(profile, key) {
   nextProfile.shop[definition.profileKey] =
     typeof current === 'boolean' ? true : current + 1;
 
+  return nextProfile;
+}
+
+export function purchaseWeaponUnlock(profile, weaponKey) {
+  if (profile.unlocks?.weapons?.includes(weaponKey)) {
+    throw new Error('Weapon already unlocked');
+  }
+
+  const cost = META_WEAPON_COSTS[weaponKey];
+
+  if (!cost) {
+    throw new Error(`Unknown weapon unlock: ${weaponKey}`);
+  }
+
+  if ((profile.meta?.soulAsh ?? 0) < cost) {
+    throw new Error('Not enough Soul Ash');
+  }
+
+  const nextProfile = migrateMetaProfile(profile);
+  nextProfile.meta.soulAsh -= cost;
+  nextProfile.unlocks.weapons = [...nextProfile.unlocks.weapons, weaponKey];
   return nextProfile;
 }

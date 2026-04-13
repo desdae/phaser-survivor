@@ -689,7 +689,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.runStats ??= {};
     this.bossSystem?.markDefeated?.();
+    this.runStats.bossKills = (this.runStats.bossKills ?? 0) + 1;
     this.pickupManager?.spawnChest?.(bossDeath.x, bossDeath.y, bossDeath.type);
     this.refreshHud();
   }
@@ -700,7 +702,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (pickup.kind === 'chest') {
+      this.runStats ??= {};
       this.audioManager?.playChestOpen?.();
+      this.runStats.chestsOpened = (this.runStats.chestsOpened ?? 0) + 1;
       this.openChestReward(pickup);
       return true;
     }
@@ -765,7 +769,7 @@ export class GameScene extends Phaser.Scene {
     this.activePauseOverlay = 'levelUp';
     this.physics.world.pause();
     this.player.stop();
-    this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats));
+    this.levelUpOverlay.show(this.upgradeSystem.getChoices(this.player.stats, this.runMetaConfig));
   }
 
   openChestReward(pickup = null) {
@@ -812,6 +816,7 @@ export class GameScene extends Phaser.Scene {
     this.upgradeSystem.apply(this.player, choice.key);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.syncAbilityDiscoveries();
+    this.runStats.learnedAbilityCount = countLearnedAbilities(this.player.stats);
     this.levelUpOverlay.hide();
     this.activePauseOverlay = null;
 
@@ -827,6 +832,7 @@ export class GameScene extends Phaser.Scene {
     this.chestRewardSystem.apply(this.player, reward, this.pickupManager);
     this.damageStatsManager.syncUnlockedWeapons(this.player.stats, this.elapsedMs);
     this.syncAbilityDiscoveries();
+    this.runStats.learnedAbilityCount = countLearnedAbilities(this.player.stats);
     this.chestOverlay.hide();
     this.activePauseOverlay = null;
     this.pendingChestPickup = null;
@@ -859,6 +865,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   restartRun() {
+    if (this.metaProfile?.meta && this.isGameOver) {
+      this.finishRun();
+      return;
+    }
+
     this.levelUpOverlay?.hide?.();
     this.chestOverlay?.hide?.();
     this.gameOverOverlay?.hide?.();

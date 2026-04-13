@@ -1,5 +1,11 @@
 import Phaser from 'phaser';
+import { claimAchievementReward } from '../meta/achievementLedger.js';
 import { loadMetaProfile } from '../meta/metaProgression.js';
+import {
+  purchaseShopUpgrade,
+  purchaseWeaponUnlock,
+  saveMetaProfile
+} from '../meta/metaProgression.js';
 import { createHomePanel } from '../ui/overlayFactory.js';
 
 export class HomeScene extends Phaser.Scene {
@@ -22,6 +28,21 @@ export class HomeScene extends Phaser.Scene {
     this.scene.start('game', {
       metaProfile: this.metaProfile
     });
+  }
+
+  buyShopUpgrade(key) {
+    this.metaProfile = saveMetaProfile(this.storage, purchaseShopUpgrade(this.metaProfile, key));
+    this.refreshHomePanels();
+  }
+
+  buyWeaponUnlock(key) {
+    this.metaProfile = saveMetaProfile(this.storage, purchaseWeaponUnlock(this.metaProfile, key));
+    this.refreshHomePanels();
+  }
+
+  claimAchievement(key) {
+    this.metaProfile = saveMetaProfile(this.storage, claimAchievementReward(this.metaProfile, key));
+    this.refreshHomePanels();
   }
 
   refreshHomePanels() {

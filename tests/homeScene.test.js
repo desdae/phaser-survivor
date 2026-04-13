@@ -27,4 +27,44 @@ describe('HomeScene', () => {
       expect.objectContaining({ metaProfile: sceneLike.metaProfile })
     );
   });
+
+  it('buys permanent weapon unlocks', () => {
+    const sceneLike = {
+      storage: { setItem: vi.fn() },
+      metaProfile: {
+        version: 1,
+        meta: { soulAsh: 90, lifetimeSoulAshEarned: 90 },
+        shop: {},
+        unlocks: { weapons: ['projectile', 'blade', 'chain'] },
+        achievements: {}
+      },
+      refreshHomePanels: vi.fn()
+    };
+
+    HomeScene.prototype.buyWeaponUnlock.call(sceneLike, 'nova');
+
+    expect(sceneLike.metaProfile.meta.soulAsh).toBe(30);
+    expect(sceneLike.metaProfile.unlocks.weapons).toContain('nova');
+    expect(sceneLike.refreshHomePanels).toHaveBeenCalledOnce();
+  });
+
+  it('claims unlocked achievement rewards', () => {
+    const sceneLike = {
+      storage: { setItem: vi.fn() },
+      metaProfile: {
+        version: 1,
+        meta: { soulAsh: 10, lifetimeSoulAshEarned: 10 },
+        shop: {},
+        unlocks: { weapons: ['projectile', 'blade', 'chain'] },
+        achievements: { beatNecromancer: { unlocked: true, claimed: false } }
+      },
+      refreshHomePanels: vi.fn()
+    };
+
+    HomeScene.prototype.claimAchievement.call(sceneLike, 'beatNecromancer');
+
+    expect(sceneLike.metaProfile.meta.soulAsh).toBe(30);
+    expect(sceneLike.metaProfile.achievements.beatNecromancer.claimed).toBe(true);
+    expect(sceneLike.refreshHomePanels).toHaveBeenCalledOnce();
+  });
 });
