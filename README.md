@@ -72,3 +72,17 @@ npm run dev     # local dev server (Vite); open the printed URL to play
 
 A change is done when `npm test` and `npm run build` both pass with no new warnings other than Vite's existing chunk-size
 notice.
+
+## Clean export
+
+`tools/export-clean.sh` (Linux/macOS) and `tools\export-clean.bat` (Windows) build a shareable copy of the project
+without changing the repository: no git history, CI folders, agent or AI notes, `docs/`, `tools/`, dependencies, build
+output, local env files, logs or key files. They also print any lines that look like secrets or email addresses, and
+pack the result as a zip.
+
+```bash
+tools/export-clean.sh            # writes export/<project>/ and export/<project>-clean.zip
+tools\export-clean.bat           # same on Windows (uses robocopy and PowerShell)
+```
+
+Pass a folder as the first argument to write somewhere else. `export/` is git-ignored.
