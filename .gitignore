@@ -1,5 +1,24 @@
+# Dependencies and build output
 node_modules/
 dist/
 coverage/
+.vite/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor, OS and tool folders
 .worktrees/
+.idea/
+.vscode/
 .DS_Store
+Thumbs.db
+
+# Clean export output (tools/export-clean.*)
+export/
